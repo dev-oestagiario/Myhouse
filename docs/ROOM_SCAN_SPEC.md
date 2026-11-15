@@ -1,5 +1,7 @@
 # My House — Escaneamento assistido de cômodos
 
+> **Evolução F5 (15/11/2026):** o fluxo de fotos descrito abaixo é histórico. A experiência atual em desenvolvimento passa a usar câmera ao vivo sem fotografias. Consultar [F5_LIVE_SCAN.md](F5_LIVE_SCAN.md). A geração automática sem ARCore pertence à etapa 2, e a build do APK foi adiada para o final das três etapas.
+
 ## Objetivo e limites
 
 Uma pessoa em mudança ou reforma usa seu celular para registrar um cômodo e incorporá-lo à Planta 3D sem precisar configurar a geometria manualmente no editor. O **MVP fase 1** registra imagens guiadas, solicita largura, comprimento e altura *medidos ou conferidos pela pessoa*, pré-visualiza o volume e salva apenas o cômodo. **Fotos não produzem medidas automáticas nesta fase**.
