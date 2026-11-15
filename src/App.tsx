@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Canvas } from '@react-three/fiber';
+import HouseModel from './plan/HouseModel';
+import PlanEditor from './plan/PlanEditor';
+import { getWallSegments, scaleRoomGeometry, validateRoomGeometry } from './plan/geometry';
 import GuidedRoomScan from './scan/GuidedRoomScan';
-import { Edges, OrbitControls } from '@react-three/drei';
 import {
   ArrowDownToLine, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
   ClipboardList, Clock3, Download, Edit3, FileClock, Filter, Hammer, Home,
@@ -17,7 +18,7 @@ import {
   statusNames, validateHome, wallId,
 } from './data';
 
-type Page = 'overview' | 'shopping' | 'floorplan' | 'works' | 'scan' | 'history';
+type Page = 'overview' | 'shopping' | 'floorplan' | 'plan-editor' | 'works' | 'scan' | 'history';
 type PurchaseDraft = Omit<Purchase, 'id' | 'createdAt'>;
 const emptyPurchase = (): PurchaseDraft => ({
   name: '', category: 'Outros', roomId: '', priority: 'media',
@@ -25,58 +26,6 @@ const emptyPurchase = (): PurchaseDraft => ({
 });
 const localDate = (date: string) => new Date(date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 const moneyInput = (n: number) => (Number.isFinite(n) ? String(n) : '0');
-
-function HouseModel({ rooms, selectedRoomId, selectedWall, onSelect }: {
-  rooms: Room[];
-  selectedRoomId: string;
-  selectedWall: Direction;
-  onSelect: (id: string, direction: Direction) => void;
-}) {
-  const minX = Math.min(...rooms.map(r => r.x));
-  const maxX = Math.max(...rooms.map(r => r.x + r.width));
-  const minZ = Math.min(...rooms.map(r => r.z));
-  const maxZ = Math.max(...rooms.map(r => r.z + r.length));
-  const cx = (minX + maxX) / 2;
-  const cz = (minZ + maxZ) / 2;
-  const size = Math.max(maxX - minX, maxZ - minZ, 4);
-  const height = Math.max(...rooms.map(r => r.height));
-  const wallsForRoom = (room: Room) => [
-    { direction: 'norte' as Direction, position: [room.x + room.width / 2, room.height / 2, room.z] as [number, number, number], size: [room.width, room.height, 0.08] as [number, number, number] },
-    { direction: 'sul' as Direction, position: [room.x + room.width / 2, room.height / 2, room.z + room.length] as [number, number, number], size: [room.width, room.height, 0.08] as [number, number, number] },
-    { direction: 'leste' as Direction, position: [room.x + room.width, room.height / 2, room.z + room.length / 2] as [number, number, number], size: [0.08, room.height, room.length] as [number, number, number] },
-    { direction: 'oeste' as Direction, position: [room.x, room.height / 2, room.z + room.length / 2] as [number, number, number], size: [0.08, room.height, room.length] as [number, number, number] },
-  ];
-  return (
-    <Canvas key={`${rooms.map(r => [r.id, r.width, r.length, r.height, r.x, r.z].join(':')).join('|')}`}
-      camera={{ position: [cx + size * 1.1, height + size * 1.15, cz + size * 1.2], fov: 43 }}
-      gl={{ antialias: true }}>
-      <color attach="background" args={['#f3f5f3']} />
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[7, 12, 8]} intensity={1.8} />
-      <gridHelper args={[Math.max(30, size * 3), 30, '#d5ddd9', '#e0e8e3']} position={[cx, -0.11, cz]} />
-      {rooms.map((room, idx) => (
-        <group key={room.id}>
-          <mesh position={[room.x + room.width / 2, -0.04, room.z + room.length / 2]}>
-            <boxGeometry args={[room.width, 0.08, room.length]} />
-            <meshStandardMaterial color={room.id === selectedRoomId ? '#e0ece5' : idx % 2 ? '#e8edf0' : '#f5ede3'} />
-            <Edges color="#b8c9c2" threshold={10} />
-          </mesh>
-          {wallsForRoom(room).map(w => {
-            const active = room.id === selectedRoomId && selectedWall === w.direction;
-            return (
-              <mesh key={w.direction} position={w.position} onClick={e => { e.stopPropagation(); onSelect(room.id, w.direction); }}>
-                <boxGeometry args={w.size} />
-                <meshStandardMaterial color={active ? '#e9a164' : '#9aada9'} transparent opacity={active ? 0.76 : 0.36} depthWrite={false} />
-                <Edges color={active ? '#bc692c' : '#91aaa3'} threshold={15} />
-              </mesh>
-            );
-          })}
-        </group>
-      ))}
-      <OrbitControls target={[cx, 0, cz]} enablePan enableZoom minDistance={2} maxDistance={80} maxPolarAngle={Math.PI / 2.05} />
-    </Canvas>
-  );
-}
 
 function Modal({ title, onClose, children }: { title: string, onClose: () => void, children: ReactNode }) {
   return <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -215,6 +164,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   const selectedRoom = home.rooms.find(room => room.id === selectedRoomId);
   const currentWallId = wallId(selectedRoomId, selectedWall);
   const selectedStages = home.wallStages[currentWallId] ?? {};
+  const selectedWallArea = selectedRoom ? getWallSegments(selectedRoom).filter(segment => segment.direction === selectedWall).reduce((sum, segment) => sum + segment.length * selectedRoom.height, 0) - (selectedRoom.openings ?? []).filter(opening => getWallSegments(selectedRoom)[opening.edge]?.direction === selectedWall).reduce((sum, opening) => sum + opening.width * opening.height, 0) : 0;
   const selectedWallLogs = home.logs.filter(l => l.roomId === selectedRoomId && l.direction === selectedWall);
   const next = nextStage(selectedStages);
   const categories = useMemo(() => Array.from(new Set(home.purchases.map(p => p.category).filter(Boolean))).sort(), [home.purchases]);
@@ -262,15 +212,37 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   }
   function saveRoom(e: FormEvent) {
     e.preventDefault();
-    if (!roomDraft.name.trim() || [roomDraft.width, roomDraft.length, roomDraft.height].some(n => !Number.isFinite(n) || n <= 0)
-        || [roomDraft.x, roomDraft.z].some(n => !Number.isFinite(n))) return;
-    const room = { ...roomDraft, name: roomDraft.name.trim(), id: editingRoomId ?? newId() };
-    setHome(prev => ({ ...prev, rooms: editingRoomId ? prev.rooms.map(r => r.id === editingRoomId ? room : r) : [...prev.rooms, room] }));
-    setSelectedRoomId(room.id);
-    setRoomOpen(false);
-    setPage('works');
-    setNotice('Cômodo salvo. Ele já aparece na Planta 3D.');
+    try {
+      if (!roomDraft.name.trim() || [roomDraft.width, roomDraft.length, roomDraft.height].some(n => !Number.isFinite(n) || n < 0.1 || n > 100)
+          || [roomDraft.x, roomDraft.z].some(n => !Number.isFinite(n) || Math.abs(n) > 100)) {
+        throw new Error('Confira o nome, as medidas (0,10 a 100 m) e as posições (-100 a 100 m).');
+      }
+      const previous = home.rooms.find(r => r.id === editingRoomId);
+      const resized = previous ? scaleRoomGeometry(previous, roomDraft.width, roomDraft.length) : null;
+      const room: Room = validateRoomGeometry({
+        ...(resized ?? { id: newId(), ...roomDraft }),
+        name: roomDraft.name.trim(),
+        width: roomDraft.width, length: roomDraft.length, height: roomDraft.height,
+        x: roomDraft.x, z: roomDraft.z,
+      });
+      setHome(prev => ({ ...prev, rooms: editingRoomId ? prev.rooms.map(r => r.id === editingRoomId ? room : r) : [...prev.rooms, room] }));
+      setSelectedRoomId(room.id);
+      setRoomOpen(false);
+      setPage('works');
+      setNotice('Cômodo salvo. Sua geometria e seus registros foram preservados.');
+    } catch (problem) {
+      setNotice(problem instanceof Error ? problem.message : 'Não foi possível atualizar o cômodo.');
+    }
   }
+  function saveEditedPlan(updated: Room) {
+    validateRoomGeometry(updated);
+    setHome(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room => room.id === updated.id ? updated : room),
+    }));
+    setNotice('Planta salva. As alterações serão sincronizadas na sua conta.');
+  }
+
   function completeRoomScan(draft: Omit<Room, 'id'>) {
     const room: Room = { id: newId(), ...draft };
     setHome(previous => ({ ...previous, rooms: [...previous.rooms, room] }));
@@ -329,6 +301,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     { id: 'overview', name: 'Visão geral', Icon: Home },
     { id: 'shopping', name: 'Lista de compras', Icon: ShoppingBasket },
     { id: 'floorplan', name: 'Planta 3D', Icon: Layers3 },
+    { id: 'plan-editor', name: 'Editar planta 2D', Icon: Edit3 },
     { id: 'works', name: 'Obras', Icon: Hammer },
     { id: 'scan', name: 'Escanear cômodo', Icon: ScanLine },
     { id: 'history', name: 'Histórico de atividades', Icon: FileClock },
@@ -387,7 +360,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           </section>
         </>}
         {page === 'floorplan' && <>
-          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos e selecione paredes. O cadastro e as atualizações ficam em Obras.</p></div><div className="scan-entry-actions"><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div></div>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos, incluindo portas e janelas. O desenho é editado em outra tela.</p></div><div className="scan-entry-actions"><button className="btn btn-outline" onClick={() => changePage('plan-editor')}><Edit3 size={17}/>Editar planta 2D</button><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div></div>
           <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
             <div className="scene">{home.rooms.length ? <HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Cadastre ou escaneie um cômodo para começar.</span><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Plus size={17}/>Cadastro manual</button></div>}</div>
             <div className="room-list-header"><strong>Cômodos</strong><span>{home.rooms.length} cômodo(s)</span></div>
@@ -395,17 +368,24 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. A distribuição real da casa dependerá das suas medidas; portas e janelas ainda não são modeladas.</p>}
           </section>
           </div>
-          {selectedRoom && <section className="panel wall-preview" aria-label="Parede selecionada"><div className="wall-preview-heading"><div><span className="eyebrow dark-eyebrow">PAREDE SELECIONADA</span><h2>{selectedRoom.name} · {directionNames[selectedWall]}</h2><p>{number((selectedWall === 'norte' || selectedWall === 'sul' ? selectedRoom.width : selectedRoom.length) * selectedRoom.height)} m² estimados · {percentDone(selectedStages)}% concluído</p></div><button className="btn btn-primary" onClick={() => changePage('works')}><ArrowRight size={17}/>Ver em Obras</button></div><div className="wall-preview-selector" role="group" aria-label="Selecionar parede">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div></section>}
+          {selectedRoom && <section className="panel wall-preview" aria-label="Parede selecionada"><div className="wall-preview-heading"><div><span className="eyebrow dark-eyebrow">PAREDE SELECIONADA</span><h2>{selectedRoom.name} · {directionNames[selectedWall]}</h2><p>{number(selectedWallArea)} m² estimados · {percentDone(selectedStages)}% concluído</p></div><button className="btn btn-primary" onClick={() => changePage('works')}><ArrowRight size={17}/>Ver em Obras</button></div><div className="wall-preview-selector" role="group" aria-label="Selecionar parede">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div></section>}
         </>}
 
         {page === 'scan' && <GuidedRoomScan existingRooms={home.rooms} onComplete={completeRoomScan} onCancel={() => changePage('works')} />}
+        {page === 'plan-editor' && <PlanEditor
+          rooms={home.rooms}
+          selectedRoomId={selectedRoomId}
+          onSelect={setSelectedRoomId}
+          onSave={saveEditedPlan}
+          onBack={() => changePage('floorplan')}
+        />}
         {page === 'works' && <>
           <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>Obras</h1><p>Registre o andamento de cada parede, sem precisar passar pela planta.</p></div><div className="scan-entry-actions"><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => openRoom()}><Plus size={17}/>Adicionar cômodo</button></div></div>
           <div className="works-layout">
           <section className="panel inspector-panel"><div className="panel-heading inspector-heading"><div><h3>Acompanhamento da parede</h3><p>Registre o andamento e mantenha um histórico.</p></div><Hammer size={20} className="subtle-icon"/></div>
             {selectedRoom ? <><label className="field-label" htmlFor="work-room">Cômodo</label><select id="work-room" className="field-input" value={selectedRoomId} onChange={e => selectWall(e.target.value, selectedWall)}>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select>
               <span className="field-label wall-label" id="work-wall-label">Parede</span><div className="wall-tabs" role="group" aria-labelledby="work-wall-label">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div>
-              <div className="wall-metrics"><div><span>Área estimada</span><strong>{number((selectedWall === 'norte' || selectedWall === 'sul' ? selectedRoom.width : selectedRoom.length) * selectedRoom.height)} m²</strong></div><div><span>Etapas concluídas</span><strong>{percentDone(selectedStages)}%</strong></div></div>
+              <div className="wall-metrics"><div><span>Área estimada</span><strong>{number(selectedWallArea)} m²</strong></div><div><span>Etapas concluídas</span><strong>{percentDone(selectedStages)}%</strong></div></div>
               <div className="progress-track"><span style={{width: `${percentDone(selectedStages)}%`}}/></div>
               <form onSubmit={saveWork} className="work-form"><h4>Registrar atualização</h4><div className="form-row"><div className="field"><label htmlFor="stage">Etapa</label><select id="stage" value={stage} onChange={e => { const s = e.target.value as Stage; setStage(s); setStatus(selectedStages[s] ?? 'em-andamento'); }}>{STAGES.map(s => <option key={s}>{s}</option>)}</select></div><div className="field"><label htmlFor="step-status">Situação</label><select id="step-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{Object.entries(statusNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div></div><div className="field"><label htmlFor="work-note">O que você fez? (opcional)</label><textarea id="work-note" rows={3} value={workNote} onChange={e => setWorkNote(e.target.value)} placeholder="Ex.: Removi a tinta descascada da metade superior da parede." /></div><button className="btn btn-primary full" type="submit"><Save size={17}/>Salvar atualização</button></form>
               <div className="stages-heading"><strong>Etapas da parede</strong><span>{STAGES.filter(s => selectedStages[s] === 'concluido').length} de {STAGES.length}</span></div>
@@ -417,7 +397,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           <section className="panel rooms-manager"><div className="panel-heading"><div><h3>Gerenciar cômodos</h3><p>Cadastre, ajuste medidas ou exclua cômodos da planta.</p></div><button className="btn btn-outline compact" onClick={() => openRoom()}><Plus size={17}/>Novo</button></div>
             <div className="rooms-manager-list">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button className="chip-main" onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button><button className="icon-button" title={`Editar ${r.name}`} aria-label={`Editar ${r.name}`} onClick={() => openRoom(r)}><Edit3 size={15}/></button><button className="icon-button danger-hover" title={`Excluir ${r.name}`} aria-label={`Excluir ${r.name}`} onClick={() => deleteRoom(r)}><Trash2 size={15}/></button></div>)}</div>
             {home.rooms.length === 0 && <p className="rooms-empty">Nenhum cômodo cadastrado.</p>}
-            <div className="rooms-manager-footer"><button className="link-button" onClick={() => changePage('floorplan')}><Box size={16}/>Visualizar Planta 3D <ArrowRight size={15}/></button></div>
+            <div className="rooms-manager-footer"><button className="link-button" onClick={() => changePage('plan-editor')}><Edit3 size={16}/>Editar formato, portas e janelas <ArrowRight size={15}/></button><button className="link-button" onClick={() => changePage('floorplan')}><Box size={16}/>Visualizar Planta 3D <ArrowRight size={15}/></button></div>
           </section></div>
         </>}
         {page === 'history' && <><div className="page-title-row"><div><span className="eyebrow dark-eyebrow">RASTREABILIDADE</span><h1>Histórico de atividades</h1><p>O que foi feito, onde foi feito e quando aconteceu.</p></div><button className="btn btn-outline" onClick={exportBackup}><ArrowDownToLine size={17}/>Exportar dados</button></div>
