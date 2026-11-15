@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write  # Permite criar Releases e anexar APK usando GITHUB_TOKEN
 
 concurrency:
   group: myhouse-android-${{ github.ref }}
@@ -54,3 +54,38 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Verificar integridade do APK e preparar download
+        run: |
+          set -euo pipefail
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          unzip -tqq android/app/build/outputs/apk/debug/app-debug.apk
+          mkdir -p release
+          cp android/app/build/outputs/apk/debug/app-debug.apk release/MyHouse.apk
+          (cd release && sha256sum MyHouse.apk > MyHouse.apk.sha256)
+
+      - name: Publicar APK no GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: android-v0.1.${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          cat > release/NOTES.md <<EOF
+          **My House — Android (versão de testes)**
+
+          Baixe **MyHouse.apk** abaixo para instalar no Android.
+
+          - Build: ${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          - Gerado automaticamente após build e verificação do APK.
+          - APK de desenvolvimento (debug), não destinado à Google Play.
+
+          Para instalar atualizações, baixe a nova versão desta página.
+          EOF
+          gh release create "$RELEASE_TAG" \
+            release/MyHouse.apk \
+            release/MyHouse.apk.sha256 \
+            --title "My House — APK Android (build ${{ github.run_number }})" \
+            --notes-file release/NOTES.md \
+            --latest
