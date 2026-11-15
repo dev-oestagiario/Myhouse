@@ -349,7 +349,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 }
 .nav-chevron{color:#245fc6;}
 .sidebar-account-actions{margin-top:18px;padding:17px 4px 0;border-top:1px solid #e1e9f6;display:flex;flex-direction:column;gap:8px;}
-.sidebar-account-label{font-size:10px;letter-spacing:1.3px;color:#687e9a;font-weight:800;padding-left:9px;}
+.sidebar-account-label{font-size:10px;letter-spacing:1.3px;color:#415b7d;font-weight:800;padding-left:9px;}
 .sidebar-signout{display:flex;align-items:center;gap:11px;width:100%;min-height:43px;border:1px solid transparent;border-radius:9px;background:transparent;color:#4b6283;font-size:12px;font-weight:800;text-align:left;padding:10px 12px;}
 .sidebar-signout:hover{background:#f3f6fc;color:#183f77;border-color:#dae5f4;}
 .sidebar-signout:focus-visible{outline:3px solid var(--myhouse-focus);}
