@@ -81,7 +81,7 @@ jobs:
           - Gerado automaticamente após build e verificação do APK.
           - APK de desenvolvimento (debug), não destinado à Google Play.
 
-          Para instalar atualizações, baixe a nova versão desta página.
+          **Atenção:** builds de teste podem ter assinaturas Android diferentes. Se a atualização não instalar sobre a anterior, confirme o salvamento na nuvem, faça um backup e só então reinstale.
           EOF
           gh release create "$RELEASE_TAG" \
             release/MyHouse.apk \
