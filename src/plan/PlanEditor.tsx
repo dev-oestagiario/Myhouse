@@ -258,8 +258,15 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
                 const selected=item.id===draft.id;
                 return <g key={r.id}>
                   <polygon points={verts.map(p=>`${item.x+p.x},${item.z+p.z}`).join(' ')}
-                    fill={selected?'#d1ebdc':'#e9efeb'} stroke={selected?'#247753':'#769884'} strokeWidth={selected?.065:.045}
+                    fill={selected?'#d1ebdc':'#e9efeb'} stroke={selected?'#247753':'#769884'} strokeWidth={selected ? 0.065 : 0.045}
                     onClick={()=>onSelect(item.id)} style={{cursor:'pointer'}}/>
+                  {selected && getWallSegments(item).map(seg => <line key={'wall-' + seg.edge}
+                    x1={item.x + seg.from.x} y1={item.z + seg.from.z}
+                    x2={item.x + seg.to.x} y2={item.z + seg.to.z}
+                    stroke={selectedEdge === seg.edge ? '#dd843c' : '#3c9470'}
+                    strokeWidth={selectedEdge === seg.edge ? 0.12 : 0.055}
+                    onClick={() => setOpeningEdge(seg.edge)}
+                    style={{cursor: 'pointer'}} />)}
                   {getWallSegments(item).map(seg=>(item.openings??[]).filter(o=>o.edge===seg.edge).map(o=>{
                     const [p1,p2]=openingPreview(o,seg);
                     return <line key={o.id} x1={item.x+p1.x} y1={item.z+p1.z} x2={item.x+p2.x} y2={item.z+p2.z}

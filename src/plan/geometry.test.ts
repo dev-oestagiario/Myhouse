@@ -29,7 +29,7 @@ describe('planta detalhada compatível com os cômodos existentes', () => {
       { x: 0, z: 0 }, { x: 5, z: 4 }, { x: 5, z: 0 }, { x: 0, z: 4 },
     ] })).toThrow();
     expect(() => validateRoomGeometry({ ...room, footprint: [
-      { x: 0, z: 0 }, { x: 5, z: 0 }, { x: 4.9, z: 4 }, { x: 0, z: 4 },
+      { x: 0, z: 0 }, { x: 5.1, z: 0 }, { x: 5, z: 4 }, { x: 0, z: 4 },
     ] })).toThrow();
   });
 
