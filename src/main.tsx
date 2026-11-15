@@ -1,5 +1,4 @@
-import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import AuthGate from './AuthGate';
@@ -10,13 +9,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 if (Capacitor.getPlatform() === 'android') {
-  void (async () => {
-    try {
-      await StatusBar.setOverlaysWebView({ overlay: false });
-      await StatusBar.setBackgroundColor({ color: '#ffffff' });
-      await StatusBar.setStyle({ style: Style.Light });
-    } catch (error) {
-      console.warn('Barra de status: usando safe-area CSS.', error);
-    }
-  })();
+  void SystemBars.setStyle({ style: SystemBarsStyle.Light }).catch(error => {
+    console.warn('Estilo da barra de status indisponível.', error);
+  });
 }

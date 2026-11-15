@@ -19,8 +19,7 @@
     "react-dom": "^18.3.1",
     "three": "^0.170.0",
     "@supabase/supabase-js": "2.119.0",
-    "@capacitor/core": "8.0.0",
-    "@capacitor/status-bar": "8.0.0"
+    "@capacitor/core": "8.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
