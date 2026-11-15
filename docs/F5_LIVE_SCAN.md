@@ -18,12 +18,36 @@ Decisão de produto em 15/11/2026: manter **ARCore** onde suportado e uma **câm
 
 **Limite honesto da etapa 1:** a visualização de câmera **não reconstrói nem mede paredes automaticamente** no modo sem ARCore. No ARCore, a atividade nativa atual ainda exige selecionar pontos; o pipeline de mapeamento automático será progressivo.
 
-## Etapa 2 — Reconstrução geométrica sem ARCore (pendente)
+## Etapa 2 — Reconstrução geométrica sem ARCore (código implementado, validação pendente)
 
-- Avaliar rastreamento visual, calibração por referência de escala e estimação de planos sem modelos de IA, com medições comparadas à trena.
-- Processamento local, indicadores de qualidade de rastreamento e recuperação após perda de pontos; jamais tratar contorno inferido como medida técnica.
-- Desenhar cômodo inicial apenas se o modelo tiver evidência suficiente; permitir conferir e corrigir toda dimensão.
-- Definir matriz de aparelhos, consumo e desempenho mínimo antes de afirmar cobertura universal.
+O fluxo sem ARCore agora cria um contorno **2D do piso** a partir da câmera contínua e de pontos indicados pelo usuário. O processamento é local, sem serviços de IA, fotos ou gravações.
+
+### Funcionamento
+
+1. A pessoa mantém o telefone **parado**, enquadrando a referência e todo o piso que deseja desenhar.
+2. Informa a largura e comprimento reais de uma **peça retangular no mesmo piso** (ex.: um piso cerâmico medido com trena). Não presumir tamanho padrão de piso.
+3. Marca os quatro cantos da referência, em ordem, na imagem ao vivo; o aplicativo valida convexidade, escala e degeneração.
+4. Marca entre 3 e 24 vértices do encontro do piso com as paredes, também em ordem.
+5. A homografia plana (sistema linear 8x8, pivoteamento parcial) converte as posições de tela em coordenadas métricas locais do mesmo plano.
+6. A geometria é validada contra limites físicos, segmentos mínimos e auto-interseções. O aplicativo calcula largura, comprimento, área e perímetro **aproximados**.
+7. Um detector leve de diferenças entre quadros (32×24 pixels, amostragem local e sem persistência) bloqueia o avanço e pede nova marcação quando há indicação forte de mudança no enquadramento. Esse detector **não faz SLAM nem garante rastreamento**.
+8. A pessoa confere largura, comprimento e altura, visualiza a planta no 3D e confirma antes de salvar. O contorno é transmitido como `Room.footprint` e preservado no cadastro, compatível com o editor 2D existente.
+
+### Critérios e limitações
+
+- [x] Escala obrigatória obtida de um retângulo medido, com ambos os lados entre 0,10 e 10 m.
+- [x] Homografia para corrigir perspectiva de pontos **coplanares**, sem inferir profundidade de uma única imagem.
+- [x] Marcadores ao vivo com desfazer, limpar, mensagens de validação e entrada por teclado.
+- [x] Geometria de 3 a 24 pontos; verificação de perímetro fechado simples, dimensão 0,10 a 100 m e consistência com o modelo do editor.
+- [x] Reconstrução 2D integrada às medidas e prévia 3D; formas irregulares preservadas.
+- [x] Detecção básica de mudança de cena, com reinício explícito da calibração.
+- [x] Testes unitários para escala, projeção perspectivada, orientação e geometrias inválidas (código preparado).
+- [ ] Executar CI e registrar testes de câmera reais sem ARCore, em telas de diferentes tamanhos.
+- [ ] Comparar medidas geradas com trena em ambientes de teste (ex.: 2×3 m, 3×4 m, planta em L) e documentar erro absoluto e relativo.
+- [ ] Auditar consumo, estabilidade do vídeo e permissões em WebViews Android.
+
+**Não é detecção automática de paredes/cantos.** Não há reconstrução 3D completa, navegação de câmera livre com SLAM ou medida exata de altura. A projeção é válida apenas para pontos do mesmo piso com o telefone imóvel durante a marcação. Objetos, áreas fora do plano, mudanças na posição da câmera e referência incorreta distorcem o resultado; nunca declarar medidas arquitetônicas precisas.
+
 
 ## Etapa 3 — Revisão e persistência (pendente)
 
