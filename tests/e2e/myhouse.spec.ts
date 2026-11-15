@@ -94,8 +94,13 @@ test('câmera sem ARCore calibra o piso e conserva o polígono confirmado', asyn
   const use=page.getByRole('button',{name:'Usar contorno estimado'});
   await expect(use).toBeEnabled();
   await use.click();
-  await expect(page.getByLabel('Largura (m)')).toHaveValue('1.5');
-  await expect(page.getByLabel('Comprimento (m)')).toHaveValue('1.5');
+  // Clique por pixel varia alguns milímetros com o tamanho da tela.
+  const estimatedWidth=Number(await page.getByLabel('Largura (m)').inputValue());
+  const estimatedLength=Number(await page.getByLabel('Comprimento (m)').inputValue());
+  expect(estimatedWidth).toBeGreaterThan(1.45);
+  expect(estimatedWidth).toBeLessThan(1.55);
+  expect(estimatedLength).toBeGreaterThan(1.45);
+  expect(estimatedLength).toBeLessThan(1.55);
   await page.getByPlaceholder('Ex.: Quarto principal').fill('Piso projetado');
   await page.getByRole('button',{name:'Visualizar em 3D'}).click();
   await page.getByRole('checkbox',{name:/Conferi as medidas/}).check();
