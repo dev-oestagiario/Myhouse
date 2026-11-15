@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Capacitor } from '@capacitor/core';
+import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Edges, OrbitControls } from '@react-three/drei';
-import { ArrowLeft, ArrowRight, Camera as CameraIcon, CheckCircle2, ImagePlus, Layers3, Ruler, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera as CameraIcon, CheckCircle2, Layers3, Ruler, ShieldCheck, ScanLine } from 'lucide-react';
 import type { Room } from '../types';
-import { PHOTO_GUIDES, makeDefaultScanDraft, verifyScanDraft, type PhotoGuideId, type RoomScanDraft } from './roomScan';
+import { makeDefaultScanDraft, verifyScanDraft, type RoomScanDraft } from './roomScan';
 import { applyArMeasurement, getArSupport, requestArMeasurement, type ArMeasurements, type ArSupport } from './arcore';
-
-type Screen = 'welcome' | 'photos' | 'measures' | 'review';
+import { chooseLiveScanMode, describeLiveScanMode } from './liveScan';
+import LiveCameraPreview from './LiveCameraPreview';
+type Screen = 'welcome' | 'live' | 'measures' | 'review';
 type Props = {
   existingRooms: Room[];
   onComplete: (room: RoomScanDraft) => void;
@@ -47,79 +46,42 @@ function RoomScanPreview({ draft }: { draft: RoomScanDraft }) {
 
 export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: Props) {
   const [screen, setScreen] = useState<Screen>('welcome');
-  const [shotIndex, setShotIndex] = useState(0);
-  const [photos, setPhotos] = useState<Partial<Record<PhotoGuideId, string>>>({});
   const [draft, setDraft] = useState<RoomScanDraft>(() => makeDefaultScanDraft(existingRooms));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [arSupport, setArSupport] = useState<ArSupport | null>(null);
   const [arMeasurement, setArMeasurement] = useState<ArMeasurements | null>(null);
+  const [lastInput, setLastInput] = useState<'live' | 'manual' | 'arcore'>('manual');
   const heading = useRef<HTMLHeadingElement>(null);
-  const captureInput = useRef<HTMLInputElement>(null);
-  const galleryInput = useRef<HTMLInputElement>(null);
-  const objectUrls = useRef<Partial<Record<PhotoGuideId, string>>>({});
-  const currentPhoto = PHOTO_GUIDES[shotIndex];
-  const isNative = Capacitor.getPlatform() !== 'web';
-  const count = Object.values(photos).filter(Boolean).length;
+  const scanMode = chooseLiveScanMode(arSupport);
 
-  useEffect(() => { heading.current?.focus(); }, [screen, shotIndex]);
+  useEffect(() => { heading.current?.focus(); }, [screen]);
   useEffect(() => {
     let mounted = true;
     void getArSupport().then(value => { if (mounted) setArSupport(value); });
     return () => { mounted = false; };
   }, []);
-  useEffect(() => {
-    const urls = objectUrls.current;
-    return () => { Object.values(urls).forEach(url => { if (url) URL.revokeObjectURL(url); }); };
-  }, []);
 
-  function replacePhoto(id: PhotoGuideId, url: string, owned: boolean) {
-    if (objectUrls.current[id]) URL.revokeObjectURL(objectUrls.current[id]);
-    if (owned) objectUrls.current[id] = url;
-    else delete objectUrls.current[id];
-    setPhotos(prev => ({ ...prev, [id]: url }));
+  function useManual() {
+    setLastInput('manual');
+    setArMeasurement(null);
+    setConfirmed(false);
     setMessage('');
+    setScreen('measures');
   }
 
-  function removePhoto() {
-    const id = currentPhoto.id;
-    const url = objectUrls.current[id];
-    if (url) URL.revokeObjectURL(url);
-    delete objectUrls.current[id];
-    setPhotos(prev => { const next = { ...prev }; delete next[id]; return next; });
+  function startLiveScan() {
     setMessage('');
-  }
-
-  async function takePhoto() {
-    setMessage('');
-    if (!isNative) { captureInput.current?.click(); return; }
-    setBusy(true);
-    try {
-      const result = await Camera.getPhoto({
-        source: CameraSource.Camera,
-        resultType: CameraResultType.Uri,
-        allowEditing: false,
-        saveToGallery: false,
-        quality: 72,
-        correctOrientation: true,
-      });
-      if (result.webPath) replacePhoto(currentPhoto.id, result.webPath, false);
-      else setMessage('A câmera não retornou uma foto. Tente novamente ou escolha uma imagem.');
-    } catch (problem) {
-      const error = problem instanceof Error ? problem.message : String(problem);
-      if (!/cancel/i.test(error)) setMessage('Não foi possível abrir a câmera. Você pode escolher uma foto ou continuar sem capturar.');
-    } finally { setBusy(false); }
-  }
-
-  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
-      setMessage('Escolha uma imagem de até 10 MB.'); return;
+    if (scanMode === 'checking') return;
+    if (scanMode === 'arcore') {
+      void measureWithAr();
+      return;
     }
-    replacePhoto(currentPhoto.id, URL.createObjectURL(file), true);
+    setLastInput('live');
+    setArMeasurement(null);
+    setConfirmed(false);
+    setScreen('live');
   }
 
   async function measureWithAr() {
@@ -129,6 +91,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
       const result = await requestArMeasurement();
       setDraft(previous => applyArMeasurement(previous, result));
       setArMeasurement(result);
+      setLastInput('arcore');
       setConfirmed(false);
       setScreen('measures');
       setMessage('');
@@ -140,12 +103,6 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     } finally {
       setBusy(false);
     }
-  }
-
-  function nextCapture() {
-    setMessage('');
-    if (shotIndex < PHOTO_GUIDES.length - 1) setShotIndex(i => i + 1);
-    else setScreen('measures');
   }
 
   function reviewMeasures() {
@@ -169,50 +126,49 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
 
   const steps = [
     { key: 'welcome', label: 'Início' },
-    { key: 'photos', label: 'Captura' },
+    { key: 'live', label: 'Ao vivo' },
     { key: 'measures', label: 'Medidas' },
     { key: 'review', label: 'Prévia' },
   ] as const;
 
-  return <section className="scan-wizard" aria-label="Escaneamento assistido de cômodo">
+  return <section className="scan-wizard" aria-label="Escaneamento ao vivo de cômodo">
     <div className="scan-header">
-      <div><span className="eyebrow dark-eyebrow">ESCANEAMENTO ASSISTIDO</span><h1 ref={heading} tabIndex={-1}>{
-        screen === 'welcome' ? 'Criar cômodo pela câmera' :
-        screen === 'photos' ? 'Fotografe o ambiente' :
-        screen === 'measures' ? 'Confira as medidas' : 'Revise sua planta 3D'
-      }</h1><p>As fotos ajudam a registrar o ambiente. Nesta primeira versão, as medidas são informadas por você.</p></div>
-      <button type="button" className="btn btn-outline" onClick={onCancel}>Sair</button>
+      <div>
+        <span className="eyebrow dark-eyebrow">ESCANEAMENTO AO VIVO</span>
+        <h1 ref={heading} tabIndex={-1}>{
+          screen === 'welcome' ? 'Mapeie seu cômodo com a câmera' :
+          screen === 'live' ? 'Mostre o ambiente ao vivo' :
+          screen === 'measures' ? 'Confira as medidas' : 'Revise sua planta 3D'
+        }</h1>
+        <p>A câmera funciona em tempo real. No ARCore, selecione referências no piso; sem ARCore, a reconstrução automática começará na próxima etapa.</p>
+      </div>
+      <button type="button" className="btn btn-ghost scan-back" onClick={onCancel} aria-label="Voltar para Obras"><ArrowLeft size={17}/>Voltar</button>
     </div>
     <ol className="scan-steps" aria-label="Etapas do escaneamento">
       {steps.map((item, index) => <li key={item.key} aria-current={screen === item.key ? 'step' : undefined} className={screen === item.key ? 'active' : ''}><span>{index + 1}</span>{item.label}</li>)}
     </ol>
     {screen === 'welcome' && <div className="scan-card">
-      <div className="scan-icon"><CameraIcon size={27}/></div>
-      <h2>Registre o seu espaço</h2>
-      <p>Fotografe os lados do cômodo ou use o ARCore no Android para estimar largura e comprimento a partir de pontos no piso. A altura deve ser medida manualmente. Todas as dimensões precisam de conferência.</p>
-      <div className="scan-privacy"><ShieldCheck size={20}/><span>As fotos ficam temporariamente neste aparelho enquanto você usa o assistente. Elas não são enviadas ao Supabase nem incluídas no backup. Evite fotografar pessoas e documentos.</span></div>
-      <div className="scan-actions"><button className="btn btn-primary" type="button" onClick={() => setScreen('photos')}><CameraIcon size={18}/>Começar a captura</button>{arSupport?.supported && <button className="btn btn-outline" type="button" disabled={busy} onClick={() => void measureWithAr()}><Ruler size={18}/>{busy ? 'Abrindo ARCore…' : 'Medir com ARCore'}</button>}<button className="btn btn-outline" type="button" onClick={() => setScreen('measures')}><Ruler size={18}/>Preencher manualmente</button></div>
-      <p className="scan-hint">{arSupport?.supported ? (arSupport.installed ? 'ARCore disponível neste aparelho. Ele mede distâncias aproximadas entre pontos selecionados no piso.' : 'Seu aparelho informa suporte ao ARCore. Ao iniciar a medição, pode ser solicitada a instalação do Google Play Services para RA.') : 'Se ARCore não estiver disponível, o formulário manual continua funcionando. A câmera comum sozinha não fornece medidas confiáveis.'}</p>
+      <div className="scan-icon"><ScanLine size={27}/></div>
+      <h2>Explore o espaço em tempo real</h2>
+      <p>O aplicativo verifica automaticamente o suporte a ARCore. Se disponível, abrirá a câmera nativa para medir pontos do piso. Caso contrário, abrirá a visualização contínua da câmera, sem fotografias.</p>
+      <div className="scan-mode-status" role="status"><CameraIcon size={18}/><span>{describeLiveScanMode(scanMode)}</span></div>
+      <div className="scan-privacy"><ShieldCheck size={19}/><span>O vídeo não será gravado nem enviado para a nuvem. Apenas o cômodo confirmado por você será salvo.</span></div>
+      <div className="scan-actions">
+        <button className="btn btn-primary" type="button" disabled={busy || scanMode === 'checking'} onClick={startLiveScan}><ScanLine size={18}/>{busy ? 'Abrindo câmera…' : 'Iniciar escaneamento'}</button>
+        <button className="btn btn-outline" type="button" disabled={busy} onClick={useManual}><Ruler size={18}/>Usar modo manual</button>
+      </div>
+      <p className="scan-hint">Nesta etapa, a câmera ao vivo sem ARCore ainda não calcula dimensões. As medidas continuarão editáveis nos dois modos.</p>
     </div>}
-    {screen === 'photos' && <div className="scan-card">
-      <p className="scan-kicker">VISTA {shotIndex + 1} DE {PHOTO_GUIDES.length} · {count} foto(s) capturada(s)</p>
-      <h2>{currentPhoto.title}</h2><p>{currentPhoto.description}</p>
-      <div className="scan-photo-preview">
-        {photos[currentPhoto.id] ? <img src={photos[currentPhoto.id]} alt={'Foto capturada: ' + currentPhoto.title} /> : <div className="scan-photo-placeholder"><CameraIcon size={37}/><strong>Nenhuma foto capturada</strong><span>Enquadre o cômodo. Você pode pular esta etapa.</span></div>}
-      </div>
-      <input ref={captureInput} type="file" className="visually-hidden" accept="image/*" capture="environment" tabIndex={-1} aria-hidden="true" onChange={chooseFile}/>
-      <input ref={galleryInput} type="file" className="visually-hidden" accept="image/*" tabIndex={-1} aria-hidden="true" onChange={chooseFile}/>
-      <div className="scan-photo-actions">
-        <button className="btn btn-primary" type="button" onClick={() => void takePhoto()} disabled={busy}><CameraIcon size={17}/>{busy ? 'Abrindo câmera…' : photos[currentPhoto.id] ? 'Tirar outra foto' : 'Tirar foto'}</button>
-        <button className="btn btn-outline" type="button" onClick={() => galleryInput.current?.click()} disabled={busy}><ImagePlus size={17}/>Escolher imagem</button>
-        {photos[currentPhoto.id] && <button className="btn btn-ghost" type="button" onClick={removePhoto} disabled={busy}><Trash2 size={17}/>Descartar</button>}
-      </div>
-      <div className="scan-footer"><button className="btn btn-ghost" type="button" onClick={() => { setMessage(''); if (shotIndex) setShotIndex(i => i - 1); else setScreen('welcome'); }}><ArrowLeft size={16}/>Voltar</button><button className="btn btn-outline" type="button" onClick={() => setScreen('measures')}><Ruler size={17}/>Pular fotos</button><button className="btn btn-primary" type="button" onClick={nextCapture} disabled={busy}>{shotIndex === PHOTO_GUIDES.length - 1 ? 'Conferir medidas' : 'Próxima vista'}<ArrowRight size={17}/></button></div>
+    {screen === 'live' && <div className="scan-card">
+      <h2>Visualização contínua do cômodo</h2>
+      <p>Aponte o aparelho para o ambiente. Não há captura de fotos. A análise geométrica para aparelhos sem ARCore será integrada na etapa 2.</p>
+      <LiveCameraPreview onContinue={() => { setLastInput('live'); setScreen('measures'); }} onManual={useManual}/>
+      <div className="scan-footer"><button className="btn btn-ghost" type="button" onClick={() => setScreen('welcome')}><ArrowLeft size={16}/>Voltar</button></div>
     </div>}
     {screen === 'measures' && <div className="scan-card">
       <div className="scan-icon"><Ruler size={27}/></div>
       <h2>Medidas do cômodo</h2>
-      <p>Confira as medidas com uma trena. Os valores não são calculados a partir das fotos, e o ARCore fornece somente estimativas de largura e comprimento.</p>
+      <p>Confira as medidas com uma trena. No ARCore, largura e comprimento são estimativas; na câmera comum, ainda não há cálculo automático nesta etapa.</p>
       {arSupport?.supported && <div className="scan-ar-option"><button type="button" className="btn btn-outline" disabled={busy} onClick={() => void measureWithAr()}><Ruler size={17}/>{busy ? 'Abrindo ARCore…' : 'Medir largura e comprimento com ARCore'}</button><small>Marque dois pontos do piso para cada dimensão. A altura continua manual.</small></div>}
       {arMeasurement && <p className="scan-ar-result" role="status"><CheckCircle2 size={17}/>O ARCore estimou {arMeasurement.width.toFixed(2)} m de largura e {arMeasurement.length.toFixed(2)} m de comprimento. {arMeasurement.depthUsed ? 'Houve uso de profundidade, sujeita a mais variação.' : 'Foram usadas referências de superfície detectadas.'} Corrija qualquer diferença abaixo antes de salvar.</p>}
       <div className="scan-fields">
@@ -223,7 +179,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
         {([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) =>
           <label className="scan-field" key={key}>{label}<input required type="number" inputMode="decimal" min="-100" max="100" step="0.01" value={draft[key]} onChange={e => { const v = Number(e.target.value); setDraft(p => ({ ...p, [key]: v })); setConfirmed(false); }} /></label>)}
       </div>
-      <div className="scan-footer"><button className="btn btn-ghost" type="button" onClick={() => { setMessage(''); setScreen('photos'); }}><ArrowLeft size={16}/>Voltar</button><button className="btn btn-primary" type="button" onClick={reviewMeasures}>Visualizar em 3D<ArrowRight size={16}/></button></div>
+      <div className="scan-footer"><button className="btn btn-ghost" type="button" onClick={() => { setMessage(''); setScreen(lastInput === 'live' ? 'live' : 'welcome'); }}><ArrowLeft size={16}/>Voltar</button><button className="btn btn-primary" type="button" onClick={reviewMeasures}>Visualizar em 3D<ArrowRight size={16}/></button></div>
     </div>}
     {screen === 'review' && <div className="scan-card">
       <h2>{draft.name.trim()}</h2>
@@ -234,6 +190,6 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
       <div className="scan-footer"><button type="button" className="btn btn-ghost" onClick={() => { setConfirmed(false); setMessage(''); setScreen('measures'); }}><ArrowLeft size={16}/>Corrigir medidas</button><button type="button" disabled={!confirmed} className="btn btn-primary" onClick={save}><CheckCircle2 size={17}/>Criar cômodo na Planta 3D</button></div>
     </div>}
     {message && <p role="alert" className="scan-error">{message}</p>}
-    <p className="scan-bottom-note"><Layers3 size={16}/> Somente o cômodo confirmado será salvo na sua conta.</p>
+    <p className="scan-bottom-note"><Layers3 size={16}/> A transmissão da câmera não é salva; apenas o cômodo confirmado será sincronizado.</p>
   </section>;
 }
