@@ -14,17 +14,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_URL: https://peijhetajeuiqomvfseg.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_d5MAuGIEo7vjdYeO2ioMUA_PbByLUNd
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Conferir variáveis públicas Supabase
-        run: |
-          test -n "$VITE_SUPABASE_URL" || { echo 'Configure VITE_SUPABASE_URL em Actions Variables'; exit 1; }
-          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo 'Configure VITE_SUPABASE_PUBLISHABLE_KEY em Actions Variables'; exit 1; }
       - run: npm install --no-audit --no-fund
       - run: npm run build
       - uses: actions/configure-pages@v5
