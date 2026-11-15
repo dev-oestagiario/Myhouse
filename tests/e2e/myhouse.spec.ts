@@ -102,10 +102,27 @@ test('câmera sem ARCore calibra o piso e conserva o polígono confirmado', asyn
   expect(estimatedLength).toBeGreaterThan(1.45);
   expect(estimatedLength).toBeLessThan(1.55);
   await page.getByPlaceholder('Ex.: Quarto principal').fill('Piso projetado');
+  await page.getByLabel('Largura (m)').fill('3.2');
+  await page.getByLabel('Comprimento (m)').fill('4.1');
+  await expect(page.getByRole('img',{name:/Vista superior do piso com 4 cantos, largura 3.2 metros e comprimento 4.1 metros/})).toBeVisible();
   await page.getByRole('button',{name:'Visualizar em 3D'}).click();
+  await expect(page.getByText('13.12 m²')).toBeVisible();
   await page.getByRole('checkbox',{name:/Conferi as medidas/}).check();
   await page.getByRole('button',{name:'Criar cômodo na Planta 3D'}).click();
   await expect.poll(()=>state.data.rooms.find(r=>r.name==='Piso projetado')?.footprint?.length).toBe(4);
+  const saved=state.data.rooms.find(r=>r.name==='Piso projetado');
+  expect(saved?.width).toBe(3.2);
+  expect(saved?.length).toBe(4.1);
+  expect(saved?.footprint?.[1].x).toBeCloseTo(3.2,3);
+  await navigate(page,'Editar planta 2D');
+  await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue(saved!.id);
+});
+
+
+test('ação Sair fica na área da conta e não polui o cabeçalho', async ({page}) => {
+  await setupMockSession(page);
+  await expect(page.locator('.topbar-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(0);
+  await expect(page.locator('.sidebar-account-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(1);
 });
 
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {
