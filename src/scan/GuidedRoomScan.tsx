@@ -92,7 +92,15 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
   }
 
   function acceptPlan(plan: PlanarScan) {
-    setDraft(previous => ({ ...previous, width: plan.width, length: plan.length, footprint: plan.footprint }));
+    // Mostra centímetros, não dezenas de casas decimais de uma projeção aproximada.
+    // O contorno é redimensionado junto para manter a caixa delimitadora válida.
+    const width = Math.max(0.1, Math.round(plan.width * 100) / 100);
+    const length = Math.max(0.1, Math.round(plan.length * 100) / 100);
+    const footprint = plan.footprint.map(p => ({
+      x: p.x * width / plan.width,
+      z: p.z * length / plan.length,
+    }));
+    setDraft(previous => ({ ...previous, width, length, footprint }));
     setArMeasurement(null);
     setLastInput('live');
     setConfirmed(false);
