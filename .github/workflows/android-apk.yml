@@ -1,0 +1,53 @@
+name: Gerar APK Android - My House
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: myhouse-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VITE_SUPABASE_URL: https://peijhetajeuiqomvfseg.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_d5MAuGIEo7vjdYeO2ioMUA_PbByLUNd
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+      - name: Compilar web e gerar projeto Android com ícone personalizado
+        run: npm run android:prepare
+      - name: Gerar APK de teste
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Disponibilizar APK no GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: myhouse-android-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
