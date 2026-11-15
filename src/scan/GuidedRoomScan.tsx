@@ -6,6 +6,7 @@ import { Edges, OrbitControls } from '@react-three/drei';
 import { ArrowLeft, ArrowRight, Camera as CameraIcon, CheckCircle2, ImagePlus, Layers3, Ruler, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Room } from '../types';
 import { PHOTO_GUIDES, makeDefaultScanDraft, verifyScanDraft, type PhotoGuideId, type RoomScanDraft } from './roomScan';
+import { applyArMeasurement, getArSupport, requestArMeasurement, type ArMeasurements, type ArSupport } from './arcore';
 
 type Screen = 'welcome' | 'photos' | 'measures' | 'review';
 type Props = {
@@ -52,6 +53,8 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [confirmed, setConfirmed] = useState(false);
+  const [arSupport, setArSupport] = useState<ArSupport | null>(null);
+  const [arMeasurement, setArMeasurement] = useState<ArMeasurements | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const captureInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
@@ -61,6 +64,11 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
   const count = Object.values(photos).filter(Boolean).length;
 
   useEffect(() => { heading.current?.focus(); }, [screen, shotIndex]);
+  useEffect(() => {
+    let mounted = true;
+    void getArSupport().then(value => { if (mounted) setArSupport(value); });
+    return () => { mounted = false; };
+  }, []);
   useEffect(() => {
     const urls = objectUrls.current;
     return () => { Object.values(urls).forEach(url => { if (url) URL.revokeObjectURL(url); }); };
@@ -114,6 +122,26 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     replacePhoto(currentPhoto.id, URL.createObjectURL(file), true);
   }
 
+  async function measureWithAr() {
+    setMessage('');
+    setBusy(true);
+    try {
+      const result = await requestArMeasurement();
+      setDraft(previous => applyArMeasurement(previous, result));
+      setArMeasurement(result);
+      setConfirmed(false);
+      setScreen('measures');
+      setMessage('');
+    } catch (problem) {
+      const text = problem instanceof Error ? problem.message : String(problem);
+      if (!/AR_CANCELLED|cancelad/i.test(text)) {
+        setMessage('Não foi possível medir com ARCore. Você pode continuar preenchendo as medidas manualmente.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function nextCapture() {
     setMessage('');
     if (shotIndex < PHOTO_GUIDES.length - 1) setShotIndex(i => i + 1);
@@ -161,10 +189,10 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     {screen === 'welcome' && <div className="scan-card">
       <div className="scan-icon"><CameraIcon size={27}/></div>
       <h2>Registre o seu espaço</h2>
-      <p>Você será orientado a fotografar quatro lados e o teto. Use uma trena para conferir a largura, o comprimento e a altura. Fotos e medições não são automáticas nesta fase.</p>
+      <p>Fotografe os lados do cômodo ou use o ARCore no Android para estimar largura e comprimento a partir de pontos no piso. A altura deve ser medida manualmente. Todas as dimensões precisam de conferência.</p>
       <div className="scan-privacy"><ShieldCheck size={20}/><span>As fotos ficam temporariamente neste aparelho enquanto você usa o assistente. Elas não são enviadas ao Supabase nem incluídas no backup. Evite fotografar pessoas e documentos.</span></div>
-      <div className="scan-actions"><button className="btn btn-primary" type="button" onClick={() => setScreen('photos')}><CameraIcon size={18}/>Começar a captura</button><button className="btn btn-outline" type="button" onClick={() => setScreen('measures')}><Ruler size={18}/>Continuar sem câmera</button></div>
-      <p className="scan-hint">Medição automática com ARCore será uma melhoria futura para aparelhos compatíveis. A câmera comum não fornece medidas confiáveis sozinha.</p>
+      <div className="scan-actions"><button className="btn btn-primary" type="button" onClick={() => setScreen('photos')}><CameraIcon size={18}/>Começar a captura</button>{arSupport?.supported && <button className="btn btn-outline" type="button" disabled={busy} onClick={() => void measureWithAr()}><Ruler size={18}/>{busy ? 'Abrindo ARCore…' : 'Medir com ARCore'}</button>}<button className="btn btn-outline" type="button" onClick={() => setScreen('measures')}><Ruler size={18}/>Preencher manualmente</button></div>
+      <p className="scan-hint">{arSupport?.supported ? (arSupport.installed ? 'ARCore disponível neste aparelho. Ele mede distâncias aproximadas entre pontos selecionados no piso.' : 'Seu aparelho informa suporte ao ARCore. Ao iniciar a medição, pode ser solicitada a instalação do Google Play Services para RA.') : 'Se ARCore não estiver disponível, o formulário manual continua funcionando. A câmera comum sozinha não fornece medidas confiáveis.'}</p>
     </div>}
     {screen === 'photos' && <div className="scan-card">
       <p className="scan-kicker">VISTA {shotIndex + 1} DE {PHOTO_GUIDES.length} · {count} foto(s) capturada(s)</p>
@@ -184,7 +212,9 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     {screen === 'measures' && <div className="scan-card">
       <div className="scan-icon"><Ruler size={27}/></div>
       <h2>Medidas do cômodo</h2>
-      <p>Preencha os valores medidos. Os números iniciais são apenas exemplos e não foram calculados a partir das fotos.</p>
+      <p>Confira as medidas com uma trena. Os valores não são calculados a partir das fotos, e o ARCore fornece somente estimativas de largura e comprimento.</p>
+      {arSupport?.supported && <div className="scan-ar-option"><button type="button" className="btn btn-outline" disabled={busy} onClick={() => void measureWithAr()}><Ruler size={17}/>{busy ? 'Abrindo ARCore…' : 'Medir largura e comprimento com ARCore'}</button><small>Marque dois pontos do piso para cada dimensão. A altura continua manual.</small></div>}
+      {arMeasurement && <p className="scan-ar-result" role="status"><CheckCircle2 size={17}/>O ARCore estimou {arMeasurement.width.toFixed(2)} m de largura e {arMeasurement.length.toFixed(2)} m de comprimento. {arMeasurement.depthUsed ? 'Houve uso de profundidade, sujeita a mais variação.' : 'Foram usadas referências de superfície detectadas.'} Corrija qualquer diferença abaixo antes de salvar.</p>}
       <div className="scan-fields">
         <label className="scan-field scan-wide">Nome do cômodo<input required maxLength={80} value={draft.name} placeholder="Ex.: Quarto principal" onChange={e => setDraft(p => ({ ...p, name: e.target.value }))} /></label>
         {([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) =>
@@ -197,10 +227,10 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     </div>}
     {screen === 'review' && <div className="scan-card">
       <h2>{draft.name.trim()}</h2>
-      <p>Esta é uma representação simplificada das medidas informadas, sem portas ou janelas. Arraste para girar.</p>
+      <p>Representação simplificada das medidas conferidas, sem portas ou janelas. Arraste para girar. {arMeasurement && 'Se você usou ARCore, os valores são aproximados e podem ser corrigidos antes do salvamento.'}</p>
       <RoomScanPreview draft={draft}/>
       <div className="scan-summary"><div><span>Largura</span><strong>{draft.width} m</strong></div><div><span>Comprimento</span><strong>{draft.length} m</strong></div><div><span>Altura</span><strong>{draft.height} m</strong></div></div>
-      <label className="scan-confirm"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/><span>Conferi as medidas e entendo que esta planta é ilustrativa, não um levantamento técnico.</span></label>
+      <label className="scan-confirm"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/><span>Conferi as medidas, incluindo qualquer estimativa ARCore, e entendo que esta planta é ilustrativa, não um levantamento técnico.</span></label>
       <div className="scan-footer"><button type="button" className="btn btn-ghost" onClick={() => { setConfirmed(false); setMessage(''); setScreen('measures'); }}><ArrowLeft size={16}/>Corrigir medidas</button><button type="button" disabled={!confirmed} className="btn btn-primary" onClick={save}><CheckCircle2 size={17}/>Criar cômodo na Planta 3D</button></div>
     </div>}
     {message && <p role="alert" className="scan-error">{message}</p>}
