@@ -137,3 +137,74 @@ body {padding-top:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px
 .scan-ar-option small {font-size:12px;line-height:1.6;color:#476d58;}
 .scan-ar-result {display:flex;align-items:flex-start;gap:11px;background:#e8f5e9;border:1px solid #b7d9bf;border-radius:10px;padding:14px 15px;color:#254c37;font-size:13px;line-height:1.65;max-width:900px;}
 .scan-ar-result svg {flex-shrink:0;margin-top:2px;}
+
+/* F3 — Editor 2D de geometria, separado da visualização 3D. */
+.plan-editor{max-width:1660px;margin:auto;}
+.plan-editor-title{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin:7px 0 24px;}
+.plan-editor-title h1{font:800 28px Manrope,sans-serif;color:#254433;letter-spacing:-.7px;margin:6px 0 8px;}
+.plan-editor-title p{font-size:12px;line-height:1.6;color:#768e7b;max-width:720px;}
+.plan-editor-layout{display:grid;grid-template-columns:minmax(290px,.9fr) minmax(0,1.15fr);gap:18px;align-items:start;}
+.plan-editor-controls{display:flex;flex-direction:column;gap:16px;min-width:0;}
+.plan-editor-preview{display:flex;flex-direction:column;gap:16px;min-width:0;position:sticky;top:20px;}
+.plan-panel{background:#fff;border-radius:14px;border:1px solid #e1eae4;box-shadow:0 4px 15px #1b48300c;padding:19px 21px;min-width:0;}
+.plan-panel h2{font:800 15px Manrope,sans-serif;color:#315541;margin:0 0 10px;}
+.plan-panel p{font-size:12px;color:#718878;line-height:1.55;margin-bottom:15px;}
+.plan-field{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:700;color:#526b59;min-width:0;}
+.plan-field input,.plan-field select{width:100%;min-width:0;min-height:44px;border:1px solid #d8e5dc;border-radius:9px;background:#fff;padding:9px 11px;color:#254d36;}
+.plan-field input:focus-visible,.plan-field select:focus-visible{outline:3px solid #b3dfc2;outline-offset:1px;}
+.plan-stats{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;}
+.plan-stats>div{display:flex;justify-content:space-between;gap:15px;align-items:center;background:#f0f8f2;border-radius:8px;padding:11px 12px;flex:1;min-width:130px;}
+.plan-stats span{font-size:11px;color:#5e816d;}
+.plan-stats strong{font-size:14px;color:#295b40;}
+.plan-presets{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 14px;}
+.plan-presets button{display:flex;align-items:center;justify-content:center;gap:6px;background:#edf5ef;border:1px solid #d4e7da;color:#316849;border-radius:9px;padding:10px 12px;min-height:42px;font-size:12px;font-weight:700;flex:1;}
+.plan-presets button:hover{background:#daeddf;}
+.plan-vertices{display:flex;flex-direction:column;gap:8px;max-height:440px;overflow-y:auto;padding-right:3px;}
+.plan-vertex-row{display:grid;grid-template-columns:26px minmax(0,1fr) minmax(0,1fr) 35px 35px;gap:6px;align-items:end;padding:8px;border:1px solid #edf0ec;border-radius:10px;background:#fafcf9;}
+.plan-vertex-row>strong{font-size:11px;color:#416a51;align-self:center;}
+.plan-vertex-row>label{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:10px;color:#6c8570;font-weight:700;}
+.plan-vertex-row input{width:100%;min-width:0;border:1px solid #dce6de;border-radius:7px;min-height:36px;background:#fff;padding:6px;font-size:12px;color:#2d5038;}
+.plan-mini-button{height:35px;min-width:32px;display:grid;place-items:center;border:0;border-radius:8px;background:#eef4ee;color:#587a61;}
+.plan-mini-button:hover{background:#dcebdd;}
+.plan-mini-button:disabled{opacity:.4;cursor:not-allowed;}
+.plan-fields-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:12px 0 16px;}
+.plan-fields-grid>.plan-field:nth-child(2) select{font-size:11px;}
+.plan-openings-list{margin-top:15px;display:flex;flex-direction:column;gap:8px;}
+.plan-opening-row{display:flex;align-items:center;gap:10px;border:1px solid #e6ede6;border-radius:9px;padding:8px 10px;color:#508165;}
+.plan-opening-row span{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
+.plan-opening-row strong{font-size:12px;color:#43614e;}
+.plan-opening-row small{font-size:11px;color:#81948a;}
+.plan-align-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.plan-align-controls>.btn{min-height:44px;align-self:end;}
+.plan-panel .plan-warning{margin-top:15px;padding:12px;border:1px solid #dfd3a6;background:#fff9e8;border-radius:8px;color:#81632a;font-size:12px;}
+.plan-preview-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#779a81;}
+.plan-preview-heading p{margin-bottom:7px;}
+.plan-svg-scroller{overflow:hidden;border:1px solid #dce9df;border-radius:13px;background:#f6faf7;margin-top:10px;}
+.plan-svg{display:block;width:100%;height:clamp(330px,54vh,610px);max-height:630px;}
+.plan-legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:14px 0;font-size:11px;color:#56745f;}
+.plan-legend>span{display:flex;align-items:center;gap:7px;}
+.plan-legend i{display:inline-block;width:18px;height:5px;border-radius:3px;background:#b77b3b;}
+.plan-legend .plan-legend-window{background:#2d8db5;}
+.plan-legend .plan-legend-room{background:#3c9470;}
+.plan-panel .plan-note{margin:8px 0 0;color:#849889;}
+.plan-save{display:flex;flex-direction:column;gap:10px;}
+.plan-save p{margin:0;font-size:12px;}
+.plan-error{border:1px solid #e7bdba;border-radius:9px;background:#fff2f2;padding:12px;color:#923f3e!important;}
+.plan-success{display:flex;gap:10px;align-items:center;border:1px solid #c5dfcd;border-radius:9px;background:#eaf7ec;padding:12px;color:#306c48!important;}
+.rooms-manager-footer{display:flex;flex-wrap:wrap;gap:14px;}
+@media(max-width:1100px){
+ .plan-editor-layout{grid-template-columns:minmax(0,1fr);}
+ .plan-editor-preview{position:static;order:-1;}
+ .plan-svg{height:clamp(240px,39vh,440px);}
+}
+@media(max-width:700px){
+ .plan-editor-title h1{font-size:24px;}
+ .plan-editor-title .btn{width:100%;}
+ .plan-panel{padding:16px 14px;}
+ .plan-vertex-row{grid-template-columns:21px minmax(0,1fr) minmax(0,1fr) 30px 30px;gap:4px;padding:7px 5px;}
+ .plan-mini-button{min-width:29px;}
+ .plan-svg{height:clamp(230px,34vh,380px);}
+ .plan-editor-preview{position:static;}
+ .plan-vertices{max-height:none;}
+ .rooms-manager-footer .link-button{min-height:36px;}
+}

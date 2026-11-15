@@ -45,3 +45,9 @@ Veja [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md).
 Em **Planta 3D → Escanear cômodo**, pode-se fotografar o ambiente, preencher medidas manualmente e confirmar uma prévia 3D. Na versão Android, aparelhos com suporte a ARCore poderão medir distâncias aproximadas no piso usando quatro pontos selecionados pela pessoa. A altura continua manual e a revisão dos valores é obrigatória.
 
 O ARCore é **opcional** e não funciona em todos os celulares. A implementação não converte automaticamente vídeo em geometria, nem tem precisão arquitetônica garantida. Leia [Plano de escaneamento](docs/ROOM_SCAN_PLAN.md).
+
+## Planta detalhada — F3
+
+Em **Planta 3D → Editar planta 2D**, é possível escolher formatos retangular, L ou U, ajustar os vértices em metros, inserir portas e janelas, posicionar cômodos e alinhar um cômodo à referência de outro. A **Planta 3D permanece destinada à visualização**. O banco Supabase e os backups V1 continuam compatíveis com modelos anteriores.
+
+[Documentação de formatos irregulares e vãos](docs/ADVANCED_FLOORPLAN_F3.md). O editor não realiza reconhecimento automático de arquitetura por imagem nem substitui uma planta técnica.

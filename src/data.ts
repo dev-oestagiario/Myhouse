@@ -1,5 +1,6 @@
 import type { HomeData, Priority, Room, Direction, Stage, TaskStatus } from './types';
 import { STAGES } from './types';
+import { validateRoomGeometry } from './plan/geometry';
 
 export const STORAGE_KEY = 'casa-em-ordem-v1';
 export const initialHome: HomeData = {
@@ -48,6 +49,7 @@ export function validateHome(data: unknown): HomeData {
   for (const room of obj.rooms) {
     if (typeof room.id !== 'string' || typeof room.name !== 'string' || ![room.width, room.length, room.height, room.x, room.z].every(n => typeof n === 'number' && Number.isFinite(n))) throw new Error('Cômodos inválidos');
     if (room.width <= 0 || room.length <= 0 || room.height <= 0) throw new Error('Medidas inválidas');
+    validateRoomGeometry(room);
   }
   for (const item of obj.purchases) {
     if (typeof item.id !== 'string' || typeof item.name !== 'string' || !Number.isFinite(item.quantity) || !Number.isFinite(item.unitPrice)) throw new Error('Compras inválidas');
