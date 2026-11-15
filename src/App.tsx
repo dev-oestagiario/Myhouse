@@ -16,7 +16,7 @@ import {
   statusNames, validateHome, wallId,
 } from './data';
 
-type Page = 'overview' | 'shopping' | 'floorplan' | 'history';
+type Page = 'overview' | 'shopping' | 'floorplan' | 'works' | 'history';
 type PurchaseDraft = Omit<Purchase, 'id' | 'createdAt'>;
 const emptyPurchase = (): PurchaseDraft => ({
   name: '', category: 'Outros', roomId: '', priority: 'media',
@@ -267,8 +267,8 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     setHome(prev => ({ ...prev, rooms: editingRoomId ? prev.rooms.map(r => r.id === editingRoomId ? room : r) : [...prev.rooms, room] }));
     setSelectedRoomId(room.id);
     setRoomOpen(false);
-    setPage('floorplan');
-    setNotice('Cômodo salvo. Clique nas paredes para acompanhar o trabalho.');
+    setPage('works');
+    setNotice('Cômodo salvo. Ele já aparece na Planta 3D.');
   }
   function deleteRoom(r: Room) {
     if (!window.confirm(`Excluir ${r.name} e todos os registros de trabalho associados?`)) return;
@@ -318,10 +318,11 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   const navItems: { id: Page; name: string; Icon: typeof Home }[] = [
     { id: 'overview', name: 'Visão geral', Icon: Home },
     { id: 'shopping', name: 'Lista de compras', Icon: ShoppingBasket },
-    { id: 'floorplan', name: 'Planta 3D e obras', Icon: Layers3 },
+    { id: 'floorplan', name: 'Planta 3D', Icon: Layers3 },
+    { id: 'works', name: 'Obras', Icon: Hammer },
     { id: 'history', name: 'Histórico de atividades', Icon: FileClock },
   ];
-  const changePage = (newPage: Page) => { setPage(newPage); setMobileNav(false); };
+  const changePage = (newPage: Page) => { setPage(newPage); setMobileNav(false); window.scrollTo({ top: 0 }); };
 
   if (localDraft) return <main className="auth-layout"><section className="auth-card">
     <span className="auth-logo"><Home size={25}/></span>
@@ -360,11 +361,11 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           <div className="two-column"><section className="panel"><div className="panel-heading"><div><h3>Próximas compras</h3><p>Organizadas por prioridade</p></div><button className="link-button" onClick={() => changePage('shopping')}>Ver todas <ArrowRight size={15}/></button></div>
             {home.purchases.filter(p => !p.purchased).length === 0 ? <div className="empty compact-empty"><Package size={28}/><strong>Nenhuma compra pendente</strong><span>Adicione utensílios, ferramentas ou qualquer item necessário.</span><button className="btn btn-outline" onClick={() => openPurchase()}><Plus size={16}/>Nova compra</button></div>
               : home.purchases.filter(p => !p.purchased).sort((a,b) => priorityOrder[a.priority] - priorityOrder[b.priority]).slice(0, 4).map(p => <div className="simple-row" key={p.id}><div className={`priority-dot ${p.priority}`}/><div className="simple-row-main"><strong>{p.name}</strong><small>{p.category} · {p.quantity} un.</small></div><span>{money(p.quantity * p.unitPrice)}</span></div>)}
-          </section><section className="panel"><div className="panel-heading"><div><h3>Próximos trabalhos</h3><p>Etapas por parede</p></div><button className="link-button" onClick={() => changePage('floorplan')}>Ver planta <ArrowRight size={15}/></button></div>
+          </section><section className="panel"><div className="panel-heading"><div><h3>Próximos trabalhos</h3><p>Etapas por parede</p></div><button className="link-button" onClick={() => changePage('works')}>Ver obras <ArrowRight size={15}/></button></div>
             {todoWalls.length === 0 ? <div className="empty compact-empty"><Hammer size={28}/><strong>Nenhum trabalho pendente</strong><span>Cadastre cômodos para acompanhar as paredes.</span></div>
-              : todoWalls.slice(0, 4).map(({room,direction,stages}) => <button className="work-row" key={`${room.id}:${direction}`} onClick={() => { selectWall(room.id, direction); changePage('floorplan'); }}><div className="work-row-icon"><Paintbrush size={19}/></div><div className="work-row-main"><strong>{room.name} · {directionNames[direction]}</strong><small>Próxima etapa: {nextStage(stages) ?? 'Finalizado'}</small></div><div className="mini-progress"><div style={{width: `${percentDone(stages)}%`}}/></div><span>{percentDone(stages)}%</span></button>)}
+              : todoWalls.slice(0, 4).map(({room,direction,stages}) => <button className="work-row" key={`${room.id}:${direction}`} onClick={() => { selectWall(room.id, direction); changePage('works'); }}><div className="work-row-icon"><Paintbrush size={19}/></div><div className="work-row-main"><strong>{room.name} · {directionNames[direction]}</strong><small>Próxima etapa: {nextStage(stages) ?? 'Finalizado'}</small></div><div className="mini-progress"><div style={{width: `${percentDone(stages)}%`}}/></div><span>{percentDone(stages)}%</span></button>)}
           </section></div>
-          {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="example-tip">A planta começa com cômodos de exemplo. Ajuste as medidas ou exclua esses cômodos na aba “Planta 3D e obras”.</p>}
+          {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="example-tip">A planta começa com cômodos de exemplo. Ajuste as medidas ou exclua esses cômodos na aba “Obras”.</p>}
         </>}
         {page === 'shopping' && <>
           <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ORGANIZAÇÃO</span><h1>Lista de compras</h1><p>De eletrodomésticos e panelas a tintas e ferramentas. Todas as categorias são permitidas.</p></div><button className="btn btn-primary" onClick={() => openPurchase()}><Plus size={18}/>Adicionar item</button></div>
@@ -375,28 +376,40 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           </section>
         </>}
         {page === 'floorplan' && <>
-          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">PLANEJAMENTO VISUAL</span><h1>Planta 3D e obras</h1><p>Configure os cômodos, selecione uma parede e registre cada etapa da reforma.</p></div><button className="btn btn-primary" onClick={() => openRoom()}><Plus size={18}/>Adicionar cômodo</button></div>
-          <div className="floor-layout"><section className="panel viewer-panel"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Clique numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
-            <div className="scene">{home.rooms.length ? <HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Adicione um cômodo com suas medidas para criar a estrutura 3D.</span></div>}</div>
-            <div className="room-list-header"><strong>Cômodos cadastrados</strong><span>{home.rooms.length} cômodo(s)</span></div>
-            <div className="room-chips">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button className="chip-main" onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button><button className="icon-button" title={`Editar ${r.name}`} aria-label={`Editar ${r.name}`} onClick={() => openRoom(r)}><Edit3 size={15}/></button><button className="icon-button danger-hover" title={`Excluir ${r.name}`} aria-label={`Excluir ${r.name}`} onClick={() => deleteRoom(r)}><Trash2 size={15}/></button></div>)}</div>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos e selecione paredes. O cadastro e as atualizações ficam em Obras.</p></div><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div>
+          <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
+            <div className="scene">{home.rooms.length ? <HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Cadastre um cômodo na seção Obras.</span><button className="btn btn-primary" onClick={() => changePage('works')}><Plus size={17}/>Cadastrar cômodo</button></div>}</div>
+            <div className="room-list-header"><strong>Cômodos</strong><span>{home.rooms.length} cômodo(s)</span></div>
+            <div className="room-chips">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button type="button" className="chip-main" aria-pressed={selectedRoomId === r.id} onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button></div>)}</div>
             {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. A distribuição real da casa dependerá das suas medidas; portas e janelas ainda não são modeladas.</p>}
           </section>
+          </div>
+          {selectedRoom && <section className="panel wall-preview" aria-label="Parede selecionada"><div className="wall-preview-heading"><div><span className="eyebrow dark-eyebrow">PAREDE SELECIONADA</span><h2>{selectedRoom.name} · {directionNames[selectedWall]}</h2><p>{number((selectedWall === 'norte' || selectedWall === 'sul' ? selectedRoom.width : selectedRoom.length) * selectedRoom.height)} m² estimados · {percentDone(selectedStages)}% concluído</p></div><button className="btn btn-primary" onClick={() => changePage('works')}><ArrowRight size={17}/>Ver em Obras</button></div><div className="wall-preview-selector" role="group" aria-label="Selecionar parede">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div></section>}
+        </>}
+
+        {page === 'works' && <>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>Obras</h1><p>Registre o andamento de cada parede, sem precisar passar pela planta.</p></div><button className="btn btn-outline" onClick={() => openRoom()}><Plus size={17}/>Adicionar cômodo</button></div>
+          <div className="works-layout">
           <section className="panel inspector-panel"><div className="panel-heading inspector-heading"><div><h3>Acompanhamento da parede</h3><p>Registre o andamento e mantenha um histórico.</p></div><Hammer size={20} className="subtle-icon"/></div>
-            {selectedRoom ? <><label className="field-label">Cômodo</label><select className="field-input" value={selectedRoomId} onChange={e => selectWall(e.target.value, selectedWall)}>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select>
-              <label className="field-label wall-label">Parede</label><div className="wall-tabs">{DIRECTIONS.map(d => <button key={d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div>
+            {selectedRoom ? <><label className="field-label" htmlFor="work-room">Cômodo</label><select id="work-room" className="field-input" value={selectedRoomId} onChange={e => selectWall(e.target.value, selectedWall)}>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select>
+              <span className="field-label wall-label" id="work-wall-label">Parede</span><div className="wall-tabs" role="group" aria-labelledby="work-wall-label">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div>
               <div className="wall-metrics"><div><span>Área estimada</span><strong>{number((selectedWall === 'norte' || selectedWall === 'sul' ? selectedRoom.width : selectedRoom.length) * selectedRoom.height)} m²</strong></div><div><span>Etapas concluídas</span><strong>{percentDone(selectedStages)}%</strong></div></div>
               <div className="progress-track"><span style={{width: `${percentDone(selectedStages)}%`}}/></div>
-              <div className="stages-heading"><strong>Etapas da parede</strong><span>{STAGES.filter(s => selectedStages[s] === 'concluido').length} de {STAGES.length}</span></div>
-              <div className="stage-list">{STAGES.map((item, i) => <button key={item} className={`stage-row ${stage === item ? 'selected-stage' : ''}`} onClick={() => { setStage(item); setStatus(selectedStages[item] ?? 'em-andamento'); }}><span className={`stage-indicator ${selectedStages[item] ?? 'nao-iniciado'}`}>{selectedStages[item] === 'concluido' ? <Check size={14}/> : i + 1}</span><span><strong>{item}</strong><small>{statusNames[selectedStages[item] ?? 'nao-iniciado']}</small></span>{stage === item && <ChevronRight size={16}/>}</button>)}</div>
               <form onSubmit={saveWork} className="work-form"><h4>Registrar atualização</h4><div className="form-row"><div className="field"><label htmlFor="stage">Etapa</label><select id="stage" value={stage} onChange={e => { const s = e.target.value as Stage; setStage(s); setStatus(selectedStages[s] ?? 'em-andamento'); }}>{STAGES.map(s => <option key={s}>{s}</option>)}</select></div><div className="field"><label htmlFor="step-status">Situação</label><select id="step-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{Object.entries(statusNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div></div><div className="field"><label htmlFor="work-note">O que você fez? (opcional)</label><textarea id="work-note" rows={3} value={workNote} onChange={e => setWorkNote(e.target.value)} placeholder="Ex.: Removi a tinta descascada da metade superior da parede." /></div><button className="btn btn-primary full" type="submit"><Save size={17}/>Salvar atualização</button></form>
+              <div className="stages-heading"><strong>Etapas da parede</strong><span>{STAGES.filter(s => selectedStages[s] === 'concluido').length} de {STAGES.length}</span></div>
+              <div className="stage-list">{STAGES.map((item, i) => <button type="button" aria-pressed={stage === item} key={item} className={`stage-row ${stage === item ? 'selected-stage' : ''}`} onClick={() => { setStage(item); setStatus(selectedStages[item] ?? 'em-andamento'); }}><span className={`stage-indicator ${selectedStages[item] ?? 'nao-iniciado'}`}>{selectedStages[item] === 'concluido' ? <Check size={14}/> : i + 1}</span><span><strong>{item}</strong><small>{statusNames[selectedStages[item] ?? 'nao-iniciado']}</small></span>{stage === item && <ChevronRight size={16}/>}</button>)}</div>
               <div className="next-step"><Clock3 size={18}/><div><strong>Próxima etapa sugerida</strong><p>{next ? `${next} — ${statusNames[selectedStages[next] ?? 'nao-iniciado'].toLowerCase()}` : 'Todas as etapas foram concluídas.'}</p></div></div>
               {selectedWallLogs.length > 0 && <div className="wall-log"><strong>Últimas atualizações</strong>{selectedWallLogs.slice(0, 3).map(log => <div className="tiny-log" key={log.id}><span>{localDate(log.createdAt)}</span><strong>{log.stage} · {statusNames[log.status]}</strong>{log.note && <p>{log.note}</p>}</div>)}</div>}
             </> : <div className="empty"><Home size={30}/><strong>Selecione um cômodo</strong><span>Cadastre seu primeiro cômodo para acompanhar a reforma.</span></div>}
+          </section>
+          <section className="panel rooms-manager"><div className="panel-heading"><div><h3>Gerenciar cômodos</h3><p>Cadastre, ajuste medidas ou exclua cômodos da planta.</p></div><button className="btn btn-outline compact" onClick={() => openRoom()}><Plus size={17}/>Novo</button></div>
+            <div className="rooms-manager-list">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button className="chip-main" onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button><button className="icon-button" title={`Editar ${r.name}`} aria-label={`Editar ${r.name}`} onClick={() => openRoom(r)}><Edit3 size={15}/></button><button className="icon-button danger-hover" title={`Excluir ${r.name}`} aria-label={`Excluir ${r.name}`} onClick={() => deleteRoom(r)}><Trash2 size={15}/></button></div>)}</div>
+            {home.rooms.length === 0 && <p className="rooms-empty">Nenhum cômodo cadastrado.</p>}
+            <div className="rooms-manager-footer"><button className="link-button" onClick={() => changePage('floorplan')}><Box size={16}/>Visualizar Planta 3D <ArrowRight size={15}/></button></div>
           </section></div>
         </>}
         {page === 'history' && <><div className="page-title-row"><div><span className="eyebrow dark-eyebrow">RASTREABILIDADE</span><h1>Histórico de atividades</h1><p>O que foi feito, onde foi feito e quando aconteceu.</p></div><button className="btn btn-outline" onClick={exportBackup}><ArrowDownToLine size={17}/>Exportar dados</button></div>
-          <section className="panel history-panel">{home.logs.length === 0 ? <div className="empty"><ClipboardList size={38}/><strong>O histórico ainda está vazio</strong><span>Selecione uma parede, marque uma etapa e salve a primeira atualização.</span><button className="btn btn-primary" onClick={() => changePage('floorplan')}><Layers3 size={17}/>Ir para a planta</button></div> : <div className="timeline">{home.logs.map(log => <article className="timeline-row" key={log.id}><span className="timeline-icon"><Hammer size={17}/></span><div><span className="timeline-date">{localDate(log.createdAt)}</span><h3>{log.stage} · {statusNames[log.status]}</h3><p><strong>{home.rooms.find(r => r.id === log.roomId)?.name ?? 'Cômodo excluído'}</strong> — Parede {directionNames[log.direction].toLowerCase()}</p>{log.note && <div className="timeline-note">{log.note}</div>}</div></article>)}</div>}</section>
+          <section className="panel history-panel">{home.logs.length === 0 ? <div className="empty"><ClipboardList size={38}/><strong>O histórico ainda está vazio</strong><span>Abra Obras, escolha uma parede e registre a primeira atualização.</span><button className="btn btn-primary" onClick={() => changePage('works')}><Hammer size={17}/>Registrar obra</button></div> : <div className="timeline">{home.logs.map(log => <article className="timeline-row" key={log.id}><span className="timeline-icon"><Hammer size={17}/></span><div><span className="timeline-date">{localDate(log.createdAt)}</span><h3>{log.stage} · {statusNames[log.status]}</h3><p><strong>{home.rooms.find(r => r.id === log.roomId)?.name ?? 'Cômodo excluído'}</strong> — Parede {directionNames[log.direction].toLowerCase()}</p>{log.note && <div className="timeline-note">{log.note}</div>}</div></article>)}</div>}</section>
           <div className="history-footer"><span>Seus dados são sincronizados com sua conta Supabase. O backup JSON continua disponível.</span><button className="link-button danger-link" onClick={clearAll}><RotateCcw size={16}/>Zerar projeto</button></div>
         </>}
       </div>

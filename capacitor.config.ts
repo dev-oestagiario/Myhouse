@@ -6,5 +6,6 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   backgroundColor: '#14283f',
   android: { allowMixedContent: false },
+  plugins: { StatusBar: { overlaysWebView: false, style: 'LIGHT', backgroundColor: '#ffffff' } },
 };
 export default config;

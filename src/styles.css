@@ -32,3 +32,38 @@
 .sync-alert>span{flex:1;min-width:min(100%,230px)}
 .sync-alert .btn{flex-shrink:0}
 @media(max-width:480px){.auth-card{padding:24px}.account-line{align-items:flex-start}.topbar-actions .compact{padding:7px;min-width:34px}}
+
+/* Planta 3D visual; edição e registros de obras em tela independente. */
+.floor-layout-viewer-only {grid-template-columns:minmax(0,1fr);}
+.floorplan-only .scene {height:min(55vh,570px);min-height:315px;}
+.floorplan-only .chip-main {min-height:42px;padding:6px 9px;}
+.wall-preview {margin-top:16px;padding:21px 23px;}
+.wall-preview-heading {display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;}
+.wall-preview-heading h2 {font:700 18px Manrope,sans-serif;margin:5px 0;color:#244432;}
+.wall-preview-heading p {font-size:12px;color:#778d80;line-height:1.5;}
+.wall-preview-selector {display:flex;flex-wrap:wrap;gap:8px;margin-top:19px;}
+.wall-preview-selector button {flex:1;min-width:65px;min-height:40px;border:1px solid #dce9e0;border-radius:9px;color:#466552;background:#fff;font-size:12px;font-weight:700;}
+.wall-preview-selector button.active {background:#e7f4e9;border-color:#2d7155;color:#235b42;}
+.works-layout {display:grid;grid-template-columns:minmax(0,1.3fr) minmax(270px,.7fr);gap:17px;align-items:start;}
+.works-layout .inspector-panel {padding-bottom:24px;}
+.works-layout .work-form {border-top:0;margin-top:18px;padding-top:0;}
+.works-layout .stages-heading {margin-top:25px;}
+.rooms-manager .panel-heading {flex-wrap:wrap;}
+.rooms-manager-list {display:flex;flex-direction:column;gap:9px;padding:0 18px 18px;}
+.rooms-manager-list .room-chip {width:100%;}
+.rooms-manager-list .chip-main {min-height:40px;flex:1;padding:5px 8px;}
+.rooms-empty {padding:0 18px;color:#7b9181;font-size:12px;}
+.rooms-manager-footer {padding:15px 19px;border-top:1px solid #edf1ed;}
+@media(max-width:980px){.works-layout{grid-template-columns:1fr;}}
+@media(max-width:700px){
+ .floor-layout-viewer-only{grid-template-columns:1fr;}
+ .floorplan-only .scene{height:43vh!important;min-height:270px;max-height:420px;}
+ .wall-preview{padding:17px 15px;}
+ .wall-preview-heading .btn{width:100%;}
+ .works-layout .inspector-panel>.field-label,.works-layout .inspector-panel>.field-input,.works-layout .inspector-panel>.wall-tabs,.works-layout .inspector-panel>.wall-metrics,.works-layout .inspector-panel>.progress-track,.works-layout .inspector-panel>.stages-heading,.works-layout .inspector-panel>.stage-list,.works-layout .inspector-panel>.work-form,.works-layout .inspector-panel>.next-step,.works-layout .inspector-panel>.wall-log {margin-left:15px;margin-right:15px;}
+ .works-layout .inspector-panel>.field-input{width:calc(100% - 30px)!important;}
+ .sidebar{top:env(safe-area-inset-top,0px);bottom:env(safe-area-inset-bottom,0px);height:auto;}
+ .modal-backdrop{padding-top:max(18px,env(safe-area-inset-top,0px));padding-bottom:max(18px,env(safe-area-inset-bottom,0px));}
+}
+body {padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+.auth-layout {min-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));}
