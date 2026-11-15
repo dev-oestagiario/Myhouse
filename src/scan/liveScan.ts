@@ -12,6 +12,6 @@ export function describeLiveScanMode(mode: LiveScanMode): string {
   switch (mode) {
     case 'checking': return 'Verificando os recursos do aparelho…';
     case 'arcore': return 'ARCore disponível: use o rastreamento nativo para medir pontos do piso.';
-    case 'camera': return 'Câmera ao vivo: o mapeamento visual automático sem ARCore será desenvolvido na etapa 2.';
+    case 'camera': return 'Câmera ao vivo com calibração por uma medida conhecida e marcação assistida do piso. Não detecta paredes automaticamente.';
   }
 }
