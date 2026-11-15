@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { DoubleSide, Shape } from 'three';
+import { useMemo } from 'react';
+import { getFootprint } from '../plan/geometry';
+import type { PlanarScan } from './planarGeometry';
 import { Edges, OrbitControls } from '@react-three/drei';
 import { ArrowLeft, ArrowRight, Camera as CameraIcon, CheckCircle2, Layers3, Ruler, ShieldCheck, ScanLine } from 'lucide-react';
 import type { Room } from '../types';
@@ -15,31 +19,33 @@ type Props = {
 };
 
 function RoomScanPreview({ draft }: { draft: RoomScanDraft }) {
-  const w = draft.width;
-  const l = draft.length;
-  const h = draft.height;
-  const radius = Math.max(w, l, h);
-  return <div className="scan-3d" role="img" aria-label={'Prévia 3D simplificada de ' + w + ' por ' + l + ' por ' + h + ' metros'}>
-    <Canvas camera={{ position: [w * 1.4, h * 2, l * 1.65], fov: 45 }} dpr={[1, 1.5]}>
-      <color attach="background" args={['#f5f8f5']} />
-      <ambientLight intensity={1.4} />
-      <directionalLight position={[6, 9, 7]} intensity={1.6} />
-      <mesh position={[0, -0.04, 0]}>
-        <boxGeometry args={[w, 0.08, l]} />
-        <meshStandardMaterial color="#dcece2" />
-        <Edges color="#7fa995" />
+  const w = draft.width, l = draft.length, h = draft.height;
+  const radius = Math.max(w,l,h);
+  const vertices = getFootprint(draft);
+  const shape = useMemo(() => {
+    const floor = new Shape();
+    vertices.forEach((p,i)=>{if(i===0)floor.moveTo(p.x,p.z);else floor.lineTo(p.x,p.z);});
+    floor.closePath();
+    return floor;
+  },[draft.footprint,w,l]);
+  return <div className="scan-3d" role="img" aria-label={'Prévia do cômodo 3D: '+w.toFixed(2)+' por '+l.toFixed(2)+' por '+h.toFixed(2)+' metros'}>
+    <Canvas camera={{ position: [w*1.4,h*2,l*1.65],fov:45 }} dpr={[1,1.5]}>
+      <color attach="background" args={['#f5f8f5']}/>
+      <ambientLight intensity={1.4}/>
+      <directionalLight position={[6,9,7]} intensity={1.6}/>
+      <mesh position={[-w/2,-0.03,-l/2]} rotation={[Math.PI/2,0,0]}>
+        <shapeGeometry args={[shape]}/>
+        <meshStandardMaterial color="#dcece2" side={DoubleSide}/>
       </mesh>
-      {[
-        { position: [0, h / 2, -l / 2] as [number,number,number], size: [w, h, 0.06] as [number,number,number] },
-        { position: [0, h / 2, l / 2] as [number,number,number], size: [w, h, 0.06] as [number,number,number] },
-        { position: [-w / 2, h / 2, 0] as [number,number,number], size: [0.06, h, l] as [number,number,number] },
-        { position: [w / 2, h / 2, 0] as [number,number,number], size: [0.06, h, l] as [number,number,number] },
-      ].map((wall, i) => <mesh key={i} position={wall.position}>
-        <boxGeometry args={wall.size} />
-        <meshStandardMaterial color="#8cb6a1" transparent opacity={0.26} depthWrite={false}/>
-        <Edges color="#63917d" />
-      </mesh>)}
-      <OrbitControls target={[0, h / 2, 0]} enablePan={false} minDistance={Math.max(1.5, radius)} maxDistance={Math.max(15, radius * 5)} maxPolarAngle={Math.PI / 2.05}/>
+      {vertices.map((p,i)=>{
+        const n=vertices[(i+1)%vertices.length], dx=n.x-p.x, dz=n.z-p.z;
+        return <mesh key={i} position={[(p.x+n.x)/2-w/2,h/2,(p.z+n.z)/2-l/2]} rotation={[0,-Math.atan2(dz,dx),0]}>
+          <boxGeometry args={[Math.hypot(dx,dz),h,0.04]}/>
+          <meshStandardMaterial color="#8cb6a1" transparent opacity={0.26} depthWrite={false} side={DoubleSide}/>
+          <Edges color="#63917d"/>
+        </mesh>;
+      })}
+      <OrbitControls target={[0,h/2,0]} enablePan={false} minDistance={Math.max(1.5,radius)} maxDistance={Math.max(15,radius*5)} maxPolarAngle={Math.PI/2.05}/>
     </Canvas>
   </div>;
 }
@@ -64,6 +70,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
   }, []);
 
   function useManual() {
+    setDraft(previous => ({ ...previous, footprint: undefined }));
     setLastInput('manual');
     setArMeasurement(null);
     setConfirmed(false);
@@ -84,12 +91,36 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     setScreen('live');
   }
 
+  function acceptPlan(plan: PlanarScan) {
+    setDraft(previous => ({ ...previous, width: plan.width, length: plan.length, footprint: plan.footprint }));
+    setArMeasurement(null);
+    setLastInput('live');
+    setConfirmed(false);
+    setMessage('');
+    setScreen('measures');
+  }
+
+  function updateDimension(key: 'width'|'length'|'height', value: number) {
+    setDraft(previous => {
+      const next = { ...previous, [key]: value };
+      if (previous.footprint && key !== 'height' && value > 0) {
+        const prior = previous[key] > 0 ? previous[key] : Math.max(...previous.footprint.map(p => key === 'width' ? p.x : p.z));
+        if (prior > 0) next.footprint = previous.footprint.map(p => ({
+          x: key === 'width' ? p.x * value / prior : p.x,
+          z: key === 'length' ? p.z * value / prior : p.z,
+        }));
+      }
+      return next;
+    });
+    setConfirmed(false);
+  }
+
   async function measureWithAr() {
     setMessage('');
     setBusy(true);
     try {
       const result = await requestArMeasurement();
-      setDraft(previous => applyArMeasurement(previous, result));
+      setDraft(previous => ({ ...applyArMeasurement(previous, result), footprint: undefined }));
       setArMeasurement(result);
       setLastInput('arcore');
       setConfirmed(false);
@@ -137,10 +168,10 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
         <span className="eyebrow dark-eyebrow">ESCANEAMENTO AO VIVO</span>
         <h1 ref={heading} tabIndex={-1}>{
           screen === 'welcome' ? 'Mapeie seu cômodo com a câmera' :
-          screen === 'live' ? 'Mostre o ambiente ao vivo' :
+          screen === 'live' ? 'Desenhe o contorno do piso' :
           screen === 'measures' ? 'Confira as medidas' : 'Revise sua planta 3D'
         }</h1>
-        <p>A câmera funciona em tempo real. No ARCore, selecione referências no piso; sem ARCore, a reconstrução automática começará na próxima etapa.</p>
+        <p>A câmera funciona em tempo real. Sem ARCore, uma referência de escala e pontos sobre o piso permitem estimar seu contorno.</p>
       </div>
       <button type="button" className="btn btn-ghost scan-back" onClick={onCancel} aria-label="Voltar para Obras"><ArrowLeft size={17}/>Voltar</button>
     </div>
@@ -150,31 +181,31 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     {screen === 'welcome' && <div className="scan-card">
       <div className="scan-icon"><ScanLine size={27}/></div>
       <h2>Explore o espaço em tempo real</h2>
-      <p>O aplicativo verifica automaticamente o suporte a ARCore. Se disponível, abrirá a câmera nativa para medir pontos do piso. Caso contrário, abrirá a visualização contínua da câmera, sem fotografias.</p>
+      <p>O aplicativo verifica o suporte ao ARCore. Se disponível, abre a medição nativa; nos demais aparelhos, marque o contorno do piso com a câmera ao vivo e uma referência de tamanho conhecido.</p>
       <div className="scan-mode-status" role="status"><CameraIcon size={18}/><span>{describeLiveScanMode(scanMode)}</span></div>
       <div className="scan-privacy"><ShieldCheck size={19}/><span>O vídeo não será gravado nem enviado para a nuvem. Apenas o cômodo confirmado por você será salvo.</span></div>
       <div className="scan-actions">
         <button className="btn btn-primary" type="button" disabled={busy || scanMode === 'checking'} onClick={startLiveScan}><ScanLine size={18}/>{busy ? 'Abrindo câmera…' : 'Iniciar escaneamento'}</button>
         <button className="btn btn-outline" type="button" disabled={busy} onClick={useManual}><Ruler size={18}/>Usar modo manual</button>
       </div>
-      <p className="scan-hint">Nesta etapa, a câmera ao vivo sem ARCore ainda não calcula dimensões. As medidas continuarão editáveis nos dois modos.</p>
+      <p className="scan-hint">A câmera comum não determina distâncias sozinha. A estimativa depende de uma referência medida, todos os pontos no mesmo piso e o aparelho imóvel.</p>
     </div>}
     {screen === 'live' && <div className="scan-card">
-      <h2>Visualização contínua do cômodo</h2>
-      <p>Aponte o aparelho para o ambiente. Não há captura de fotos. A análise geométrica para aparelhos sem ARCore será integrada na etapa 2.</p>
-      <LiveCameraPreview onContinue={() => { setLastInput('live'); setScreen('measures'); }} onManual={useManual}/>
+      <h2>Reconstrução plana assistida</h2>
+      <p>Mostre todo o contorno do piso, mantenha o celular parado e marque uma referência de escala. Os pontos são projetados em uma planta 2D aproximada, sem fotos ou vídeo gravado.</p>
+      <LiveCameraPreview onContinue={acceptPlan} onManual={useManual}/>
       <div className="scan-footer"><button className="btn btn-ghost" type="button" onClick={() => setScreen('welcome')}><ArrowLeft size={16}/>Voltar</button></div>
     </div>}
     {screen === 'measures' && <div className="scan-card">
       <div className="scan-icon"><Ruler size={27}/></div>
       <h2>Medidas do cômodo</h2>
-      <p>Confira as medidas com uma trena. No ARCore, largura e comprimento são estimativas; na câmera comum, ainda não há cálculo automático nesta etapa.</p>
+      <p>Confira as medidas com uma trena. No ARCore são estimativas por pontos rastreados. Na câmera comum, elas são estimadas a partir de um retângulo calibrado no piso e dos cantos que você marcou.</p>
       {arSupport?.supported && <div className="scan-ar-option"><button type="button" className="btn btn-outline" disabled={busy} onClick={() => void measureWithAr()}><Ruler size={17}/>{busy ? 'Abrindo ARCore…' : 'Medir largura e comprimento com ARCore'}</button><small>Marque dois pontos do piso para cada dimensão. A altura continua manual.</small></div>}
       {arMeasurement && <p className="scan-ar-result" role="status"><CheckCircle2 size={17}/>O ARCore estimou {arMeasurement.width.toFixed(2)} m de largura e {arMeasurement.length.toFixed(2)} m de comprimento. {arMeasurement.depthUsed ? 'Houve uso de profundidade, sujeita a mais variação.' : 'Foram usadas referências de superfície detectadas.'} Corrija qualquer diferença abaixo antes de salvar.</p>}
       <div className="scan-fields">
         <label className="scan-field scan-wide">Nome do cômodo<input required maxLength={80} value={draft.name} placeholder="Ex.: Quarto principal" onChange={e => setDraft(p => ({ ...p, name: e.target.value }))} /></label>
         {([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) =>
-          <label className="scan-field" key={key}>{label}<input required type="number" inputMode="decimal" min="0.1" max="100" step="0.01" value={draft[key]} onChange={e => { const v = Number(e.target.value); setDraft(p => ({ ...p, [key]: v })); setConfirmed(false); }} /></label>)}
+          <label className="scan-field" key={key}>{label}<input required type="number" inputMode="decimal" min="0.1" max="100" step="0.01" value={draft[key]} onChange={e => updateDimension(key, Number(e.target.value))} /></label>)}
         <p className="scan-field-note scan-wide">A posição determina onde o cômodo ficará em relação aos outros. Se não souber, mantenha a posição sugerida e ajuste depois em Obras.</p>
         {([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) =>
           <label className="scan-field" key={key}>{label}<input required type="number" inputMode="decimal" min="-100" max="100" step="0.01" value={draft[key]} onChange={e => { const v = Number(e.target.value); setDraft(p => ({ ...p, [key]: v })); setConfirmed(false); }} /></label>)}
@@ -183,7 +214,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     </div>}
     {screen === 'review' && <div className="scan-card">
       <h2>{draft.name.trim()}</h2>
-      <p>Representação simplificada das medidas conferidas, sem portas ou janelas. Arraste para girar. {arMeasurement && 'Se você usou ARCore, os valores são aproximados e podem ser corrigidos antes do salvamento.'}</p>
+      <p>Representação simplificada do contorno do piso e altura informada, sem portas ou janelas. Arraste para girar. {arMeasurement && 'Se você usou ARCore, os valores são aproximados e podem ser corrigidos antes do salvamento.'}</p>
       <RoomScanPreview draft={draft}/>
       <div className="scan-summary"><div><span>Largura</span><strong>{draft.width} m</strong></div><div><span>Comprimento</span><strong>{draft.length} m</strong></div><div><span>Altura</span><strong>{draft.height} m</strong></div></div>
       <label className="scan-confirm"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/><span>Conferi as medidas, incluindo qualquer estimativa ARCore, e entendo que esta planta é ilustrativa, não um levantamento técnico.</span></label>
