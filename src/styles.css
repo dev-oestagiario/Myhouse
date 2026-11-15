@@ -281,3 +281,37 @@ body {padding-top:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px
  .scan-live .scan-actions>.btn {flex:1 1 145px;white-space:normal;}
  .scan-header .scan-back {margin-top:-8px;}
 }
+
+/* F5.2: marcação geométrica sobre vídeo, sempre com alternativa de teclado. */
+.scan-live-instructions{display:flex;flex-direction:column;gap:8px;margin:0 0 15px;line-height:1.5}
+.scan-live-instructions strong{font-size:16px;color:#15355f}
+.scan-live-instructions p{font-size:12px;color:#52677f;line-height:1.7;max-width:760px}
+.scan-live-phase{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#1d61ab}
+.scan-live-markers{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.scan-live-markers text{paint-order:stroke;stroke:#10233b;stroke-width:5px}
+.scan-live-tap{position:absolute;inset:0;z-index:2;width:100%;height:100%;background:transparent;border:0;padding:0;cursor:crosshair;touch-action:manipulation}
+.scan-live-tap:focus-visible{outline:3px solid #bfdbfe;outline-offset:-5px}
+.scan-live-viewport .scan-live-label{z-index:3;pointer-events:none}
+.scan-live-count{position:absolute;bottom:13px;left:13px;z-index:3;pointer-events:none;display:flex;align-items:center;gap:7px;background:#10233bd9;color:white;padding:8px 11px;border-radius:100px;font-size:12px;font-weight:700}
+.scan-live-viewport .scan-live-overlay{z-index:4}
+.scan-live-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:end;margin:15px 0}
+.scan-live-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#315172;min-width:0}
+.scan-live-fields input{width:100%;min-width:0;min-height:43px;border:1px solid #cbdcf2;background:white;color:#173c65;border-radius:9px;padding:10px}
+.scan-live-fields input:focus-visible{outline:3px solid #93b9f4}
+.scan-live-accessible{border:1px solid #e2eaf6;border-radius:10px;padding:12px;margin-top:8px;color:#52677f}
+.scan-live-accessible summary{cursor:pointer;font-weight:800;font-size:12px;color:#28568b}
+.scan-live-accessible p{font-size:12px;margin:10px 0;line-height:1.6}
+.scan-live-warning{background:#fff7e6;border:1px solid #e8c88a;color:#715016;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.6;margin-top:13px}
+.scan-live-warning button{margin-left:9px;background:transparent;color:#715016;text-decoration:underline;border:0;font-weight:800}
+.scan-live-result{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:14px;padding:14px;border-radius:11px;background:#eaf4ff;border:1px solid #bdd8f6;color:#234b76;font-size:12px}
+.scan-live-result strong{flex-basis:100%;font-size:13px}
+.scan-live-result span{background:white;padding:7px 9px;border-radius:7px;border:1px solid #d7e5f7;font-weight:700}
+.scan-live-result small{flex-basis:100%;color:#52677f;line-height:1.5}
+@media(max-width:700px){
+ .scan-live-viewport{height:clamp(310px,55vh,540px)}
+ .scan-live-count{bottom:9px;left:9px}
+ .scan-live-fields{gap:9px}
+ .scan-live-accessible .scan-live-fields{grid-template-columns:1fr}
+ .scan-live .scan-actions{align-items:stretch}
+ .scan-live .scan-actions .btn{white-space:normal;min-height:44px}
+}
