@@ -48,7 +48,8 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
     setOpeningDraft(defaultOpening(room));
     setMessage('');
     setSuccess(false);
-  }, [room]);
+  // Keep the success notice visible after saving the same room.
+  }, [room?.id]);
 
   const points = draft ? getFootprint(draft) : [];
   const segments = draft ? getWallSegments(draft) : [];

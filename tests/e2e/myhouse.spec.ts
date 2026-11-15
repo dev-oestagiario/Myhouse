@@ -28,7 +28,7 @@ test('compras com categoria livre, edição e conclusão', async ({ page }) => {
   await page.getByLabel('Preço unitário (R$)').fill('79.90');
   await page.getByRole('button', { name: 'Salvar item' }).click();
   await expect(page.getByText('Tinta para parede')).toBeVisible();
-  await expect(page.getByText('Reforma personalizada')).toBeVisible();
+  await expect(page.getByText('Reforma personalizada', { exact: true })).toBeVisible();
 });
 
 test('planta 2D — criar formato L, porta e salvar mantendo backup', async ({ page }) => {
@@ -55,7 +55,7 @@ test('captura guiada tem fallback manual e exige conferência antes de salvar', 
   await page.getByRole('checkbox', { name: /Conferi as medidas/ }).check();
   await expect(save).toBeEnabled();
   await save.click();
-  await expect(page.getByText('Cozinha nova')).toBeVisible();
+  await expect(page.getByText('Cozinha nova', { exact: true })).toBeVisible();
 });
 
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {
