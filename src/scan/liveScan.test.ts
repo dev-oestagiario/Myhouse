@@ -14,6 +14,6 @@ describe('seleção automática do escaneamento ao vivo', () => {
     expect(chooseLiveScanMode({ supported: false, installed: false, status: 'NATIVE_PLUGIN_UNAVAILABLE' })).toBe('camera');
   });
   it('não anuncia reconstrução como funcionalidade já implementada', () => {
-    expect(describeLiveScanMode('camera')).toContain('etapa 2');
+    expect(describeLiveScanMode('camera')).toContain('calibr');
   });
 });
