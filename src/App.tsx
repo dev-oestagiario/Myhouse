@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
+import GuidedRoomScan from './scan/GuidedRoomScan';
 import { Edges, OrbitControls } from '@react-three/drei';
 import {
   ArrowDownToLine, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
   ClipboardList, Clock3, Download, Edit3, FileClock, Filter, Hammer, Home,
   Layers3, Menu, Package, Paintbrush, Plus, RotateCcw, Save, Search,
-  ShoppingBasket, Trash2, Upload, Wallet, X, Cloud, CloudOff, LogOut, RefreshCw,
+  ShoppingBasket, Trash2, Upload, Wallet, X, Cloud, CloudOff, LogOut, RefreshCw, ScanLine,
 } from 'lucide-react';
 import type { Direction, HomeData, Priority, Purchase, Room, Stage, TaskStatus } from './types';
 import { DIRECTIONS, STAGES } from './types';
@@ -16,7 +17,7 @@ import {
   statusNames, validateHome, wallId,
 } from './data';
 
-type Page = 'overview' | 'shopping' | 'floorplan' | 'works' | 'history';
+type Page = 'overview' | 'shopping' | 'floorplan' | 'works' | 'scan' | 'history';
 type PurchaseDraft = Omit<Purchase, 'id' | 'createdAt'>;
 const emptyPurchase = (): PurchaseDraft => ({
   name: '', category: 'Outros', roomId: '', priority: 'media',
@@ -270,6 +271,15 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     setPage('works');
     setNotice('Cômodo salvo. Ele já aparece na Planta 3D.');
   }
+  function completeRoomScan(draft: Omit<Room, 'id'>) {
+    const room: Room = { id: newId(), ...draft };
+    setHome(previous => ({ ...previous, rooms: [...previous.rooms, room] }));
+    setSelectedRoomId(room.id);
+    setSelectedWall('leste');
+    changePage('floorplan');
+    setNotice('Cômodo criado com medidas conferidas. Aguarde o salvamento na nuvem.');
+  }
+
   function deleteRoom(r: Room) {
     if (!window.confirm(`Excluir ${r.name} e todos os registros de trabalho associados?`)) return;
     setHome(prev => ({ ...prev, rooms: prev.rooms.filter(room => room.id !== r.id),
@@ -320,6 +330,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     { id: 'shopping', name: 'Lista de compras', Icon: ShoppingBasket },
     { id: 'floorplan', name: 'Planta 3D', Icon: Layers3 },
     { id: 'works', name: 'Obras', Icon: Hammer },
+    { id: 'scan', name: 'Escanear cômodo', Icon: ScanLine },
     { id: 'history', name: 'Histórico de atividades', Icon: FileClock },
   ];
   const changePage = (newPage: Page) => { setPage(newPage); setMobileNav(false); window.scrollTo({ top: 0 }); };
@@ -376,9 +387,9 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           </section>
         </>}
         {page === 'floorplan' && <>
-          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos e selecione paredes. O cadastro e as atualizações ficam em Obras.</p></div><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos e selecione paredes. O cadastro e as atualizações ficam em Obras.</p></div><div className="scan-entry-actions"><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div></div>
           <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
-            <div className="scene">{home.rooms.length ? <HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Cadastre um cômodo na seção Obras.</span><button className="btn btn-primary" onClick={() => changePage('works')}><Plus size={17}/>Cadastrar cômodo</button></div>}</div>
+            <div className="scene">{home.rooms.length ? <HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Cadastre ou escaneie um cômodo para começar.</span><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Plus size={17}/>Cadastro manual</button></div>}</div>
             <div className="room-list-header"><strong>Cômodos</strong><span>{home.rooms.length} cômodo(s)</span></div>
             <div className="room-chips">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button type="button" className="chip-main" aria-pressed={selectedRoomId === r.id} onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button></div>)}</div>
             {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. A distribuição real da casa dependerá das suas medidas; portas e janelas ainda não são modeladas.</p>}
@@ -387,8 +398,9 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           {selectedRoom && <section className="panel wall-preview" aria-label="Parede selecionada"><div className="wall-preview-heading"><div><span className="eyebrow dark-eyebrow">PAREDE SELECIONADA</span><h2>{selectedRoom.name} · {directionNames[selectedWall]}</h2><p>{number((selectedWall === 'norte' || selectedWall === 'sul' ? selectedRoom.width : selectedRoom.length) * selectedRoom.height)} m² estimados · {percentDone(selectedStages)}% concluído</p></div><button className="btn btn-primary" onClick={() => changePage('works')}><ArrowRight size={17}/>Ver em Obras</button></div><div className="wall-preview-selector" role="group" aria-label="Selecionar parede">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div></section>}
         </>}
 
+        {page === 'scan' && <GuidedRoomScan existingRooms={home.rooms} onComplete={completeRoomScan} onCancel={() => changePage('works')} />}
         {page === 'works' && <>
-          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>Obras</h1><p>Registre o andamento de cada parede, sem precisar passar pela planta.</p></div><button className="btn btn-outline" onClick={() => openRoom()}><Plus size={17}/>Adicionar cômodo</button></div>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>Obras</h1><p>Registre o andamento de cada parede, sem precisar passar pela planta.</p></div><div className="scan-entry-actions"><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => openRoom()}><Plus size={17}/>Adicionar cômodo</button></div></div>
           <div className="works-layout">
           <section className="panel inspector-panel"><div className="panel-heading inspector-heading"><div><h3>Acompanhamento da parede</h3><p>Registre o andamento e mantenha um histórico.</p></div><Hammer size={20} className="subtle-icon"/></div>
             {selectedRoom ? <><label className="field-label" htmlFor="work-room">Cômodo</label><select id="work-room" className="field-input" value={selectedRoomId} onChange={e => selectWall(e.target.value, selectedWall)}>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select>

@@ -1,0 +1,49 @@
+# My House — Escaneamento assistido de cômodos
+
+## Objetivo e limites
+
+Uma pessoa em mudança ou reforma usa seu celular para registrar um cômodo e incorporá-lo à Planta 3D sem precisar configurar a geometria manualmente no editor. O **MVP fase 1** registra imagens guiadas, solicita largura, comprimento e altura *medidos ou conferidos pela pessoa*, pré-visualiza o volume e salva apenas o cômodo. **Fotos não produzem medidas automáticas nesta fase**.
+
+Não chamar a prévia de planta arquitetônica ou levantamento técnico preciso. A planta existente representa cômodos como prismas retangulares (posição X/Z e altura), sem portas e janelas.
+
+## Jornada da Fase 1
+
+1. Acessar Planta 3D ou Obras e escolher **Escanear cômodo**.
+2. Ler orientação de privacidade e escolher captura ou entrada manual.
+3. Capturar (ou selecionar) fotos de entrada, parede direita, parede oposta, parede esquerda e teto/piso, uma por etapa; cada foto é opcional.
+4. Informar nome, largura, comprimento, altura e posição X/Z, com valores iniciais **meramente ilustrativos**. A foto não determina dimensão.
+5. Revisar uma prévia tridimensional, validar os valores e marcar confirmação explícita.
+6. Salvar um novo cômodo na estrutura `HomeData.rooms` com ID estável. O Supabase continua salvando o documento existente em `user_homes` com suas regras RLS. Ir à Planta 3D e mostrar o cômodo.
+
+## Segurança e privacidade
+
+- Captura depende de ação explícita. Permissões só na hora de capturar; tratar erro e cancelamento.
+- Fotos ficam exclusivamente em URLs temporárias / memória durante a sessão. Não persisti-las no estado da casa, backup, banco, analytics ou logs; não implementar upload oculto.
+- Evitar fotografar pessoas e documentos; oferecer descartar ou substituir cada foto e prosseguir manualmente.
+- Navegação independente de câmera, arrastar ou AR: formulário de medidas sempre acessível.
+- Validar nome e dimensões (0,10–100 m) e coordenadas (-100–100 m); não aceitar NaN/Infinity.
+- Saída da captura descarta referências temporárias. Não criar cômodos sem confirmação.
+
+## Arquitetura
+
+- `src/scan/roomScan.ts`: regras puras para valores e etapas.
+- `src/scan/GuidedRoomScan.tsx`: fluxo de captura, revisão e prévia.
+- `src/App.tsx`: entradas de navegação e persistência sem schema novo.
+- `src/styles.css`: experiência responsiva.
+
+## Fases
+
+| Fase | Escopo | Critério de aceite |
+| --- | --- | --- |
+| F0 — Especificação | Modelo, riscos, alternativas, testes e gates | Documentos versionados |
+| **F1 — Captura guiada e fallback** | Fotos opcionais via câmera nativa / seletor, medidas conferidas, prévia e cadastro | Testes de regras, build web, APK e teste manual no celular |
+| F2 — ARCore opcional | Plugin nativo Android, checagem real de suporte/instalação, permissões, pontos de referência e profundidade onde disponíveis | Medições com precisão documentada em aparelhos compatíveis, fallback em aparelhos incompatíveis |
+| F3 — Geometria avançada | Polígono de cômodo, várias paredes e vãos, ajuste fino 2D/3D, conflitos/posicionamento dos cômodos, possível pipeline de visão computacional com consentimento separado | Comparação contra medidas reais e edição manual |
+| F4 — Robustez/lançamento | Matriz de dispositivos, UX acessível, testes E2E, exportação, LGPD e monitoramento | Gatilhos de regressão no CI e critérios de lançamento |
+
+## Decisões explícitas
+
+- Fotos estáticas guiadas são preferidas a vídeo contínuo na F1: mais simples, não requer backend para vídeo e funciona em mais aparelhos.
+- Não declarar “ARCore compatível” com base apenas no navegador, versão Android ou WebXR. Detectar o serviço nativo na F2.
+- Não enviar fotos para o Supabase sem novo aceite e especificação de armazenamento/retencão.
+- Para ter medidas automáticas precisas, serão necessários ARCore compatível, calibração e testes; a câmera comum, por si só, não as fornece.
