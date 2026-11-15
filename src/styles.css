@@ -459,3 +459,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .scan-floor-svg{height:210px;}
   .scan-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+
+
+/* Login e aplicativo compartilham os mesmos tons e ações primárias. */
+.auth-layout{background:linear-gradient(145deg,#eef4ff,#e5ecfa);}
+.auth-card{box-shadow:0 22px 70px #1a427222;border:1px solid #e0e9f6;}
+.auth-logo{background:var(--myhouse-navy);}
+.auth-form .btn-primary{background:var(--myhouse-blue);border-color:var(--myhouse-blue);}
+.auth-form .btn-primary:hover{background:var(--myhouse-blue-hover);}
+.auth-form input{border-color:#cddcf0;}
+.auth-form label,.auth-kicker{color:#315882;}
+.auth-navigation button{color:#1e5cb2;}
+.auth-privacy{border-top-color:#e0e9f6;}
