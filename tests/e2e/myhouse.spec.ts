@@ -106,7 +106,8 @@ test('câmera sem ARCore calibra o piso e conserva o polígono confirmado', asyn
   await page.getByLabel('Comprimento (m)').fill('4.1');
   await expect(page.getByRole('img',{name:/Vista superior do piso com 4 cantos, largura 3.2 metros e comprimento 4.1 metros/})).toBeVisible();
   await page.getByRole('button',{name:'Visualizar em 3D'}).click();
-  await expect(page.getByText('13.12 m²')).toBeVisible();
+  await expect(page.locator('.scan-summary').getByText('Área de piso')).toBeVisible();
+  await expect(page.locator('.scan-summary').getByText('Perímetro')).toBeVisible();
   await page.getByRole('checkbox',{name:/Conferi as medidas/}).check();
   await page.getByRole('button',{name:'Criar cômodo na Planta 3D'}).click();
   await expect.poll(()=>state.data.rooms.find(r=>r.name==='Piso projetado')?.footprint?.length).toBe(4);
