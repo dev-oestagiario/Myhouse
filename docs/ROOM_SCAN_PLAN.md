@@ -1,5 +1,7 @@
 # Plano de implementação — Escaneamento assistido
 
+> **Evolução F5 (15/11/2026):** o fluxo de fotos descrito abaixo é histórico. A experiência atual em desenvolvimento passa a usar câmera ao vivo sem fotografias. Consultar [F5_LIVE_SCAN.md](F5_LIVE_SCAN.md). A geração automática sem ARCore pertence à etapa 2, e a build do APK foi adiada para o final das três etapas.
+
 **Especificação:** [ROOM_SCAN_SPEC.md](ROOM_SCAN_SPEC.md)
 **Repositório:** Myhouse / conexão GitHub DEV
 **Evolução:** F1, F2 e F3 integradas. F4 em validação por CI nesta branch; testes em hardware e distribuição assinada ainda dependem de ações explícitas.
