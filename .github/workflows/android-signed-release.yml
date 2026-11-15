@@ -1,0 +1,96 @@
+name: Publicar APK Android assinado (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: myhouse-signed-android
+  cancel-in-progress: false
+
+jobs:
+  signed-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      VITE_SUPABASE_URL: https://peijhetajeuiqomvfseg.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_d5MAuGIEo7vjdYeO2ioMUA_PbByLUNd
+      MYHOUSE_RELEASE_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: '14742923'
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+          packages: platform-tools
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund
+      - name: Testar regras e compilar Android
+        run: |
+          npm run test
+          npm run android:prepare
+      - name: Configurar assinatura persistente
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: node scripts/configure-android-signing.mjs
+      - name: Gerar APK release com assinatura persistente
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+      - name: Verificar assinatura Android do APK
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$apk"
+          tool=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -x "$tool"
+          "$tool" verify --verbose "$apk"
+          mkdir -p release
+          cp "$apk" release/MyHouse-assinado.apk
+          (cd release && sha256sum MyHouse-assinado.apk > MyHouse-assinado.apk.sha256)
+      - name: Publicar Release Android assinada
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: myhouse-signed-v1.${{ github.run_number }}
+        run: |
+          cat > release/NOTES.md <<'EOF'
+          **My House — Android assinado para distribuição direta**
+
+          Baixe o arquivo `MyHouse-assinado.apk` abaixo.
+
+          Esta versão foi compilada com o keystore de assinatura fornecido por Secrets e
+          passou por verificação criptográfica da assinatura Android.
+          Não é, por si só, uma publicação na Play Store nem um atestado de testes em hardware real.
+
+          A versão de teste (debug) tem assinatura diferente: faça backup e confirme
+          a sincronização antes de trocar da versão de teste para esta.
+          EOF
+          gh release create "$TAG" \
+            release/MyHouse-assinado.apk \
+            release/MyHouse-assinado.apk.sha256 \
+            --title "My House — Android assinado (build ${{ github.run_number }})" \
+            --notes-file release/NOTES.md \
+            --latest
+      - name: Limpar keystore gerado do runner
+        if: always()
+        run: |
+          rm -f android/app/myhouse-release.jks
