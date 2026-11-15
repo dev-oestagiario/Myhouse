@@ -5,6 +5,22 @@ export type Stage = typeof STAGES[number];
 export type TaskStatus = 'nao-iniciado' | 'em-andamento' | 'concluido';
 export type Priority = 'urgente' | 'alta' | 'media' | 'baixa';
 
+/** Coordinates in meters relative to a room's local top-left corner. */
+export interface PlanPoint { x: number; z: number }
+
+export interface WallOpening {
+  id: string;
+  type: 'door' | 'window';
+  /** Index of the polygon boundary edge, in stored vertex order. */
+  edge: number;
+  /** Distance from the starting vertex of that edge, in meters. */
+  offset: number;
+  width: number;
+  height: number;
+  /** Door starts at ground level; windows have a sill in meters. */
+  sill: number;
+}
+
 export interface Room {
   id: string;
   name: string;
@@ -13,6 +29,10 @@ export interface Room {
   height: number;
   x: number;
   z: number;
+  /** Optional polygon; absent means a rectangle for legacy rooms. */
+  footprint?: PlanPoint[];
+  /** Openings on individual polygon boundary edges. */
+  openings?: WallOpening[];
 }
 
 export interface Purchase {
