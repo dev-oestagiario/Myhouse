@@ -6,3 +6,12 @@ dist/
 .env
 .env.*
 !.env.example
+# Testes de navegador e chaves privadas Android
+playwright-report/
+test-results/
+playwright/.cache/
+*.jks
+*.keystore
+*.p12
+android/app/signing.properties
+android/app/myhouse-release.jks
