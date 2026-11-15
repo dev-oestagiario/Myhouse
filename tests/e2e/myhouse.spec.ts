@@ -44,10 +44,15 @@ test('planta 2D — criar formato L, porta e salvar mantendo backup', async ({ p
   await expect(page.getByRole('button', { name: /Sala de teste/ })).toBeVisible();
 });
 
-test('captura guiada tem fallback manual e exige conferência antes de salvar', async ({ page }) => {
+test('escaneamento ao vivo não solicita fotos e mantém revisão manual', async ({ page }) => {
   await setupMockSession(page);
   await navigate(page, 'Escanear cômodo');
-  await page.getByRole('button', { name: 'Preencher manualmente' }).click();
+  const start = page.getByRole('button', { name: 'Iniciar escaneamento' });
+  await expect(start).toBeEnabled();
+  await start.click();
+  await expect(page.getByRole('heading', { name: 'Mostre o ambiente ao vivo' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tirar foto' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Usar modo manual' }).click();
   await page.getByPlaceholder('Ex.: Quarto principal').fill('Cozinha nova');
   await page.getByRole('button', { name: 'Visualizar em 3D' }).click();
   const save = page.getByRole('button', { name: 'Criar cômodo na Planta 3D' });
