@@ -40,6 +40,8 @@ jobs:
           packages: platform-tools
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
+      - name: Testar regras de escaneamento
+        run: npm run test
       - name: Compilar web e gerar projeto Android com ícone personalizado
         run: npm run android:prepare
       - name: Gerar APK de teste

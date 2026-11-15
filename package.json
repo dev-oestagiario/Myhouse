@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "check": "tsc --noEmit",
     "android:prepare": "npm run build && npx cap add android && node scripts/install-android-icons.mjs && npx cap sync android",
-    "android:sync": "npm run build && npx cap sync android && node scripts/install-android-icons.mjs"
+    "android:sync": "npm run build && npx cap sync android && node scripts/install-android-icons.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -19,7 +20,8 @@
     "react-dom": "^18.3.1",
     "three": "^0.170.0",
     "@supabase/supabase-js": "2.119.0",
-    "@capacitor/core": "8.0.0"
+    "@capacitor/core": "8.0.0",
+    "@capacitor/camera": "8.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
@@ -29,6 +31,7 @@
     "typescript": "^5.7.3",
     "vite": "^5.4.15",
     "@capacitor/cli": "8.0.0",
-    "@capacitor/android": "8.0.0"
+    "@capacitor/android": "8.0.0",
+    "vitest": "^2.1.9"
   }
 }
