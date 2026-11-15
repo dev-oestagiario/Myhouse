@@ -28,5 +28,8 @@ describe('conferência de medidas do escaneamento', () => {
     expect(makeDefaultScanDraft(rooms).x).toBe(6);
     expect(makeDefaultScanDraft([]).width).toBe(3);
   });
-  it('preserva o contorno gerado por câmera sem omiti-lo na persistência', () => {\n    const footprint=[{x:0,z:0},{x:3.4,z:0},{x:3.4,z:4.5},{x:0,z:4.5}];\n    expect(verifyScanDraft({...valid,footprint}).footprint).toEqual(footprint);\n  });
+  it('preserva o contorno gerado por câmera sem omiti-lo na persistência', () => {
+    const footprint=[{x:0,z:0},{x:3.4,z:0},{x:3.4,z:4.5},{x:0,z:4.5}];
+    expect(verifyScanDraft({...valid,footprint}).footprint).toEqual(footprint);
+  });
 });
