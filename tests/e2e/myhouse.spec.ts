@@ -64,6 +64,45 @@ test('escaneamento ao vivo não solicita fotos e mantém revisão manual', async
   await expect(page.getByText('Cozinha nova', { exact: true })).toBeVisible();
 });
 
+test('câmera sem ARCore calibra o piso e conserva o polígono confirmado', async ({ page }) => {
+  // Fluxo sem hardware: os pixels do vídeo são simulados, mas todos os pontos
+  // passam pelo componente real, pela homografia e pela validação do cadastro.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => new MediaStream() },
+    });
+    HTMLMediaElement.prototype.play = async function () {};
+  });
+  const state=await setupMockSession(page);
+  await navigate(page,'Escanear cômodo');
+  const start=page.getByRole('button',{name:'Iniciar escaneamento'});
+  await expect(start).toBeEnabled();
+  await start.click();
+  const frame=page.getByRole('button',{name:'Marcar canto da referência no vídeo'});
+  await expect(frame).toBeVisible();
+  const clickPoint=async (x:number,y:number)=>{
+    const target=page.locator('.scan-live-tap');
+    const box=await target.boundingBox();
+    if(!box)throw new Error('Área de câmera indisponível');
+    await target.click({position:{x:box.width*x,y:box.height*y}});
+  };
+  for(const [x,y] of [[.2,.2],[.4,.2],[.4,.4],[.2,.4]])await clickPoint(x,y);
+  await expect(page.getByRole('button',{name:'Marcar canto do cômodo no vídeo'})).toBeVisible();
+  for(const [x,y] of [[.1,.1],[.6,.1],[.6,.6],[.1,.6]])await clickPoint(x,y);
+  await expect(page.getByText('Planta inicial estimada')).toBeVisible();
+  const use=page.getByRole('button',{name:'Usar contorno estimado'});
+  await expect(use).toBeEnabled();
+  await use.click();
+  await expect(page.getByLabel('Largura (m)')).toHaveValue('1.5');
+  await expect(page.getByLabel('Comprimento (m)')).toHaveValue('1.5');
+  await page.getByPlaceholder('Ex.: Quarto principal').fill('Piso projetado');
+  await page.getByRole('button',{name:'Visualizar em 3D'}).click();
+  await page.getByRole('checkbox',{name:/Conferi as medidas/}).check();
+  await page.getByRole('button',{name:'Criar cômodo na Planta 3D'}).click();
+  await expect.poll(()=>state.data.rooms.find(r=>r.name==='Piso projetado')?.footprint?.length).toBe(4);
+});
+
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {
   await setupMockSession(page);
   await navigate(page, 'Lista de compras');
