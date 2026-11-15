@@ -225,3 +225,14 @@ body {padding-top:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px
 }
 .sidebar-section-label,.brand small,.sidebar .version {font-weight:600;}
 .page-content:focus {outline:none;}
+
+/* F4: contraste de rótulos funcionais e textos de progresso em Obras. */
+.wall-tabs button:not(.active),
+.wall-metrics span,.work-form .field label,
+.stages-heading span,.stage-row small,.next-step p,
+.next-step strong,.wall-log span,.timeline-date,
+.progress-track+span,.wall-preview-heading p,
+.purchase-meta,.purchase-note,.purchase-cost small,
+.purchase-item .priority-pill,.purchase-item .purchase-info small {
+  color:#425b4b!important;
+}

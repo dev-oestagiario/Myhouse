@@ -28,7 +28,7 @@ test('compras com categoria livre, edição e conclusão', async ({ page }) => {
   await page.getByLabel('Preço unitário (R$)').fill('79.90');
   await page.getByRole('button', { name: 'Salvar item' }).click();
   await expect(page.getByText('Tinta para parede')).toBeVisible();
-  await expect(page.getByText('Reforma personalizada', { exact: true })).toBeVisible();
+  await expect(page.locator('.purchase-meta span').filter({ hasText: 'Reforma personalizada' }).first()).toBeVisible();
 });
 
 test('planta 2D — criar formato L, porta e salvar mantendo backup', async ({ page }) => {
@@ -41,7 +41,7 @@ test('planta 2D — criar formato L, porta e salvar mantendo backup', async ({ p
   await expect.poll(() => state.data.rooms[0].footprint?.length).toBe(6);
   await expect.poll(() => state.data.rooms[0].openings?.length).toBe(1);
   await navigate(page, 'Planta 3D');
-  await expect(page.getByText('Sala de teste')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Sala de teste/ })).toBeVisible();
 });
 
 test('captura guiada tem fallback manual e exige conferência antes de salvar', async ({ page }) => {
