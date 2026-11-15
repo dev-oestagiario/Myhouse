@@ -16,8 +16,8 @@ function RoomFloor({ room, selected, color }: { room: Room; selected: boolean; c
   }, [room]);
   return <mesh position={[room.x, -0.03, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
     <shapeGeometry args={[shape]}/>
-    <meshStandardMaterial color={selected ? '#e0ece5' : color} side={DoubleSide}/>
-    <Edges color="#b8c9c2" threshold={12}/>
+    <meshStandardMaterial color={selected ? '#e2edff' : color} side={DoubleSide}/>
+    <Edges color="#b6c8e4" threshold={12}/>
   </mesh>;
 }
 
@@ -38,8 +38,8 @@ function RoomBoundary({ room, selectedRoomId, selectedWall, onSelect }: {
         return <mesh key={i} position={[room.x + segment.from.x + ux * mid, (piece.bottom + piece.top) / 2, room.z + segment.from.z + uz * mid]} rotation={[0, angle, 0]}
           onClick={event => { event.stopPropagation(); onSelect(room.id, segment.direction); }}>
           <boxGeometry args={[piece.end - piece.start, piece.top - piece.bottom, 0.08]}/>
-          <meshStandardMaterial color={active ? '#e9a164' : '#9aada9'} transparent opacity={active ? 0.76 : 0.42} depthWrite={false}/>
-          <Edges color={active ? '#bc692c' : '#91aaa3'} threshold={15}/>
+          <meshStandardMaterial color={active ? '#7fb1f5' : '#9eafc7'} transparent opacity={active ? 0.76 : 0.42} depthWrite={false}/>
+          <Edges color={active ? '#2d63ad' : '#8da5c9'} threshold={15}/>
         </mesh>;
       })}</group>;
     })}
@@ -64,12 +64,12 @@ export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSele
 
   return <Canvas camera={{ position: [cx + size * 1.15, height + size * 1.22, cz + size * 1.22], fov: 43 }}
     dpr={[1, 1.7]} gl={{ antialias: true }}>
-    <color attach="background" args={['#f3f5f3']}/>
+    <color attach="background" args={['#f4f7fc']}/>
     <ambientLight intensity={1.25}/>
     <directionalLight position={[7, 12, 8]} intensity={1.8}/>
-    <gridHelper args={[Math.max(30, size * 3), 30, '#d5ddd9', '#e0e8e3']} position={[cx, -0.11, cz]}/>
+    <gridHelper args={[Math.max(30, size * 3), 30, '#cedbea', '#e2eaf6']} position={[cx, -0.11, cz]}/>
     {rooms.map((room, i) => <group key={room.id}>
-      <RoomFloor room={room} selected={selectedRoomId === room.id} color={i % 2 ? '#e8edf0' : '#f5ede3'}/>
+      <RoomFloor room={room} selected={selectedRoomId === room.id} color={i % 2 ? '#e6eef9' : '#f1f5fb'}/>
       <RoomBoundary room={room} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={onSelect}/>
     </group>)}
     <OrbitControls target={[cx, 0, cz]} enablePan enableZoom minDistance={2} maxDistance={120} maxPolarAngle={Math.PI / 2.05}/>

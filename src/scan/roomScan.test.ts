@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PHOTO_GUIDES, makeDefaultScanDraft, verifyScanDraft } from './roomScan';
+import { makeDefaultScanDraft, verifyScanDraft } from './roomScan';
 
 const valid = { name: ' Quarto principal ', width: 3.4, length: 4.5, height: 2.7, x: 0, z: -3 };
 
@@ -28,8 +28,8 @@ describe('conferência de medidas do escaneamento', () => {
     expect(makeDefaultScanDraft(rooms).x).toBe(6);
     expect(makeDefaultScanDraft([]).width).toBe(3);
   });
-  it('mantém orientações de captura únicas', () => {
-    expect(PHOTO_GUIDES.length).toBe(5);
-    expect(new Set(PHOTO_GUIDES.map(g => g.id)).size).toBe(5);
+  it('preserva o contorno gerado por câmera sem omiti-lo na persistência', () => {
+    const footprint=[{x:0,z:0},{x:3.4,z:0},{x:3.4,z:4.5},{x:0,z:4.5}];
+    expect(verifyScanDraft({...valid,footprint}).footprint).toEqual(footprint);
   });
 });

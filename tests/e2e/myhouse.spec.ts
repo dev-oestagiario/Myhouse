@@ -44,10 +44,16 @@ test('planta 2D — criar formato L, porta e salvar mantendo backup', async ({ p
   await expect(page.getByRole('button', { name: /Sala de teste/ })).toBeVisible();
 });
 
-test('captura guiada tem fallback manual e exige conferência antes de salvar', async ({ page }) => {
+test('escaneamento ao vivo não solicita fotos e mantém revisão manual', async ({ page }) => {
   await setupMockSession(page);
   await navigate(page, 'Escanear cômodo');
-  await page.getByRole('button', { name: 'Preencher manualmente' }).click();
+  const start = page.getByRole('button', { name: 'Iniciar escaneamento' });
+  await expect(start).toBeEnabled();
+  await start.click();
+  await expect(page.getByRole('heading', { name: 'Desenhe o contorno do piso' })).toBeVisible();
+  await expect(page.getByText('Referência — lado 1 (m)')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tirar foto' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Usar modo manual' }).click();
   await page.getByPlaceholder('Ex.: Quarto principal').fill('Cozinha nova');
   await page.getByRole('button', { name: 'Visualizar em 3D' }).click();
   const save = page.getByRole('button', { name: 'Criar cômodo na Planta 3D' });
@@ -56,6 +62,68 @@ test('captura guiada tem fallback manual e exige conferência antes de salvar', 
   await expect(save).toBeEnabled();
   await save.click();
   await expect(page.getByText('Cozinha nova', { exact: true })).toBeVisible();
+});
+
+test('câmera sem ARCore calibra o piso e conserva o polígono confirmado', async ({ page }) => {
+  // Fluxo sem hardware: os pixels do vídeo são simulados, mas todos os pontos
+  // passam pelo componente real, pela homografia e pela validação do cadastro.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => new MediaStream() },
+    });
+    HTMLMediaElement.prototype.play = async function () {};
+  });
+  const state=await setupMockSession(page);
+  await navigate(page,'Escanear cômodo');
+  const start=page.getByRole('button',{name:'Iniciar escaneamento'});
+  await expect(start).toBeEnabled();
+  await start.click();
+  const frame=page.getByRole('button',{name:'Marcar canto da referência no vídeo'});
+  await expect(frame).toBeVisible();
+  const clickPoint=async (x:number,y:number)=>{
+    const target=page.locator('.scan-live-tap');
+    const box=await target.boundingBox();
+    if(!box)throw new Error('Área de câmera indisponível');
+    await target.click({position:{x:box.width*x,y:box.height*y}});
+  };
+  for(const [x,y] of [[.2,.2],[.4,.2],[.4,.4],[.2,.4]])await clickPoint(x,y);
+  await expect(page.getByRole('button',{name:'Marcar canto do cômodo no vídeo'})).toBeVisible();
+  for(const [x,y] of [[.1,.1],[.6,.1],[.6,.6],[.1,.6]])await clickPoint(x,y);
+  await expect(page.getByText('Planta inicial estimada')).toBeVisible();
+  const use=page.getByRole('button',{name:'Usar contorno estimado'});
+  await expect(use).toBeEnabled();
+  await use.click();
+  // Clique por pixel varia alguns milímetros com o tamanho da tela.
+  const estimatedWidth=Number(await page.getByLabel('Largura (m)').inputValue());
+  const estimatedLength=Number(await page.getByLabel('Comprimento (m)').inputValue());
+  expect(estimatedWidth).toBeGreaterThan(1.45);
+  expect(estimatedWidth).toBeLessThan(1.55);
+  expect(estimatedLength).toBeGreaterThan(1.45);
+  expect(estimatedLength).toBeLessThan(1.55);
+  await page.getByPlaceholder('Ex.: Quarto principal').fill('Piso projetado');
+  await page.getByLabel('Largura (m)').fill('3.2');
+  await page.getByLabel('Comprimento (m)').fill('4.1');
+  await expect(page.getByRole('img',{name:/Vista superior do piso com 4 cantos, largura 3.2 metros e comprimento 4.1 metros/})).toBeVisible();
+  await page.getByRole('button',{name:'Visualizar em 3D'}).click();
+  await expect(page.locator('.scan-summary').getByText('Área de piso')).toBeVisible();
+  await expect(page.locator('.scan-summary').getByText('Perímetro')).toBeVisible();
+  await page.getByRole('checkbox',{name:/Conferi as medidas/}).check();
+  await page.getByRole('button',{name:'Criar cômodo na Planta 3D'}).click();
+  await expect.poll(()=>state.data.rooms.find(r=>r.name==='Piso projetado')?.footprint?.length).toBe(4);
+  const saved=state.data.rooms.find(r=>r.name==='Piso projetado');
+  expect(saved?.width).toBe(3.2);
+  expect(saved?.length).toBe(4.1);
+  expect(saved?.footprint?.[1].x).toBeCloseTo(3.2,3);
+  await navigate(page,'Editar planta 2D');
+  await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue(saved!.id);
+});
+
+
+test('ação Sair fica na área da conta e não polui o cabeçalho', async ({page}) => {
+  await setupMockSession(page);
+  await expect(page.locator('.topbar-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(0);
+  await expect(page.locator('.sidebar-account-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(1);
 });
 
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {

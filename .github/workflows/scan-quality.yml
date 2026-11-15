@@ -25,6 +25,9 @@ jobs:
         run: npm run build
 
   android:
+    # Durante F5, PR valida web/testes; APK somente no workflow da main ao concluir as três etapas.
+    # Um build Android de verificação continua disponível sob execução manual explícita.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
