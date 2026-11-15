@@ -111,11 +111,9 @@ export default function LiveCameraPreview({ onContinue, onManual }: Props) {
         ctx.drawImage(video,0,0,canvas.width,canvas.height);
         const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
         const current=new Uint8ClampedArray(32*24);
-        let brightness=0;
         for(let i=0;i<current.length;i++) {
           const j=i*4;
           current[i]=Math.round(pixels[j]*.299+pixels[j+1]*.587+pixels[j+2]*.114);
-          brightness+=current[i];
         }
         if(last){
           let average=0,shift=0,changed=0;
