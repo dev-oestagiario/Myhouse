@@ -49,11 +49,18 @@ O fluxo sem ARCore agora cria um contorno **2D do piso** a partir da câmera con
 **Não é detecção automática de paredes/cantos.** Não há reconstrução 3D completa, navegação de câmera livre com SLAM ou medida exata de altura. A projeção é válida apenas para pontos do mesmo piso com o telefone imóvel durante a marcação. Objetos, áreas fora do plano, mudanças na posição da câmera e referência incorreta distorcem o resultado; nunca declarar medidas arquitetônicas precisas.
 
 
-## Etapa 3 — Revisão e persistência (pendente)
+## Etapa 3 — Revisão, identidade visual e persistência (código implementado)
 
-- Converter contornos estimados em geometria compatível com `Room` / editor 2D/3D, mantendo dados antigos.
-- Ajustar escala/dimensões com atualização da visualização e sem perder o traçado quando possível.
-- Conferência explícita do cômodo antes de salvar; nenhuma imagem ou frame enviado ao Supabase.
+- [x] Converter o contorno estimado por câmera para `Room.footprint`, preservando-o no estado `HomeData`, no editor 2D e no renderizador 3D existente.
+- [x] Corrigir largura/comprimento redimensionando proporcionalmente os vértices; a alteração de altura preserva a planta, e limpar temporariamente um campo numérico não elimina os pontos.
+- [x] Mostrar a planta superior em SVG e a prévia tridimensional, junto com área de piso, perímetro e número de vértices, antes de confirmar.
+- [x] Indicar a origem (ARCore, câmera calibrada ou entrada manual) e avisar quando a medida corrigida se afasta da estimativa.
+- [x] Validar `Room` antes do salvamento, exigir confirmação e manter o contrato de sincronização Supabase sem persistência de imagens.
+- [x] Padronizar cor de marca azul nas áreas principais, mantendo verde apenas para estados de sucesso; mover o botão 'Sair da conta' para a seção de conta do menu lateral.
+- [x] Testes unitários de reescala/compatibilidade legada, testes de integração de câmera simulada e revisão de acessibilidade (ver [F5_FINAL_QA.md](F5_FINAL_QA.md)).
+- [ ] Confirmar os últimos jobs do CI, gerar um APK único e testar em aparelhos físicos com e sem ARCore. **Não declarar precisão aprovada sem medição contra trena.**
+
+**Limite de produto:** o fluxo sem ARCore continua assistido com quatro cantos de calibração e marcação manual dos cantos do piso a partir de uma câmera fixa. A geração totalmente automática de paredes e reconstrução 3D durante movimentação do celular exigiria um rastreador visual/SLAM robusto, validação geométrica e uma nova entrega — não está presente aqui.
 
 ## Política de builds para a F5
 
@@ -61,7 +68,7 @@ O fluxo sem ARCore agora cria um contorno **2D do piso** a partir da câmera con
 
 ## UX e identidade visual
 
-A padronização de toda a aplicação em azul, incluindo painel, navegação e editor 2D/3D, é uma melhoria separada da entrega técnica desta etapa. O novo assistente já adota o azul como base; não declarar o restante do aplicativo visualmente padronizado antes da revisão completa.
+A identidade visual do login, navegação, páginas de obras, compras, escaneamento e editor de plantas foi unificada em azul. As cores semânticas continuam verdes para sucesso, âmbar para aviso e vermelhas para erro. Esta revisão inclui ajustes de contraste baseados em testes axe, sujeitos à inspeção visual real em Android.
 
 ## Privacidade e acessibilidade
 
