@@ -2,7 +2,7 @@
 
 **Especificação:** [ROOM_SCAN_SPEC.md](ROOM_SCAN_SPEC.md)
 **Repositório:** Myhouse / conexão GitHub DEV
-**Evolução:** incremental; F1 e F2 integradas. F3 implementada nesta branch, aguardando CI e revisão em dispositivo.
+**Evolução:** F1, F2 e F3 integradas. F4 em validação por CI nesta branch; testes em hardware e distribuição assinada ainda dependem de ações explícitas.
 
 ## F0 — Análise concluída
 
@@ -31,19 +31,23 @@
 - [x] Testes automatizados de validação de resultado; fallback web/Android sem suporte ou permissão negada.
 - [ ] Testes manuais em aparelhos reais com/sem ARCore, permissão negada, baixa textura e medições comparadas com trena.
 
-## F3 — Planta detalhada (implementação em validação)
+## F3 — Planta detalhada (integrada)
 
 - [x] Suportar geometrias irregulares além de prismas retangulares; presets L/U e vértices editáveis.
 - [x] Editor separado 2D de vãos (portas/janelas) e alinhamento pela caixa envolvente entre cômodos.
 - [ ] Visão computacional opcional com consentimento específico e testes de precisão — **não implementada**; depende de backend/modelos e avaliação de privacidade antes de disponibilizar.
 - [x] Testes de geometria, compatibilidade de backup V1 e validações, ver [ADVANCED_FLOORPLAN_F3.md](ADVANCED_FLOORPLAN_F3.md).
-- [ ] Validar CI e UI em celular real; não atribuir precisão técnica à planta ilustrativa.
+- [x] Validar compilação React/Android no CI; não atribuir precisão técnica à planta ilustrativa.
+- [ ] Testes da interface e da precisão no celular real.
 
-## F4 — Qualidade e lançamento (posterior)
+## F4 — Qualidade e lançamento (em validação)
 
-- [ ] Playwright/axe, acessibilidade manual e dispositivos variados.
-- [ ] Medidas reais comparativas, regressão de cadastro e sincronização.
-- [ ] Assinatura Android persistente e release de produção.
+- [x] Adicionar testes Playwright/axe em CI, com Supabase fictício, fluxos de compras, obras, planta 2D, escaneamento e viewport móvel.
+- [x] Implementar foco/teclado/Escape em modais e navegação acessível.
+- [ ] Validar resultado dos testes automáticos e testes manuais de acessibilidade em dispositivos variados.
+- [ ] Medidas reais comparativas de ARCore com trena e regressão com contas de teste Supabase em aparelhos reais (CI simula API).
+- [x] Preparar workflow manual de assinatura Android persistente com Secrets, ver [F4_QA_RELEASE.md](F4_QA_RELEASE.md).
+- [ ] Configurar keystore externo, executar APK assinado, comparar assinatura/versionCode e aprovar matriz de dispositivos antes de declarar distribuição pronta.
 
 ## Validação da F1
 

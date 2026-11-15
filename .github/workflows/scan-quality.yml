@@ -51,3 +51,28 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependências do teste
+        run: npm install --no-audit --no-fund
+      - name: Instalar navegador de testes
+        run: npx playwright install --with-deps chromium
+      - name: Fluxos reais de interface com Supabase simulado
+        run: npm run e2e
+      - name: Guardar relatório somente quando necessário
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myhouse-e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

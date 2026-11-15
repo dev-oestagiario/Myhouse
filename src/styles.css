@@ -208,3 +208,31 @@ body {padding-top:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px
  .plan-vertices{max-height:none;}
  .rooms-manager-footer .link-button{min-height:36px;}
 }
+
+/* F4 WCAG 2.1 AA: contraste textual de pelo menos 4,5:1 em fundos claros. */
+.brand small,.sidebar-section-label,.sidebar .nav-item:not(.active),
+.sidebar .save-info span,.sidebar .version,
+.breadcrumb,.topbar .btn-ghost,.account-line,.account-line .sync-indicator,
+.page-title-row p,.dark-eyebrow,.shopping-summary span,
+.empty span,.room-list-header span,.room-chip small,
+.panel-heading p,.panel-heading span,.field-label,.form-hint,
+.scan-field-note,.plan-panel p,.plan-field,.plan-vertex-row label,
+.plan-vertex-row input,.plan-stats span,.plan-opening-row small,
+.plan-legend,.plan-note,.plan-editor-title p,.scan-hint,
+.scan-card>p,.scan-bottom-note,.scan-steps li,
+.rooms-manager .rooms-empty,.viewer-warning {
+  color:#4b6253 !important;
+}
+.sidebar-section-label,.brand small,.sidebar .version {font-weight:600;}
+.page-content:focus {outline:none;}
+
+/* F4: contraste de rótulos funcionais e textos de progresso em Obras. */
+.wall-tabs button:not(.active),
+.wall-metrics span,.work-form .field label,
+.stages-heading span,.stage-row small,.next-step p,
+.next-step strong,.wall-log span,.timeline-date,
+.progress-track+span,.wall-preview-heading p,
+.purchase-meta,.purchase-note,.purchase-cost small,
+.purchase-item .priority-pill,.purchase-item .purchase-info small {
+  color:#425b4b!important;
+}

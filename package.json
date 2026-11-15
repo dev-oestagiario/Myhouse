@@ -10,7 +10,9 @@
     "check": "tsc --noEmit",
     "android:prepare": "npm run build && npx cap add android && node scripts/install-android-icons.mjs && npx cap sync android && node scripts/install-arcore.mjs",
     "android:sync": "npm run build && npx cap sync android && node scripts/install-android-icons.mjs && node scripts/install-arcore.mjs",
-    "test": "vitest run"
+    "test": "vitest run src",
+    "e2e": "playwright test",
+    "e2e:list": "playwright test --list"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -32,6 +34,9 @@
     "vite": "^5.4.15",
     "@capacitor/cli": "8.0.0",
     "@capacitor/android": "8.0.0",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "@playwright/test": "^1.58.0",
+    "@axe-core/playwright": "^4.10.2",
+    "@types/node": "^22.15.0"
   }
 }

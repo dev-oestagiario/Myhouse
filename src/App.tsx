@@ -28,9 +28,47 @@ const localDate = (date: string) => new Date(date).toLocaleString('pt-BR', { dat
 const moneyInput = (n: number) => (Number.isFinite(n) ? String(n) : '0');
 
 function Modal({ title, onClose, children }: { title: string, onClose: () => void, children: ReactNode }) {
+  const dialog = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusables = () => Array.from(dialog.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ) ?? []).filter(node => node.getClientRects().length > 0);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      if (!items.length) { event.preventDefault(); dialog.current?.focus(); return; }
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog.current?.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.current?.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const id = window.requestAnimationFrame(() => {
+      if (!dialog.current?.contains(document.activeElement)) (focusables()[0] ?? dialog.current)?.focus();
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previous?.focus({ preventScroll: true });
+    };
+  }, []);
   return <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-    <section className="modal" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="modal-heading"><h2>{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label="Fechar"><X size={20} /></button></div>
+    <section ref={dialog} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="modal-heading"><h2>{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label="Fechar janela"><X size={20} /></button></div>
       {children}
     </section>
   </div>;
@@ -306,7 +344,20 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     { id: 'scan', name: 'Escanear cômodo', Icon: ScanLine },
     { id: 'history', name: 'Histórico de atividades', Icon: FileClock },
   ];
-  const changePage = (newPage: Page) => { setPage(newPage); setMobileNav(false); window.scrollTo({ top: 0 }); };
+  const changePage = (newPage: Page) => {
+    setPage(newPage);
+    setMobileNav(false);
+    window.scrollTo({ top: 0 });
+    window.requestAnimationFrame(() => document.getElementById('myhouse-page-content')?.focus({ preventScroll: true }));
+  };
+  useEffect(() => {
+    if (!mobileNav) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNav(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileNav]);
 
   if (localDraft) return <main className="auth-layout"><section className="auth-card">
     <span className="auth-logo"><Home size={25}/></span>
@@ -320,15 +371,15 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     <aside className={`sidebar ${mobileNav ? 'mobile-open' : ''}`}>
       <div className="brand"><span className="brand-mark"><Home size={22} strokeWidth={2.4} /></span><div><strong>My House</strong><small>Meu espaço, meus planos</small></div></div>
       <div className="sidebar-section-label">MENU PRINCIPAL</div>
-      <nav aria-label="Navegação principal">{navItems.map(({ id, name, Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => changePage(id)}><Icon size={19} /><span>{name}</span>{page === id && <ChevronRight className="nav-chevron" size={17} />}</button>)}</nav>
+      <nav aria-label="Navegação principal">{navItems.map(({ id, name, Icon }) => <button type="button" key={id} aria-current={page === id ? 'page' : undefined} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => changePage(id)}><Icon size={19} /><span>{name}</span>{page === id && <ChevronRight className="nav-chevron" size={17} />}</button>)}</nav>
       <div className="sidebar-bottom"><div className="save-info"><CheckCircle2 size={18} /><div><strong>{syncStatus === 'saved' ? 'Salvo na nuvem' : syncStatus === 'saving' ? 'Salvando na nuvem…' : syncStatus === 'pending' ? 'Aguardando sincronização' : 'Não foi possível sincronizar'}</strong><span>Dados individuais vinculados à sua conta</span></div></div><span className="version">Versão inicial · 1.0</span></div>
     </aside>
     {mobileNav && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobileNav(false)} />}
     <main className="main">
-      <header className="topbar"><div className="topbar-start"><button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setMobileNav(true)}><Menu size={22} /></button><div className="breadcrumb">Minha casa <ChevronRight size={14}/><strong>{navItems.find(n => n.id === page)?.name}</strong></div></div>
-        <div className="topbar-actions"><input className="visually-hidden" ref={fileInput} type="file" accept=".json,application/json" onChange={e => void importBackup(e.target.files?.[0])} /><button className="btn btn-ghost compact" onClick={() => fileInput.current?.click()}><Upload size={17} /><span>Importar</span></button><button className="btn btn-outline compact" onClick={exportBackup}><Download size={17} /><span>Exportar backup</span></button><button className="btn btn-ghost compact" onClick={() => void signOut()} aria-label="Sair da conta"><LogOut size={17}/><span>Sair</span></button></div>
+      <header className="topbar"><div className="topbar-start"><button type="button" className="icon-button mobile-menu" aria-label="Abrir menu" aria-expanded={mobileNav} onClick={() => setMobileNav(true)}><Menu size={22} /></button><div className="breadcrumb">Minha casa <ChevronRight size={14}/><strong>{navItems.find(n => n.id === page)?.name}</strong></div></div>
+        <div className="topbar-actions"><input className="visually-hidden" ref={fileInput} type="file" tabIndex={-1} aria-label="Selecionar backup JSON" accept=".json,application/json" onChange={e => void importBackup(e.target.files?.[0])} /><button type="button" aria-label="Importar backup" className="btn btn-ghost compact" onClick={() => fileInput.current?.click()}><Upload size={17} /><span>Importar</span></button><button type="button" aria-label="Exportar backup" className="btn btn-outline compact" onClick={exportBackup}><Download size={17} /><span>Exportar backup</span></button><button className="btn btn-ghost compact" onClick={() => void signOut()} aria-label="Sair da conta"><LogOut size={17}/><span>Sair</span></button></div>
       </header>
-      <div className="page-content">
+      <div className="page-content" id="myhouse-page-content" tabIndex={-1}>
         {notice && <div className="notice" role="status"><CheckCircle2 size={17} />{notice}<button onClick={() => setNotice('')} aria-label="Fechar aviso"><X size={16}/></button></div>}
         <div className="account-line"><span>Conectado como <strong>{userEmail}</strong></span><span className={`sync-indicator ${syncStatus}`} role="status">{syncStatus === 'saved' ? <Cloud size={16}/> : syncStatus === 'saving' ? <RefreshCw size={16}/> : syncStatus === 'pending' ? <Cloud size={16}/> : <CloudOff size={16}/>} {syncStatus === 'saved' ? 'Salvo na nuvem' : syncStatus === 'saving' ? 'Sincronizando…' : syncStatus === 'pending' ? 'Alterações pendentes' : 'Falha na sincronização'}</span></div>
         {(syncStatus === 'error' || syncStatus === 'conflict') && <div className="sync-alert" role="alert"><CloudOff size={18}/><span>{syncError} Seus dados continuam disponíveis nesta tela. Exporte um backup antes de fechar.</span>{syncStatus === 'error' && <button type="button" className="btn btn-outline compact" onClick={() => void persistHome()}>Tentar salvar</button>}<button className="btn btn-outline compact" onClick={exportBackup}>Exportar backup</button></div>}
@@ -365,7 +416,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             <div className="scene">{home.rooms.length ? <HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Cadastre ou escaneie um cômodo para começar.</span><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Plus size={17}/>Cadastro manual</button></div>}</div>
             <div className="room-list-header"><strong>Cômodos</strong><span>{home.rooms.length} cômodo(s)</span></div>
             <div className="room-chips">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button type="button" className="chip-main" aria-pressed={selectedRoomId === r.id} onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button></div>)}</div>
-            {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. A distribuição real da casa dependerá das suas medidas; portas e janelas ainda não são modeladas.</p>}
+            {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. Confira a distribuição real e ajuste portas e janelas no editor 2D.</p>}
           </section>
           </div>
           {selectedRoom && <section className="panel wall-preview" aria-label="Parede selecionada"><div className="wall-preview-heading"><div><span className="eyebrow dark-eyebrow">PAREDE SELECIONADA</span><h2>{selectedRoom.name} · {directionNames[selectedWall]}</h2><p>{number(selectedWallArea)} m² estimados · {percentDone(selectedStages)}% concluído</p></div><button className="btn btn-primary" onClick={() => changePage('works')}><ArrowRight size={17}/>Ver em Obras</button></div><div className="wall-preview-selector" role="group" aria-label="Selecionar parede">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div></section>}
@@ -407,7 +458,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       </div>
     </main>
     {purchaseOpen && <Modal title={editingPurchaseId ? 'Editar item de compra' : 'Adicionar à lista de compras'} onClose={() => setPurchaseOpen(false)}><form onSubmit={savePurchase} className="modal-form">
-      <div className="field"><label htmlFor="p-name">Nome do item *</label><input id="p-name" required autoFocus placeholder="Ex.: Jogo de panelas, tinta, geladeira..." value={purchaseDraft.name} onChange={e => setPurchaseDraft(p => ({...p, name: e.target.value}))}/></div>
+      <div className="field"><label htmlFor="p-name">Nome do item *</label><input id="p-name" required placeholder="Ex.: Jogo de panelas, tinta, geladeira..." value={purchaseDraft.name} onChange={e => setPurchaseDraft(p => ({...p, name: e.target.value}))}/></div>
       <div className="form-row"><div className="field"><label htmlFor="p-category">Categoria (livre) *</label><input id="p-category" required list="category-suggestions" value={purchaseDraft.category} onChange={e => setPurchaseDraft(p => ({...p, category: e.target.value}))}/><datalist id="category-suggestions">{['Eletrodomésticos','Cozinha','Utensílios','Móveis','Pintura','Ferramentas','Elétrica','Hidráulica','Limpeza','Decoração','Outros',...categories].map((c,i) => <option key={`${i}-${c}`} value={c}/>)}</datalist></div>
         <div className="field"><label htmlFor="p-room">Cômodo</label><select id="p-room" value={purchaseDraft.roomId} onChange={e => setPurchaseDraft(p => ({...p, roomId: e.target.value}))}><option value="">Não vinculado</option>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select></div></div>
       <div className="form-row three"><div className="field"><label htmlFor="p-priority">Prioridade</label><select id="p-priority" value={purchaseDraft.priority} onChange={e => setPurchaseDraft(p => ({...p, priority: e.target.value as Priority}))}>{Object.entries(priorityNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div>
@@ -418,7 +469,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       <label className="checkbox-line"><input type="checkbox" checked={purchaseDraft.purchased} onChange={e => setPurchaseDraft(p => ({...p, purchased: e.target.checked}))}/>Item já comprado</label>
       <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setPurchaseOpen(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar item</button></div>
     </form></Modal>}
-    {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input autoFocus id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
+    {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
       <p className="form-hint">Informe as medidas em metros. A posição X/Z determina onde o cômodo aparece no modelo da casa.</p>
       <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="0.1" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
       <div className="form-row">{([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="-100" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
