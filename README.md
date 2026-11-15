@@ -39,3 +39,9 @@ O projeto utiliza somente a chave publicável (não uma `service_role`), com RLS
 Ainda é necessário realizar testes de ponta a ponta com duas contas e validar a compilação Android no GitHub Actions. Contas diferentes não compartilham uma mesma residência nesta versão.
 
 Veja [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md).
+
+## Escaneamento de cômodos
+
+Em **Planta 3D → Escanear cômodo**, pode-se fotografar o ambiente, preencher medidas manualmente e confirmar uma prévia 3D. Na versão Android, aparelhos com suporte a ARCore poderão medir distâncias aproximadas no piso usando quatro pontos selecionados pela pessoa. A altura continua manual e a revisão dos valores é obrigatória.
+
+O ARCore é **opcional** e não funciona em todos os celulares. A implementação não converte automaticamente vídeo em geometria, nem tem precisão arquitetônica garantida. Leia [Plano de escaneamento](docs/ROOM_SCAN_PLAN.md).

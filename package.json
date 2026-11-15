@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "check": "tsc --noEmit",
-    "android:prepare": "npm run build && npx cap add android && node scripts/install-android-icons.mjs && npx cap sync android",
-    "android:sync": "npm run build && npx cap sync android && node scripts/install-android-icons.mjs",
+    "android:prepare": "npm run build && npx cap add android && node scripts/install-android-icons.mjs && npx cap sync android && node scripts/install-arcore.mjs",
+    "android:sync": "npm run build && npx cap sync android && node scripts/install-android-icons.mjs && node scripts/install-arcore.mjs",
     "test": "vitest run"
   },
   "dependencies": {

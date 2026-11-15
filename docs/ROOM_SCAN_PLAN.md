@@ -2,7 +2,7 @@
 
 **Especificação:** [ROOM_SCAN_SPEC.md](ROOM_SCAN_SPEC.md)
 **Repositório:** Myhouse / conexão GitHub DEV
-**Evolução:** incremental; F1 é o único escopo implementado nesta branch.
+**Evolução:** incremental; F1 integrada. F2 implementada neste PR, aguardando testes de CI e QA real.
 
 ## F0 — Análise concluída
 
@@ -24,11 +24,12 @@
 
 ## F2 — ARCore (posterior)
 
-- [ ] Investigar bibliotecas SDK e versão mínima (ARCore Google Play Services for AR).
-- [ ] Criar bridge Capacitor nativa Android opcional; verificar suporte e disponibilidade reais.
-- [ ] Rastrear planos, cantos e pontos com qualidade e incerteza explícitas.
-- [ ] Solicitar confirmação e permitir corrigir qualquer medida antes de salvar.
-- [ ] Testes com e sem ARCore, sem permissão e com sensores indisponíveis.
+- [x] Escolher ARCore SDK Android 1.56.0 com recurso opcional e instalação do Google Play Services para RA sob demanda.
+- [x] Criar bridge Capacitor `RoomAR` nativa Android opcional; verificar suporte via `checkAvailabilityAsync`.
+- [x] Rastrear dois pares de pontos do piso via `Frame.hitTest`, com âncoras e indicação de uso de profundidade quando aplicável. Altura permanece manual; não detecta cantos automaticamente.
+- [x] Solicitar confirmação e permitir corrigir qualquer medida antes de salvar; não guardar frames ou âncoras.
+- [x] Testes automatizados de validação de resultado; fallback web/Android sem suporte ou permissão negada.
+- [ ] Testes manuais em aparelhos reais com/sem ARCore, permissão negada, baixa textura e medições comparadas com trena.
 
 ## F3 — Planta detalhada (posterior)
 
