@@ -20,7 +20,11 @@ npm run dev
 
 ## Android / APK
 
-Todo push em `main` inicia o workflow [Gerar APK Android - My House](.github/workflows/android-apk.yml) via GitHub Actions. Após um build bem-sucedido, o APK de teste pode ser baixado como artefato `myhouse-android-debug-apk`.
+**[Baixar APK Android mais recente](https://github.com/dev-oestagiario/Myhouse/releases/latest/download/MyHouse.apk)** · **[Ver todas as versões](https://github.com/dev-oestagiario/Myhouse/releases)**
+
+Todo push em `main` inicia o workflow [Gerar APK Android - My House](.github/workflows/android-apk.yml). Quando o build é concluído com sucesso, ele **publica automaticamente uma Release** com `MyHouse.apk` e o checksum SHA-256. O arquivo também continua disponível como artefato em Actions por 30 dias. As Releases só aparecem após a primeira execução bem-sucedida da nova configuração.
+
+O APK é de desenvolvimento (debug), não é uma versão Play Store. Entre compilações, a assinatura pode mudar e impedir atualização direta; confirme a sincronização na nuvem e faça backup antes de reinstalar.
 
 Leia [docs/ANDROID_AUTOMATICO.md](docs/ANDROID_AUTOMATICO.md). O APK só deve ser tratado como disponível quando houver uma execução bem-sucedida, confirmada na aba Actions.
 
