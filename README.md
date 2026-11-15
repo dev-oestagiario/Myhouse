@@ -51,3 +51,9 @@ O ARCore é **opcional** e não funciona em todos os celulares. A implementaçã
 Em **Planta 3D → Editar planta 2D**, é possível escolher formatos retangular, L ou U, ajustar os vértices em metros, inserir portas e janelas, posicionar cômodos e alinhar um cômodo à referência de outro. A **Planta 3D permanece destinada à visualização**. O banco Supabase e os backups V1 continuam compatíveis com modelos anteriores.
 
 [Documentação de formatos irregulares e vãos](docs/ADVANCED_FLOORPLAN_F3.md). O editor não realiza reconhecimento automático de arquitetura por imagem nem substitui uma planta técnica.
+
+## F4 — Qualidade e versões Android
+
+O projeto agora conta com testes de interface em Chromium usando Playwright e verificação automatizada de acessibilidade por axe. Os testes usam um Supabase local simulado e **nunca** autenticação de uma conta real. Os relatórios de falha são anexados aos PRs no GitHub Actions.
+
+O APK de teste continua disponível nas [Releases](https://github.com/dev-oestagiario/Myhouse/releases). Para produzir um APK com **assinatura persistente**, há um workflow manual separado, desativado na prática até o responsável cadastrar quatro Secrets de assinatura. Consulte [F4: QA e assinatura Android](docs/F4_QA_RELEASE.md). Não envie keystore, senhas ou segredos por chat.
