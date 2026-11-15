@@ -47,3 +47,20 @@ Não chamar a prévia de planta arquitetônica ou levantamento técnico preciso.
 - Não declarar “ARCore compatível” com base apenas no navegador, versão Android ou WebXR. Detectar o serviço nativo na F2.
 - Não enviar fotos para o Supabase sem novo aceite e especificação de armazenamento/retencão.
 - Para ter medidas automáticas precisas, serão necessários ARCore compatível, calibração e testes; a câmera comum, por si só, não as fornece.
+
+## F2 — Medição ARCore opcional (implementação técnica)
+
+Em Android com ARCore compatível, **Medir com ARCore** abre uma tela Android nativa. Ao apontar para o piso, a pessoa seleciona manualmente quatro pontos: dois para largura e dois para comprimento. O algoritmo usa hit-test contra planos horizontais rastreados, com fallback para pontos de profundidade quando suportados. Os comprimentos são calculados entre âncoras locais; não há reconstrução automática do cômodo, reconhecimento de todos os cantos nem medição de altura.
+
+O ARCore informa se está instalado, se precisa de atualização ou se o aparelho não suporta. O botão aparece somente se houver suporte. A instalação/atualização só é solicitada quando a pessoa inicia a medição. O recurso está declarado como **optional** no AndroidManifest: aparelhos sem ARCore seguem com fotos opcionais e medidas manuais.
+
+O retorno contém apenas largura e comprimento arredondados em centímetros, indicador de suporte/uso de profundidade e método de medida. Esses valores são editáveis no formulário existente, junto com a altura medida manualmente. A confirmação explícita na prévia 3D continua obrigatória antes de salvar no Supabase.
+
+### Limitações e segurança
+
+- O resultado é aproximado e **não serve como planta técnica**. Precisão real varia com iluminação, movimento, textura, rastreamento e sensores.
+- O fluxo exige escolher pontos no piso; não identifica automaticamente paredes, teto, portas e janelas. Nenhuma detecção de cantos é anunciada.
+- Câmera precisa de permissão apenas ao iniciar AR; recusa, incompatibilidade, instalação cancelada, falha de câmera e ARCore ausente devem oferecer retorno manual sem bloquear.
+- Quadros de vídeo, imagens e âncoras não são enviados ao Supabase nem gravados em arquivos locais pelo plugin. Ao encerrar, âncoras e sessão são descartadas.
+- Validação de UI, sensor e precisão depende de **teste em aparelhos Android reais** além do build de CI.
+- Integração nativa é aplicada por `scripts/install-arcore.mjs` após o `npx cap sync android`, pois `android/` é gerado dinamicamente em CI.

@@ -131,3 +131,9 @@ body {padding-top:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px
  .scan-entry-actions>.btn {flex:1;min-width:145px;}
 }
 @media (prefers-reduced-motion:reduce) {.scan-wizard *{scroll-behavior:auto;transition:none!important;animation:none!important;}}
+
+/* ARCore é opcional: o formulário tradicional continua sempre disponível. */
+.scan-ar-option {display:flex;align-items:flex-start;gap:10px;flex-direction:column;margin:13px 0 22px;padding:16px;background:#f1f7f3;border:1px solid #cde6d7;border-radius:12px;}
+.scan-ar-option small {font-size:12px;line-height:1.6;color:#476d58;}
+.scan-ar-result {display:flex;align-items:flex-start;gap:11px;background:#e8f5e9;border:1px solid #b7d9bf;border-radius:10px;padding:14px 15px;color:#254c37;font-size:13px;line-height:1.65;max-width:900px;}
+.scan-ar-result svg {flex-shrink:0;margin-top:2px;}
