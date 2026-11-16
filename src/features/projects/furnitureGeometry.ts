@@ -113,6 +113,15 @@ export function placeFurniture(kind:FurnitureKind,room:Room,items:ScenarioFurnit
     id,roomId:room.id,kind,name:def.label,width:def.width,depth:def.depth,height:def.height,
     color:def.color,rotation:0,x:room.width/2,z:room.length/2,
   };
+  return findFurnitureSpot(candidate,room,items);
+}
+
+/** Duplicação conserva medidas, orientação, cor e nome do objeto editado. */
+export function duplicateFurniture(source:ScenarioFurniture,room:Room,items:ScenarioFurniture[],id:string):ScenarioFurniture{
+  if(!id.trim()||items.some(item=>item.id===id))throw new Error('ID de objeto repetido.');
+  return findFurnitureSpot({...source,id,name:source.name+' — cópia'},room,items);
+}
+function findFurnitureSpot(candidate:ScenarioFurniture,room:Room,items:ScenarioFurniture[]):ScenarioFurniture{
   // Grade estável, preferindo centro, sem interação com navegador.
   const coords:PlanPoint[]=[];
   for(let x=.1;x<=room.width-.1;x+=.25)for(let z=.1;z<=room.length-.1;z+=.25)coords.push({x,z});
