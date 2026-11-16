@@ -75,8 +75,8 @@ export function furnitureCollide(a:ScenarioFurniture,b:ScenarioFurniture):boolea
   const p=furnitureCorners(a),q=furnitureCorners(b);
   return [...axes(p),...axes(q)].every(axis=>{
     const ap=p.map(x=>x.x*axis.x+x.z*axis.z),bp=q.map(x=>x.x*axis.x+x.z*axis.z);
-    return Math.min(...ap,Infinity)-Math.max(...bp,-Infinity) < -.02
-      && Math.min(...bp,Infinity)-Math.max(...ap,-Infinity) < -.02;
+    return Math.max(...ap)>Math.min(...bp)+.02
+      && Math.max(...bp)>Math.min(...ap)+.02;
   });
 }
 export function furnitureCollisions(items:ScenarioFurniture[],id:string):ScenarioFurniture[]{
@@ -91,7 +91,7 @@ export function validateFurniture(items:ScenarioFurniture[],rooms:Room[]):void{
       ||typeof item.roomId!=='string'||!rooms.some(room=>room.id===item.roomId)
       ||!FURNITURE_CATALOG.some(model=>model.kind===item.kind)
       ||typeof item.name!=='string'||!item.name.trim()||item.name.length>120
-      ||!Object.hasOwn(FURNITURE_COLORS,item.color)
+      ||!Object.prototype.hasOwnProperty.call(FURNITURE_COLORS,item.color)
       ||![item.x,item.z,item.rotation,item.width,item.depth,item.height].every(Number.isFinite)
       ||item.rotation<0||item.rotation>=360
       ||item.width<.1||item.width>6||item.depth<.1||item.depth>6
