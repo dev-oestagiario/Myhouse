@@ -264,6 +264,13 @@ test('F6.2 — dependências e integridade na exclusão',async ({page})=>{
   await page.getByRole('combobox',{name:'Situação de Preparar o espaço'}).selectOption('concluido');
   await page.getByRole('combobox',{name:'Situação de Montar a plataforma'}).selectOption('concluido');
   await expect(page.getByRole('progressbar',{name:'Tarefas concluídas'})).toHaveAttribute('aria-valuenow','100');
+  await page.getByRole('button',{name:'Quadro',exact:true}).click();
+  await expect(page.getByRole('group',{name:'Visualização das tarefas'}).getByRole('button',{name:'Quadro'})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.task-board-column')).toHaveCount(3);
+  await expect(page.locator('.task-board-column').last().getByRole('heading',{name:'Montar a plataforma'})).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await page.getByRole('button',{name:'Lista',exact:true}).click();
   await page.getByRole('button',{name:'Excluir tarefa Preparar o espaço'}).click();
   // Confirmação é necessária antes de tentar apagar trabalho vinculado.
   // Sem aceitar o confirm do browser, a tarefa permanece.
