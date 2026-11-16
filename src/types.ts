@@ -59,10 +59,59 @@ export interface WorkLog {
   createdAt: string;
 }
 
-export interface HomeData {
+
+/** Dados de versões anteriores — mantidos apenas para importação e migração. */
+export interface HomeDataV1 {
   version: 1;
   rooms: Room[];
   purchases: Purchase[];
   wallStages: Record<string, Partial<Record<Stage, TaskStatus>>>;
   logs: WorkLog[];
+}
+
+export type ResidenceType = 'atual' | 'destino' | 'futura';
+
+export interface Residence {
+  id: string;
+  name: string;
+  type: ResidenceType;
+}
+
+export type SpaceType = 'interno' | 'externo';
+export type SpaceState = 'existente' | 'planejado';
+
+/** Interno referencia Room, que continua sendo a única fonte da geometria. */
+export interface Space {
+  id: string;
+  residenceId: string;
+  type: SpaceType;
+  state: SpaceState;
+  name: string;
+  roomId?: string;
+}
+
+export type ProjectType = 'mudanca' | 'reforma' | 'decoracao' | 'ampliacao' | 'manutencao' | 'outro';
+export type ProjectStatus = 'ideia' | 'planejando' | 'aprovado' | 'em-execucao' | 'pausado' | 'concluido' | 'cancelado';
+
+export interface Project {
+  id: string;
+  residenceId: string;
+  name: string;
+  description: string;
+  type: ProjectType;
+  status: ProjectStatus;
+  priority: Priority;
+  spaceIds: string[];
+  /** Inteiro em centavos. null = ainda não informado. */
+  budgetTargetCents: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** V2 preserva os campos legados para não interromper os fluxos atuais. */
+export interface HomeData extends Omit<HomeDataV1, 'version'> {
+  version: 2;
+  residences: Residence[];
+  spaces: Space[];
+  projects: Project[];
 }
