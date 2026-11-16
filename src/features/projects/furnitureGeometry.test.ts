@@ -9,7 +9,7 @@ import {
 } from './scenarioDomain';
 import {
   FURNITURE_CATALOG,alignFurnitureToWall,furnitureCollide,furnitureCollisions,
-  furnitureCorners,furnitureFitsRoom,placeFurniture,pointInsideRoom,
+  furnitureCorners,furnitureFitsRoom,placeFurniture,duplicateFurniture,pointInsideRoom,
 } from './furnitureGeometry';
 import {roomShapePreset} from '../../plan/geometry';
 import {makeSpaceForRoom} from '../../domain/homeMigration';
@@ -80,6 +80,15 @@ describe('F6.5 — interiores e decoração por cenário',()=>{
     expect(furnitureCollide(sofa,rug)).toBe(false);
     const second=placeFurniture('cadeira',room,[sofa],'chair');
     expect(furnitureCollide(sofa,second)).toBe(false);
+  });
+  it('duplicar um móvel customizado conserva medidas, cor e rotação',()=>{
+    const before=placeFurniture('sofa',room,[],'sofa');
+    const edited={...before,width:1.7,depth:.82,rotation:90,color:'madeira' as const,name:'Sofá personalizado'};
+    const copy=duplicateFurniture(edited,room,[edited],'copy');
+    expect(copy).toMatchObject({id:'copy',width:1.7,depth:.82,rotation:90,color:'madeira',name:'Sofá personalizado — cópia'});
+    expect(furnitureFitsRoom(copy,room)).toBe(true);
+    expect(furnitureCollide(edited,copy)).toBe(false);
+    expect(edited.name).toBe('Sofá personalizado');
   });
   it('encaixa móvel na parede sem sair do contorno',()=>{
     const sofa=placeFurniture('sofa',room,[],'sofa');
