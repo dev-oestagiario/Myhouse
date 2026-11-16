@@ -174,7 +174,12 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
         <p className="scenario-editor-notice">Editando a proposta <strong>{scenario.name}</strong>. Salvar aqui não altera a planta real.</p>
         <PlanEditor key={scenario.id+':'+scenario.updatedAt} rooms={scenario.rooms} selectedRoomId={activeRoomId}
           onSelect={setSelectedRoomId}
-          onSave={room=>run(()=>changeScenarioRoom(home,scenario.id,room,newId(),new Date().toISOString()),'Geometria salva somente nesta proposta.')}
+          onSave={room=>{
+            const updated=changeScenarioRoom(home,scenario.id,room,newId(),new Date().toISOString());
+            onChange(updated);
+            setError('');
+            setMessage('Geometria salva somente nesta proposta.');
+          }}
           onBack={()=>setView('tridimensional')}/>
       </div> : view==='comparar'?<div className="scenario-compare" aria-label="Comparação antes e depois">
         <div className="scenario-compare-column"><h4>Antes · planta real</h4><p>Dados atuais da residência (somente leitura)</p>
