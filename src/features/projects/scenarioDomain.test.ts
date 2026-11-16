@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest';
-import type { HomeData,Room,ProjectScenario } from '../../types';
+import type { HomeData, Room } from '../../types';
 import { initialHome,validateHome } from '../../data';
 import { makeSpaceForRoom } from '../../domain/homeMigration';
 import { scenarioSummary } from '../../domain/scenarioValidation';
