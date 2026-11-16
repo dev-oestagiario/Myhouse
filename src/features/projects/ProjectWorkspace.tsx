@@ -7,6 +7,8 @@ import {
 import type { HomeData, Priority, Project, ProjectStatus, ProjectType, Space } from '../../types';
 import { money, newId, priorityOrder } from '../../data';
 import Modal from '../../shared/Modal';
+import ProjectTasks from './ProjectTasks';
+import { projectTaskProgress } from './taskDomain';
 import {
   createProject, deleteProject, formatBudgetInput, newProjectDraft, parseBudgetCents,
   PROJECT_PRIORITY_LABELS, PROJECT_STATUS_LABELS, PROJECT_TYPE_LABELS,
@@ -121,6 +123,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
   }
 
   const areaNames=(item:Project)=>item.spaceIds.map(id=>home.spaces.find(space=>space.id===id)?.name).filter(Boolean).join(', ') || 'Sem ambiente vinculado';
+  const selectedTaskProgress=projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===selectedProject?.id));
 
   return <section className="projects-workspace" aria-label="Gerenciamento de projetos">
     <div className="page-title-row projects-title">
@@ -146,7 +149,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         <div><span>Situação</span><strong>{selectedProject.archivedAt ? 'Arquivado' : PROJECT_STATUS_LABELS[selectedProject.status]}</strong></div>
         <div><span>Prioridade</span><strong>{PROJECT_PRIORITY_LABELS[selectedProject.priority]}</strong></div>
         <div><span>Orçamento previsto</span><strong>{projectMoney(selectedProject.budgetTargetCents)}</strong></div>
-        <div><span>Atualizado em</span><strong>{formatDate(selectedProject.updatedAt)}</strong></div>
+        <div><span>Tarefas concluídas</span><strong>{selectedTaskProgress.done} / {selectedTaskProgress.total}</strong></div>
       </div>
       <div className="projects-detail-grid">
         <section className="panel projects-detail-panel">
@@ -162,10 +165,11 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         </section>
         <section className="panel projects-detail-panel">
           <div className="projects-panel-heading"><ClipboardList size={20}/><h3>Planejamento da execução</h3></div>
-          <p>O projeto já pode ser cadastrado e acompanhado pelo status. Na F6.2 adicionaremos tarefas, serviços, checklists e cronograma. Na F6.3, compras e orçamento detalhado.</p>
-          <p>O editor de cenários 2D/3D virá na F6.4, mantendo a casa atual separada do projeto.</p>
+          <p><strong>{selectedTaskProgress.percent}% das tarefas concluídas.</strong> Registre serviços, checklists, prioridades, prazos e dependências na seção abaixo.</p>
+          <p>Na F6.3, compras e orçamento detalhado serão vinculados às tarefas. O editor de cenários 2D/3D será desenvolvido na F6.4.</p>
         </section>
       </div>
+      <ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
     </div> : <>
       <div className="projects-overview-stats" aria-label="Resumo dos projetos">
         <div><FolderKanban size={20}/><span>Projetos ativos</span><strong>{activeCount}</strong></div>
@@ -182,7 +186,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         <div className="projects-card-head"><span className="projects-kind">{PROJECT_TYPE_LABELS[project.type]}</span><span className={'projects-status '+(project.archivedAt?'archived':project.status)}>{project.archivedAt?'Arquivado':PROJECT_STATUS_LABELS[project.status]}</span></div>
         <h2>{project.name}</h2>
         <p>{project.description || 'Projeto sem descrição. Abra para planejar os próximos passos.'}</p>
-        <div className="projects-card-meta"><span><Layers3 size={15}/>{areaNames(project)}</span><span><Wallet size={15}/>{projectMoney(project.budgetTargetCents)}</span></div>
+        <div className="projects-card-meta"><span><Layers3 size={15}/>{areaNames(project)}</span><span><Wallet size={15}/>{projectMoney(project.budgetTargetCents)}</span><span><ClipboardList size={15}/>{projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===project.id)).percent}% das tarefas</span></div>
         <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline" onClick={()=>{setSelectedId(project.id);setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
       </article>)}</div> : <div className="projects-empty panel"><FolderKanban size={35}/><h2>{home.projects.some(p=>p.residenceId===residence.id) ? 'Nenhum projeto encontrado' : 'Comece com uma ideia para sua casa'}</h2><p>{home.projects.some(p=>p.residenceId===residence.id) ? 'Experimente alterar os filtros ou procurar nos projetos arquivados.' : 'Planeje uma reforma, uma mudança ou um espaço novo, como um deck. Não é necessário ter a planta 3D pronta.'}</p><button type="button" className="btn btn-primary" onClick={()=>openEditor()}><Plus size={17}/>Criar projeto</button></div>}
     </>}
