@@ -461,6 +461,15 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   await expect(page.getByLabel('Nome do móvel')).toHaveValue('Sofá');
   await expect.poll(()=>state.data.scenarios?.[0]?.furniture?.length).toBe(1);
   const originalId=state.data.scenarios[0].furniture[0].id;
+  const beforeDrag=state.data.scenarios[0].furniture[0].x;
+  const shape=page.locator('.interior-floor-object').first();
+  const bounds=await shape.boundingBox();
+  if(!bounds)throw new Error('O móvel precisa estar visível na planta 2D');
+  await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x+bounds.width/2+18,bounds.y+bounds.height/2,{steps:6});
+  await page.mouse.up();
+  await expect.poll(()=>state.data.scenarios?.[0]?.furniture?.[0]?.x).not.toBe(beforeDrag);
   await page.getByLabel('Nome do móvel').fill('Sofá novo');
   await page.getByLabel('Posição X (m)').fill('1.4');
   await page.getByLabel('Largura (m)').fill('1.8');
