@@ -3,10 +3,12 @@ import {
   ArrowLeft, Check, Copy, DoorOpen, Edit3, GitCompareArrows, Grid2X2, History,
   Layers3, Plus, RotateCcw, Trash2,
 } from 'lucide-react';
-import type { Direction, HomeData, Project, ProjectScenario, Room } from '../../types';
+import type { Direction, HomeData, Project, ProjectScenario, Room, ScenarioFurniture } from '../../types';
 import { newId, nextRoomPosition, number } from '../../data';
 import { getFootprint } from '../../plan/geometry';
 import HouseModel from '../../plan/HouseModel';
+import InteriorWorkspace from './InteriorWorkspace';
+import { furnitureCorners, FURNITURE_COLORS } from './furnitureGeometry';
 import PlanEditor from '../../plan/PlanEditor';
 import Modal from '../../shared/Modal';
 import { scenarioSummary } from '../../domain/scenarioValidation';
@@ -18,9 +20,9 @@ import {
 import './scenarios.css';
 
 type Props={home:HomeData;project:Project;onChange:(next:HomeData)=>void};
-type ScenarioView='tridimensional'|'editor'|'comparar';
+type ScenarioView='tridimensional'|'editor'|'comparar'|'interiores';
 type RoomDraft={name:string;width:number;length:number;height:number;x:number;z:number};
-function PlanMap({rooms,label}:{rooms:Room[];label:string}){
+function PlanMap({rooms,label,furniture=[]}:{rooms:Room[];label:string;furniture?:ScenarioFurniture[]}){
   if(!rooms.length)return <div className="scenario-map-empty">Nenhum cômodo nesta planta.</div>;
   const minX=Math.min(...rooms.map(r=>r.x))-0.8,minZ=Math.min(...rooms.map(r=>r.z))-0.8;
   const maxX=Math.max(...rooms.map(r=>r.x+r.width))+0.8,maxZ=Math.max(...rooms.map(r=>r.z+r.length))+0.8;
@@ -32,6 +34,12 @@ function PlanMap({rooms,label}:{rooms:Room[];label:string}){
       <text x={room.x+room.width/2} y={room.z+room.length/2} textAnchor="middle"
         dominantBaseline="middle" fontSize=".31" fill="#1e477a">{room.name.length>18?room.name.slice(0,18)+'…':room.name}</text>
     </g>)}
+    {furniture.map(item=>{
+      const room=rooms.find(x=>x.id===item.roomId);
+      return room?<polygon key={item.id}
+        points={furnitureCorners(item).map(pt=>`${room.x+pt.x},${room.z+pt.z}`).join(' ')}
+        fill={FURNITURE_COLORS[item.color].hex} stroke="#27578c" strokeWidth=".035"/>:null;
+    })}
   </svg>;
 }
 const roomDraft=(room?:Room,rooms:Room[]=[]):RoomDraft=>{
@@ -118,7 +126,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
     }
   }
   function resetToActual(){
-    if(!scenario||!window.confirm('Recriar esta proposta com a planta atual dos ambientes do projeto? A versão existente será preservada no histórico.'))return;
+    if(!scenario||!window.confirm('Recriar esta proposta com a planta atual? Os móveis desta versão serão retirados da proposta ativa, mas preservados no histórico para restauração.'))return;
     if(run(()=>resetScenarioToActual(home,scenario.id,newId(),new Date().toISOString()),'Planta atual copiada. A proposta anterior está no histórico.')){
       setSelectedRoomId(actualRooms[0]?.id??'');setView('tridimensional');
     }
@@ -152,7 +160,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
     </> : <>
       <div className="scenario-selected-bar">
         <button type="button" className="scenario-back" onClick={()=>{setSelectedId(null);setView('tridimensional');}}><ArrowLeft size={16}/>Todas as propostas</button>
-        <div><strong>{scenario.name}</strong><small>{scenario.rooms.length} cômodos · {scenario.revisions.length} versões anteriores</small></div>
+        <div><strong>{scenario.name}</strong><small>{scenario.rooms.length} cômodos · {scenario.furniture.length} móveis · {scenario.revisions.length} versões anteriores</small></div>
         <div className="scenario-actions">
           <button type="button" className="btn btn-outline" disabled={archived} onClick={openRename}><Edit3 size={16}/>Renomear</button>
           <button type="button" className="btn btn-outline" disabled={archived} onClick={()=>duplicate(scenario)}><Copy size={16}/>Duplicar</button>
@@ -168,6 +176,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
       <div className="scenario-view-tabs" role="tablist" aria-label="Modo de visualização do cenário">
         <button type="button" role="tab" aria-selected={view==='tridimensional'} onClick={()=>setView('tridimensional')}><Layers3 size={17}/>Vista 3D</button>
         <button type="button" role="tab" aria-selected={view==='editor'} disabled={!scenario.rooms.length||archived} onClick={()=>setView('editor')}><Grid2X2 size={17}/>Editar 2D</button>
+        <button type="button" role="tab" aria-selected={view==='interiores'} disabled={!scenario.rooms.length} onClick={()=>setView('interiores')}><Layers3 size={17}/>Interiores 3D</button>
         <button type="button" role="tab" aria-selected={view==='comparar'} onClick={()=>setView('comparar')}><GitCompareArrows size={17}/>Antes e depois</button>
       </div>
       {view==='editor' ? <div className="scenario-embedded-editor">
@@ -181,17 +190,19 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
             setMessage('Geometria salva somente nesta proposta.');
           }}
           onBack={()=>setView('tridimensional')}/>
-      </div> : view==='comparar'?<div className="scenario-compare" aria-label="Comparação antes e depois">
+      </div> : view==='interiores'
+        ?<InteriorWorkspace home={home} scenario={scenario} archived={archived} onChange={onChange}/>
+        : view==='comparar'?<div className="scenario-compare" aria-label="Comparação antes e depois">
         <div className="scenario-compare-column"><h4>Antes · planta real</h4><p>Dados atuais da residência (somente leitura)</p>
           <div className="scenario-compare-map"><PlanMap rooms={actualRooms} label="planta atual"/></div>
           <div className="scenario-viewport">{actualRooms.length?<HouseModel rooms={actualRooms} selectedRoomId="" selectedWall="leste" onSelect={()=>{}}/>:<div className="scenario-placeholder">Não há cômodos reais associados a este projeto.</div>}</div>
         </div>
         <div className="scenario-compare-column"><h4>Depois · {scenario.name}</h4><p>Versão independente em planejamento</p>
-          <div className="scenario-compare-map"><PlanMap rooms={scenario.rooms} label={scenario.name}/></div>
-          <div className="scenario-viewport">{scenario.rooms.length?<HouseModel rooms={scenario.rooms} selectedRoomId={activeRoomId} selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/>:<div className="scenario-placeholder">Proposta vazia. Adicione espaços antes de visualizar.</div>}</div>
+          <div className="scenario-compare-map"><PlanMap rooms={scenario.rooms} label={scenario.name} furniture={scenario.furniture}/></div>
+          <div className="scenario-viewport">{scenario.rooms.length?<HouseModel rooms={scenario.rooms} furniture={scenario.furniture} selectedRoomId={activeRoomId} selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/>:<div className="scenario-placeholder">Proposta vazia. Adicione espaços antes de visualizar.</div>}</div>
         </div>
       </div>:<div className="scenario-view-main">
-        <div className="scenario-viewport">{scenario.rooms.length?<HouseModel rooms={scenario.rooms} selectedRoomId={activeRoomId}
+        <div className="scenario-viewport">{scenario.rooms.length?<HouseModel rooms={scenario.rooms} furniture={scenario.furniture} selectedRoomId={activeRoomId}
           selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/>
           :<div className="scenario-placeholder"><Layers3 size={30}/>Esta proposta está vazia. Adicione um espaço para começar.</div>}</div>
         <div className="scenario-rooms-panel">
