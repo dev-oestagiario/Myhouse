@@ -1,5 +1,6 @@
 import type { HomeData, HomeDataV1, Project, Residence, Room, Space } from '../types';
 import { validateRoomGeometry } from '../plan/geometry';
+import { validateProjectTasks } from './taskValidation';
 
 export const DEFAULT_RESIDENCE_ID = 'residence-primary';
 
@@ -149,6 +150,7 @@ function checkV2(home: HomeData): HomeData {
     }
   }
   uniqueIds(home.projects, 'Projetos');
+  validateProjectTasks(home);
   return home;
 }
 
@@ -167,6 +169,7 @@ export function migrateHome(input: unknown): HomeData {
       residences: [makeDefaultResidence()],
       spaces: legacy.rooms.map(room=>makeSpaceForRoom(room)),
       projects: [],
+      workTasks: [],
     };
     return checkV2(result);
   }
@@ -175,7 +178,8 @@ export function migrateHome(input: unknown): HomeData {
     throw new Error('Backup V2 incompleto.');
   }
   // Rejeita vínculos corrompidos ANTES da normalização: não descartar dados silenciosamente.
-  const checked = checkV2({ ...home, ...legacy });
+  const checked = checkV2({ ...home, ...legacy,
+    workTasks: home.workTasks === undefined ? [] : home.workTasks });
   const normalized = reconcileSpaces(checked);
   return checkV2(normalized);
 }
