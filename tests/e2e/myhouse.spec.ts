@@ -404,7 +404,7 @@ test('F6.4 — criar cenário da sala, editar medidas, comparar e recuperar a ve
   await history.first().click();
   await expect.poll(()=>state.data.scenarios[0].rooms[0].footprint).toBeUndefined();
   expect(state.data.rooms[0].width).toBe(4.5);
-  await page.locator('.interior-editor').getByRole('button',{name:'Duplicar',exact:true}).click();
+  await page.locator('.scenario-selected-bar').getByRole('button',{name:'Duplicar',exact:true}).click();
   await expect.poll(()=>state.data.scenarios?.length).toBe(2);
   expect(state.data.scenarios[1].rooms[0].width).toBe(6);
   await navigate(page,'Obras');
@@ -479,7 +479,7 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   await expect.poll(()=>state.data.scenarios?.[0]?.furniture?.[0]?.name).toBe('Sofá novo');
   expect(state.data.scenarios[0].furniture[0]).toMatchObject({id:originalId,x:1.4,width:1.8,rotation:90,color:'madeira'});
   expect(state.data.rooms[0]).toMatchObject({name:'Sala de teste',width:4.5,length:3.2});
-  await page.getByRole('button',{name:'Duplicar',exact:true}).click();
+  await page.locator('.interior-editor').getByRole('button',{name:'Duplicar',exact:true}).click();
   await expect.poll(()=>state.data.scenarios[0].furniture.length).toBe(2);
   await page.getByRole('tab',{name:'Antes e depois'}).click();
   await expect(page.getByRole('img',{name:'Planta 2D de Interiores opção A'})).toBeVisible();
