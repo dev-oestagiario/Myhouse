@@ -59,6 +59,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft>(emptyPurchase);
   const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchaseError,setPurchaseError]=useState('');
   const [roomOpen, setRoomOpen] = useState(false);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [roomDraft, setRoomDraft] = useState<Omit<Room, 'id'>>({ name: '', width: 3, length: 3, height: 2.7, x: 0, z: 0 });
@@ -178,6 +179,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   }))).filter(item => percentDone(item.stages) < 100);
 
   function openPurchase(p?: Purchase) {
+    setPurchaseError('');
     setEditingPurchaseId(p?.id ?? null);
     setPurchaseDraft(p ? {
       name: p.name, category: p.category, roomId: p.roomId, priority: p.priority,
@@ -194,8 +196,9 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       const next=upsertPurchase(home,purchaseDraft,editingPurchaseId,new Date().toISOString(),newId());
       setHome(next);
       setPurchaseOpen(false);
+      setPurchaseError('');
       setNotice(editingPurchaseId ? 'Item atualizado. Aguarde a sincronização.' : 'Item cadastrado. Aguarde a sincronização.');
-    } catch(error) { setNotice(error instanceof Error ? error.message : 'Não foi possível salvar este item.'); }
+    } catch(error) { setPurchaseError(error instanceof Error ? error.message : 'Não foi possível salvar este item.'); }
   }
   function deletePurchase(p: Purchase) {
     if (!window.confirm(`Excluir ${p.name} da lista?`)) return;
@@ -432,6 +435,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     </main>
     {purchaseOpen && <Modal title={editingPurchaseId ? 'Editar item de compra' : 'Adicionar à lista de compras'} onClose={() => setPurchaseOpen(false)}>
       <PurchaseEditor home={home} draft={purchaseDraft} setDraft={setPurchaseDraft} onSubmit={savePurchase} onCancel={()=>setPurchaseOpen(false)}/>
+      {purchaseError&&<p className="budget-error" role="alert">{purchaseError}</p>}
     </Modal>}
     {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
       <p className="form-hint">Informe as medidas em metros. A posição X/Z determina onde o cômodo aparece no modelo da casa.</p>
