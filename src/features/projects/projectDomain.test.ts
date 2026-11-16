@@ -82,7 +82,7 @@ describe('F6.1 — projetos residenciais', () => {
     expect(()=>createProject(created,draft(),'p1',now)).toThrow();
   });
   it('armazena valores monetários exatos e recusa formatos ambíguos',()=>{
-    expect(parseBudgetCents('1.234,56')).toThrow();
+    expect(()=>parseBudgetCents('1.234,56')).toThrow();
     expect(parseBudgetCents('1234,56')).toBe(123456);
     expect(parseBudgetCents('0,01')).toBe(1);
     expect(parseBudgetCents('12.3')).toBe(1230);
