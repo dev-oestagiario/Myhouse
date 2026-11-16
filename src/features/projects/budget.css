@@ -1,0 +1,63 @@
+.budget-workspace{margin-top:16px;padding:22px;border:1px solid #dbe6f5;border-radius:14px;min-width:0}
+.budget-head{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:18px}
+.budget-head h3{font-size:17px;color:#1b4272;font-weight:800;margin:7px 0}
+.budget-head p{font-size:12px;color:#506b8a;line-height:1.65;max-width:620px}
+.budget-head button{flex-shrink:0}
+.budget-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:13px}
+.budget-overview>div{display:flex;flex-direction:column;gap:10px;background:#f7faff;border:1px solid #dce7f6;border-radius:11px;padding:15px;min-width:0}
+.budget-overview span{font-size:11px;font-weight:650;color:#536b89}
+.budget-overview strong{font-size:17px;font-weight:800;color:#244d80;overflow-wrap:anywhere}
+.budget-overview .budget-total{background:#eaf2ff;border-color:#b9d1f4}
+.budget-overview .budget-total strong{color:#174e9a}
+.budget-track{padding:17px 19px;background:#fff;border:1px solid #dbe7f7;border-radius:11px;margin-bottom:13px}
+.budget-track>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.budget-track>div:first-child>span{display:flex;gap:9px;align-items:center;font-size:12px;color:#385982;font-weight:750}
+.budget-track strong{font-size:20px;color:#1e4d88;font-weight:800}
+.budget-track>p{color:#61748e;font-size:11px;margin-top:8px;line-height:1.65}
+.budget-target{margin-top:13px;padding-top:13px;border-top:1px solid #e5ecf8;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:#4e698b}
+.budget-target strong{font-size:12px}
+.budget-target .budget-over{color:#aa3f3f}
+.budget-reserve{background:#f7faff;border:1px solid #e0eaf7;border-radius:11px;padding:15px 17px;margin-bottom:20px}
+.budget-reserve>label{display:block;color:#375c89;font-size:12px;font-weight:800;margin-bottom:9px}
+.budget-reserve>div{display:flex;align-items:center;gap:8px}
+.budget-reserve input{width:90px;min-width:0;height:42px;padding:8px;border:1px solid #c9dcf0;border-radius:8px;color:#1d477a}
+.budget-reserve small{display:block;font-size:11px;line-height:1.5;color:#637892;margin-top:9px}
+.budget-section-title{display:flex;justify-content:space-between;align-items:center;gap:13px;flex-wrap:wrap;margin:19px 0 12px}
+.budget-section-title>div{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#336aaf}
+.budget-section-title h4{font-size:14px;color:#214a7b;font-weight:800}
+.budget-section-title span{color:#637993;font-size:11px}
+.budget-section-title label{display:flex;gap:7px;align-items:center;color:#506c89;font-size:11px;font-weight:700}
+.budget-section-title select,.budget-item-header select{border:1px solid #d1dff1;border-radius:8px;background:white;color:#285078;padding:8px;font-size:12px;max-width:100%;min-height:39px}
+.budget-empty{border:1px dashed #c6d8ee;border-radius:10px;padding:22px;text-align:center;color:#59728f;font-size:12px;line-height:1.6}
+.budget-empty svg{color:#4b79b4;display:block;margin:0 auto 10px}
+.budget-item-list,.budget-task-list{display:flex;flex-direction:column;gap:9px}
+.budget-item{padding:15px;background:#fff;border:1px solid #dbe7f6;border-radius:11px}
+.budget-item-header,.budget-item-bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.budget-item-header h5{color:#1f4676;font-size:13px;font-weight:800;overflow-wrap:anywhere}
+.budget-item-header span{color:#617892;font-size:11px;line-height:1.5;display:block;margin-top:5px}
+.budget-item-bottom{align-items:center;margin-top:13px;border-top:1px solid #e7edf7;padding-top:13px}
+.budget-item-bottom>div:first-child{display:flex;flex-direction:column;gap:5px;min-width:0;color:#536d8b}
+.budget-item-bottom strong{font-size:12px;color:#254c7a}
+.budget-item-bottom span,.budget-item-bottom small{font-size:11px;color:#58738f}
+.budget-item-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.budget-item-actions .btn{padding:8px 10px;min-height:38px;font-size:11px}
+.budget-task-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #dce7f4;background:#fff;border-radius:10px;padding:13px}
+.budget-task-row>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.budget-task-row strong{font-size:12px;color:#234c7f}
+.budget-task-row span{font-size:11px;color:#5d748e;line-height:1.5}
+.budget-footnote{font-size:11px;color:#607793;line-height:1.65;margin-top:18px}
+.budget-feedback{border:1px solid #bed8f7;background:#eff6ff;border-radius:9px;padding:11px 13px;color:#315b8f;font-size:12px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;gap:9px}
+.budget-feedback button{border:0;background:transparent;color:#274d83;font-size:20px}
+.budget-error{border:1px solid #e8b7b7;background:#fff5f3;color:#913b3b;font-size:12px;border-radius:8px;padding:10px;margin:10px 0;line-height:1.55}
+.budget-quotes{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.budget-quotes>p{font-size:12px;color:#57718e;line-height:1.6}
+.budget-quote{border:1px solid #dbe6f5;border-radius:9px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.budget-quote>div{display:flex;flex-direction:column;gap:6px}
+.budget-quote strong{font-size:12px;color:#214d83}
+.budget-quote span{font-size:11px;color:#59708f}
+.budget-quote a{display:flex;align-items:center;gap:5px;font-size:11px;color:#245aa4}
+.budget-quote-form{padding-top:12px;border-top:1px solid #dce7f5}
+.purchase-editor .field input,.purchase-editor .field select,.purchase-editor .field textarea{width:100%;min-width:0;min-height:42px;padding:10px;border:1px solid #d3e1f1;border-radius:9px;color:#23476d;background:white}
+.purchase-editor .field small{font-size:11px;color:#667d99;line-height:1.4}
+@media(max-width:850px){.budget-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.budget-workspace{padding:14px}.budget-head{flex-wrap:wrap}.budget-head button{width:100%}.budget-item-header{flex-direction:column}.budget-item-header select{width:100%}.budget-item-bottom{flex-wrap:wrap}.budget-item-actions{width:100%}.budget-item-actions .btn{flex:1}.budget-target{flex-direction:column}.budget-overview strong{font-size:15px}}
