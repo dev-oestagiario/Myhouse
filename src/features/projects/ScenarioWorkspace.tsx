@@ -8,6 +8,7 @@ import { newId, nextRoomPosition, number } from '../../data';
 import { getFootprint } from '../../plan/geometry';
 import HouseModel from '../../plan/HouseModel';
 import InteriorWorkspace from './InteriorWorkspace';
+import OutdoorWorkspace from './OutdoorWorkspace';
 import { furnitureCorners, FURNITURE_COLORS } from './furnitureGeometry';
 import PlanEditor from '../../plan/PlanEditor';
 import Modal from '../../shared/Modal';
@@ -19,8 +20,8 @@ import {
 } from './scenarioDomain';
 import './scenarios.css';
 
-type Props={home:HomeData;project:Project;onChange:(next:HomeData)=>void};
-type ScenarioView='tridimensional'|'editor'|'comparar'|'interiores';
+type Props={home:HomeData;project:Project;onChange:(next:HomeData)=>void;onOpenTasks:()=>void;onOpenBudget:()=>void};
+type ScenarioView='tridimensional'|'editor'|'comparar'|'interiores'|'externos';
 type RoomDraft={name:string;width:number;length:number;height:number;x:number;z:number};
 function PlanMap({rooms,label,furniture=[]}:{rooms:Room[];label:string;furniture?:ScenarioFurniture[]}){
   if(!rooms.length)return <div className="scenario-map-empty">Nenhum cômodo nesta planta.</div>;
@@ -49,7 +50,7 @@ const roomDraft=(room?:Room,rooms:Room[]=[]):RoomDraft=>{
 };
 const shortDate=(value:string)=>new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
 
-export default function ScenarioWorkspace({home,project,onChange}:Props){
+export default function ScenarioWorkspace({home,project,onChange,onOpenTasks,onOpenBudget}:Props){
   const scenarios=home.scenarios.filter(item=>item.projectId===project.id)
     .sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
   const [selectedId,setSelectedId]=useState<string|null>(null);
@@ -126,7 +127,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
     }
   }
   function resetToActual(){
-    if(!scenario||!window.confirm('Recriar esta proposta com a planta atual? Os móveis desta versão serão retirados da proposta ativa, mas preservados no histórico para restauração.'))return;
+    if(!scenario||!window.confirm('Recriar esta proposta com a planta atual? Os móveis serão preservados no histórico, e as áreas externas independentes continuarão nesta proposta.'))return;
     if(run(()=>resetScenarioToActual(home,scenario.id,newId(),new Date().toISOString()),'Planta atual copiada. A proposta anterior está no histórico.')){
       setSelectedRoomId(actualRooms[0]?.id??'');setView('tridimensional');
     }
@@ -151,7 +152,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
         {!archived&&<button type="button" className="btn btn-outline" onClick={startNew}><Plus size={16}/>Criar primeira proposta</button>}
       </div>:<div className="scenario-library"><h4>Escolha uma proposta</h4><div className="scenario-cards">{scenarios.map(item=><article key={item.id} className="scenario-card">
         <div><Layers3 size={19}/><strong>{item.name}</strong></div><p>{item.description||'Proposta sem descrição'}</p>
-        <small>{item.rooms.length} cômodo(s) · Atualizado {shortDate(item.updatedAt)}</small>
+        <small>{item.rooms.length} cômodo(s) · {(item.outdoorAreas??[]).length} área(s) externa(s) · Atualizado {shortDate(item.updatedAt)}</small>
         <div><button type="button" className="btn btn-outline" onClick={()=>selectScenario(item)}>Abrir proposta</button>
           <button type="button" className="icon-button" disabled={archived} title="Duplicar cenário" aria-label={`Duplicar ${item.name}`} onClick={()=>duplicate(item)}><Copy size={16}/></button>
           <button type="button" className="icon-button danger-hover" disabled={archived} title="Excluir cenário" aria-label={`Excluir ${item.name}`} onClick={()=>removeScene(item)}><Trash2 size={16}/></button>
@@ -160,7 +161,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
     </> : <>
       <div className="scenario-selected-bar">
         <button type="button" className="scenario-back" onClick={()=>{setSelectedId(null);setView('tridimensional');}}><ArrowLeft size={16}/>Todas as propostas</button>
-        <div><strong>{scenario.name}</strong><small>{scenario.rooms.length} cômodos · {scenario.furniture.length} móveis · {scenario.revisions.length} versões anteriores</small></div>
+        <div><strong>{scenario.name}</strong><small>{scenario.rooms.length} cômodos · {scenario.furniture.length} móveis · {(scenario.outdoorAreas??[]).length} áreas externas · {scenario.revisions.length} versões anteriores</small></div>
         <div className="scenario-actions">
           <button type="button" className="btn btn-outline" disabled={archived} onClick={openRename}><Edit3 size={16}/>Renomear</button>
           <button type="button" className="btn btn-outline" disabled={archived} onClick={()=>duplicate(scenario)}><Copy size={16}/>Duplicar</button>
@@ -172,14 +173,17 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
         <div><span>Alterados</span><strong>{comparison?.changed??0}</strong></div>
         <div><span>Adicionados</span><strong>{comparison?.added??0}</strong></div>
         <div><span>Removidos na proposta</span><strong>{comparison?.removed??0}</strong></div>
+        <div><span>Áreas externas</span><strong>{(scenario.outdoorAreas??[]).length}</strong></div>
       </div>
       <div className="scenario-view-tabs" role="tablist" aria-label="Modo de visualização do cenário">
         <button type="button" role="tab" aria-selected={view==='tridimensional'} onClick={()=>setView('tridimensional')}><Layers3 size={17}/>Vista 3D</button>
         <button type="button" role="tab" aria-selected={view==='editor'} disabled={!scenario.rooms.length||archived} onClick={()=>setView('editor')}><Grid2X2 size={17}/>Editar 2D</button>
         <button type="button" role="tab" aria-selected={view==='interiores'} disabled={!scenario.rooms.length} onClick={()=>setView('interiores')}><Layers3 size={17}/>Interiores 3D</button>
+        <button type="button" role="tab" aria-selected={view==='externos'} onClick={()=>setView('externos')}><Layers3 size={17}/>Áreas externas</button>
         <button type="button" role="tab" aria-selected={view==='comparar'} onClick={()=>setView('comparar')}><GitCompareArrows size={17}/>Antes e depois</button>
       </div>
-      {view==='editor' ? <div className="scenario-embedded-editor">
+      {view==='externos' ? <OutdoorWorkspace home={home} scenario={scenario} archived={archived} onChange={onChange} onOpenTasks={onOpenTasks} onOpenBudget={onOpenBudget}/>
+      :view==='editor' ? <div className="scenario-embedded-editor">
         <p className="scenario-editor-notice">Editando a proposta <strong>{scenario.name}</strong>. Salvar aqui não altera a planta real.</p>
         <PlanEditor key={scenario.id+':'+scenario.updatedAt} rooms={scenario.rooms} selectedRoomId={activeRoomId}
           onSelect={setSelectedRoomId}
@@ -219,7 +223,7 @@ export default function ScenarioWorkspace({home,project,onChange}:Props){
       <div className="scenario-history">
         <div><History size={18}/><h4>Histórico de versões</h4><span>Até 12 versões anteriores preservadas</span></div>
         {scenario.revisions.length?<ol>{[...scenario.revisions].reverse().map(revision=><li key={revision.id}>
-          <span><strong>{revision.label}</strong><small>{shortDate(revision.savedAt)} · {revision.rooms.length} cômodo(s)</small></span>
+          <span><strong>{revision.label}</strong><small>{shortDate(revision.savedAt)} · {revision.rooms.length} cômodo(s) · {(revision.outdoorAreas??[]).length} área(s) externa(s)</small></span>
           <button type="button" className="btn btn-outline" disabled={archived} onClick={()=>restore(revision.id)}>Restaurar</button>
         </li>)}</ol>:<p>Suas edições de planta aparecerão aqui. Você poderá restaurar uma versão anterior.</p>}
       </div>

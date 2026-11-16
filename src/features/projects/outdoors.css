@@ -1,0 +1,41 @@
+.outdoor-workspace{min-width:0;padding:14px 0}
+.outdoor-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.outdoor-heading h4{font-size:16px;color:#244d80;font-weight:800}
+.outdoor-heading p,.outdoor-notice,.outdoor-activities p{font-size:12px;line-height:1.65;color:#586f8a;margin-top:6px;max-width:630px}
+.outdoor-notice{background:#f0f5fd;border:1px solid #d2e2f6;border-radius:9px;padding:10px 13px;margin:12px 0}
+.outdoor-toolbar{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin:15px 0}
+.outdoor-toolbar>label{flex:1;min-width:180px}
+.outdoor-toolbar>label,.outdoor-fields label,.outdoor-vertex label,.outdoor-accessories>label{display:flex;flex-direction:column;gap:6px;color:#355779;font-weight:700;font-size:12px}
+.outdoor-toolbar select,.outdoor-fields input,.outdoor-fields select,.outdoor-vertex input,.outdoor-accessories select{display:block;width:100%;height:41px;border:1px solid #c9daef;border-radius:8px;padding:8px 10px;color:#244a79;background:#fff;font:inherit;min-width:0}
+.outdoor-empty{border:1px dashed #bfd2e9;border-radius:11px;padding:27px;text-align:center;background:#f7faff}
+.outdoor-empty h5,.outdoor-form h5,.outdoor-preview h5,.outdoor-activities h5{font-size:13px;font-weight:800;color:#265284}
+.outdoor-empty p{font-size:12px;color:#597391;line-height:1.6;margin:12px auto}
+.outdoor-feedback{background:#eef6ff;border:1px solid #c4d9f4;color:#245a90;border-radius:8px;padding:11px;font-size:12px}
+.outdoor-error{background:#fff2f0;border:1px solid #ecc4c1;color:#8e3535;border-radius:8px;padding:11px;font-size:12px}
+.outdoor-form{border:1px solid #d6e3f4;border-radius:11px;background:#f9fbff;padding:16px;margin:14px 0;min-width:0}
+.outdoor-form-head,.outdoor-form-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px;flex-wrap:wrap}
+.outdoor-form-actions{justify-content:flex-end;margin:17px 0 0}
+.outdoor-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.outdoor-wide{grid-column:1/-1}
+.outdoor-outline-editor,.outdoor-accessories{border:1px solid #d4e2f2;border-radius:9px;padding:13px;margin-top:15px;min-width:0}
+.outdoor-outline-editor legend,.outdoor-accessories legend{font-size:12px;font-weight:800;color:#24578f;padding:0 6px}
+.outdoor-outline-editor p,.outdoor-accessories p{font-size:11px;color:#5f7896;line-height:1.5;margin:10px 0}
+.outdoor-preset-actions{display:flex;gap:7px;flex-wrap:wrap}
+.outdoor-vertices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:11px 0}
+.outdoor-vertex{display:flex;align-items:end;gap:7px;border:1px solid #dbe5f2;background:#fff;border-radius:9px;padding:9px;min-width:0;flex-wrap:wrap}
+.outdoor-vertex strong{font-size:11px;color:#375b87;width:100%}
+.outdoor-vertex label{flex:1;min-width:75px}
+.outdoor-vertex .btn{padding:8px;min-width:40px}
+.outdoor-edge-options{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.outdoor-edge-options label{font-size:12px;color:#355b82;display:flex;align-items:center;gap:6px;padding:8px;border:1px solid #dbe6f4;border-radius:8px;background:#fff}
+.outdoor-accessories>label{max-width:340px}
+.outdoor-previews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:16px 0}
+.outdoor-preview{background:#fff;border:1px solid #d8e5f4;border-radius:12px;padding:12px;min-width:0}
+.outdoor-preview h5{margin-bottom:10px}
+.outdoor-preview>p{font-size:11px;color:#56718e;margin-top:10px;line-height:1.5}
+.outdoor-plan-svg{width:100%;height:320px;border-radius:9px;background:#f4f8fd;display:block}
+.outdoor-model{height:320px;border-radius:9px;overflow:hidden;background:#f4f8fd}
+.outdoor-model>div{height:100%}
+.outdoor-activities{border:1px solid #d8e4f3;background:#f6faff;border-radius:11px;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.outdoor-activities>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:760px){.outdoor-previews,.outdoor-vertices{grid-template-columns:1fr}.outdoor-fields{grid-template-columns:1fr}.outdoor-toolbar .btn{flex:1}.outdoor-form{padding:12px}.outdoor-model,.outdoor-plan-svg{height:260px}}

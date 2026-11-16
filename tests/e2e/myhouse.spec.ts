@@ -441,6 +441,44 @@ test('F6.4 — cenário vazio permite planejar espaço futuro sem criar cômodo 
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
+test('F6.6 — deck externo em cenário vazio, acessórios, histórico e tarefas',async ({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const project=page.getByRole('dialog',{name:'Novo projeto'});
+  await project.getByLabel('Nome do projeto *').fill('Deck no quintal');
+  await project.getByRole('button',{name:'Salvar projeto'}).click();
+  await page.getByRole('tab',{name:'Cenários 2D/3D'}).click();
+  await page.getByRole('button',{name:'Criar cenário'}).click();
+  const create=page.getByRole('dialog',{name:'Criar cenário'});
+  await create.getByLabel('Nome da proposta *').fill('Deck de madeira');
+  await create.getByLabel('Começar uma proposta em branco').check();
+  await create.getByRole('button',{name:'Criar proposta'}).click();
+  await page.getByRole('tab',{name:'Áreas externas'}).click();
+  await page.getByRole('button',{name:'Nova área externa'}).click();
+  await page.getByRole('button',{name:'Formato L'}).click();
+  await page.getByLabel('Nível do piso (m)').fill('0.35');
+  await page.getByLabel('Acabamento visual').selectOption('cinza');
+  await page.getByRole('checkbox',{name:'Borda 1'}).check();
+  await page.getByLabel('Degraus ilustrativos na borda').selectOption('2');
+  await page.getByRole('button',{name:'Salvar área externa'}).click();
+  await expect.poll(()=>state.data.scenarios?.[0]?.outdoorAreas?.[0]?.outline?.length).toBe(6);
+  expect(state.data.scenarios[0].outdoorAreas[0]).toMatchObject({level:.35,finish:'cinza',railingEdges:[0],stepsEdge:2});
+  expect(state.data.scenarios[0].rooms).toHaveLength(0);
+  expect(state.data.rooms).toHaveLength(1);
+  await expect(page.getByRole('img',{name:'Planta 2D da área externa Deck planejado'})).toBeVisible();
+  await expect(page.getByText(/9,76 m²/)).toBeVisible();
+  await page.getByRole('button',{name:'Editar',exact:true}).click();
+  await page.getByLabel('Nome').fill('Deck revisado');
+  await page.getByRole('button',{name:'Salvar área externa'}).click();
+  await expect.poll(()=>state.data.scenarios?.[0]?.outdoorAreas?.[0]?.name).toBe('Deck revisado');
+  await expect(page.getByRole('heading',{name:'Histórico de versões'})).toBeVisible();
+  await page.getByRole('button',{name:'Gerenciar tarefas'}).click();
+  await expect(page.getByRole('heading',{name:'Tarefas e serviços'})).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
 test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões',async ({page})=>{
   const state=await setupMockSession(page);
   await navigate(page,'Projetos');

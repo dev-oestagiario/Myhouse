@@ -1,6 +1,7 @@
-import type { HomeData, ProjectScenario, Room, ScenarioRevision, ScenarioFurniture } from '../../types';
+import type { HomeData, ProjectScenario, Room, ScenarioRevision, ScenarioFurniture, ScenarioOutdoorArea } from '../../types';
 import { validateHome } from '../../data';
 import { scaleRoomGeometry, validateRoomGeometry } from '../../plan/geometry';
+import { validateOutdoorAreas } from './outdoorGeometry';
 
 export type ScenarioStart = 'projeto'|'vazio';
 function editable(home:HomeData,projectId:string) {
@@ -34,16 +35,19 @@ function updateHome(home:HomeData,scenario:ProjectScenario):HomeData {
       ?{...project,updatedAt:scenario.updatedAt}:project)});
 }
 function snapshot(scenario:ProjectScenario,revisionId:string,at:string,label:string):ScenarioRevision {
-  return {id:revisionId,savedAt:at,label,rooms:structuredClone(scenario.rooms),furniture:structuredClone(scenario.furniture)};
+  return {id:revisionId,savedAt:at,label,rooms:structuredClone(scenario.rooms),furniture:structuredClone(scenario.furniture),outdoorAreas:structuredClone(scenario.outdoorAreas??[])};
 }
-function updateRooms(home:HomeData,scenarioId:string,rooms:Room[],revisionId:string,at:string,label:string,furniture?:ScenarioFurniture[]):HomeData {
+function updateRooms(home:HomeData,scenarioId:string,rooms:Room[],revisionId:string,at:string,label:string,furniture?:ScenarioFurniture[],outdoorAreas?:ScenarioOutdoorArea[]):HomeData {
   validMoment(at);
   const old=findScenario(home,scenarioId);
   if(!revisionId.trim() || old.revisions.some(item=>item.id===revisionId))throw new Error('Versão do cenário inválida ou duplicada.');
   const nextFurniture=furniture??old.furniture;
-  if(JSON.stringify(old.rooms)===JSON.stringify(rooms)&&JSON.stringify(old.furniture)===JSON.stringify(nextFurniture))return home;
+  const nextOutdoor=outdoorAreas??old.outdoorAreas??[];
+  if(JSON.stringify(old.rooms)===JSON.stringify(rooms)
+    &&JSON.stringify(old.furniture)===JSON.stringify(nextFurniture)
+    &&JSON.stringify(old.outdoorAreas??[])===JSON.stringify(nextOutdoor))return home;
   const revised:ProjectScenario={
-    ...old,rooms:structuredClone(rooms),furniture:structuredClone(nextFurniture),updatedAt:at,
+    ...old,rooms:structuredClone(rooms),furniture:structuredClone(nextFurniture),outdoorAreas:structuredClone(nextOutdoor),updatedAt:at,
     revisions:[...old.revisions,snapshot(old,revisionId,at,label)].slice(-12),
   };
   return updateHome(home,revised);
@@ -55,7 +59,7 @@ export function createScenario(home:HomeData,projectId:string,name:string,id:str
   editable(home,projectId);
   if(!id.trim()||home.scenarios.some(item=>item.id===id))throw new Error('ID de cenário inválido ou duplicado.');
   const scenario:ProjectScenario={
-    id,projectId,name:checkName(name),description:'',rooms:mode==='projeto'?sourceRooms(home,projectId):[],furniture:[],
+    id,projectId,name:checkName(name),description:'',rooms:mode==='projeto'?sourceRooms(home,projectId):[],furniture:[],outdoorAreas:[],
     revisions:[],createdAt:at,updatedAt:at,
   };
   return validateHome({...home,scenarios:[...home.scenarios,scenario],
@@ -66,7 +70,7 @@ export function duplicateScenario(home:HomeData,sourceId:string,id:string,name:s
   validMoment(at);
   if(!id.trim()||home.scenarios.some(item=>item.id===id))throw new Error('ID de cenário inválido ou duplicado.');
   const copy:ProjectScenario={id,projectId:source.projectId,
-    name:checkName(name),description:source.description,rooms:structuredClone(source.rooms),furniture:structuredClone(source.furniture),
+    name:checkName(name),description:source.description,rooms:structuredClone(source.rooms),furniture:structuredClone(source.furniture),outdoorAreas:structuredClone(source.outdoorAreas??[]),
     revisions:[],createdAt:at,updatedAt:at};
   return validateHome({...home,scenarios:[...home.scenarios,copy]});
 }
@@ -120,7 +124,7 @@ export function restoreScenarioRevision(home:HomeData,scenarioId:string,oldRevis
   const target=scenario.revisions.find(item=>item.id===oldRevisionId);
   if(!target)throw new Error('Versão não encontrada.');
   return updateRooms(home,scenarioId,structuredClone(target.rooms),revisionId,at,
-    'Antes de restaurar versão anterior',structuredClone(target.furniture));
+    'Antes de restaurar versão anterior',structuredClone(target.furniture),structuredClone(target.outdoorAreas??[]));
 }
 export function resetScenarioToActual(home:HomeData,scenarioId:string,revisionId:string,at:string):HomeData {
   const old=findScenario(home,scenarioId);
@@ -148,4 +152,31 @@ export function removeScenarioFurniture(home:HomeData,scenarioId:string,id:strin
   if(!item)throw new Error('Móvel não encontrado.');
   return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,'Antes de remover '+item.name,
     scenario.furniture.filter(other=>other.id!==id));
+}
+
+
+/** Mantém o espaço externo isolado do imóvel real e cria versão restaurável. */
+export function addScenarioOutdoorArea(home:HomeData,scenarioId:string,area:ScenarioOutdoorArea,revisionId:string,at:string):HomeData {
+  const scenario=findScenario(home,scenarioId);
+  if((scenario.outdoorAreas??[]).some(item=>item.id===area.id))throw new Error('Área externa com ID repetido.');
+  const next=[...(scenario.outdoorAreas??[]),area];
+  validateOutdoorAreas(next);
+  return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,
+    'Antes de adicionar área externa '+area.name,undefined,next);
+}
+export function updateScenarioOutdoorArea(home:HomeData,scenarioId:string,area:ScenarioOutdoorArea,revisionId:string,at:string):HomeData {
+  const scenario=findScenario(home,scenarioId);
+  const old=(scenario.outdoorAreas??[]).find(item=>item.id===area.id);
+  if(!old)throw new Error('Área externa não encontrada.');
+  const next=(scenario.outdoorAreas??[]).map(item=>item.id===area.id?area:item);
+  validateOutdoorAreas(next);
+  return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,
+    'Antes de editar área externa '+old.name,undefined,next);
+}
+export function removeScenarioOutdoorArea(home:HomeData,scenarioId:string,id:string,revisionId:string,at:string):HomeData {
+  const scenario=findScenario(home,scenarioId);
+  const removed=(scenario.outdoorAreas??[]).find(item=>item.id===id);
+  if(!removed)throw new Error('Área externa não encontrada.');
+  return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,
+    'Antes de remover área externa '+removed.name,undefined,(scenario.outdoorAreas??[]).filter(item=>item.id!==id));
 }

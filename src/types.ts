@@ -173,6 +173,26 @@ export type FurnitureKind =
   | 'escrivaninha' | 'estante' | 'tapete' | 'planta' | 'armario' | 'luminaria';
 export type FurnitureColor = 'azul' | 'cinza' | 'madeira' | 'branco' | 'verde';
 
+/** Uma área externa existe somente no cenário planejado, sem criar um cômodo interno. */
+export type OutdoorFinish = 'madeira' | 'cinza' | 'claro';
+export interface ScenarioOutdoorArea {
+  id: string;
+  name: string;
+  /** Contorno local em metros; vértices editáveis em 2D. */
+  outline: PlanPoint[];
+  /** Origem no espaço planejado e cota do piso, em metros. */
+  x: number;
+  z: number;
+  level: number;
+  /** Espessura apenas ilustrativa, sem dimensionamento estrutural. */
+  thickness: number;
+  finish: OutdoorFinish;
+  /** Índices de arestas onde exibir guarda-corpo esquemático. */
+  railingEdges: number[];
+  /** Aresta com degraus esquemáticos ou null. */
+  stepsEdge: number | null;
+}
+
 export interface ScenarioFurniture {
   id: string;
   /** ID do cômodo dentro do cenário, nunca um identificador de espaço da planta real. */
@@ -197,6 +217,8 @@ export interface ScenarioRevision {
   label: string;
   rooms: Room[];
   furniture: ScenarioFurniture[];
+  /** Ausente em backups F6.5 antigos. */
+  outdoorAreas?: ScenarioOutdoorArea[];
 }
 
 /** Alternativa espacial de um projeto: nunca modifica HomeData.rooms. */
@@ -207,6 +229,8 @@ export interface ProjectScenario {
   description: string;
   rooms: Room[];
   furniture: ScenarioFurniture[];
+  /** Áreas planejadas externas, independentes de HomeData.rooms. */
+  outdoorAreas?: ScenarioOutdoorArea[];
   revisions: ScenarioRevision[];
   createdAt: string;
   updatedAt: string;
