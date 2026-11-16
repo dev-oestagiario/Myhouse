@@ -5,7 +5,7 @@
 begin;
 
 alter table public.user_homes drop constraint if exists user_homes_data_version;
-alter table public.user_homes add constraint user_homes_data_version check (
+alter table public.user_homes add constraint user_homes_data_version check (coalesce(
   jsonb_typeof(data) = 'object'
   and data->>'version' in ('1','2')
   and jsonb_typeof(data->'rooms') = 'array'
@@ -20,7 +20,7 @@ alter table public.user_homes add constraint user_homes_data_version check (
       and jsonb_typeof(data->'projects') = 'array'
     )
   )
-) not valid;
+, false)) not valid;
 
 alter table public.user_homes validate constraint user_homes_data_version;
 
