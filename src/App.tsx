@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import HouseModel from './plan/HouseModel';
 import PlanEditor from './plan/PlanEditor';
 import { getWallSegments, scaleRoomGeometry, validateRoomGeometry } from './plan/geometry';
 import GuidedRoomScan from './scan/GuidedRoomScan';
+import Modal from './shared/Modal';
 import { reconcileSpaces } from './domain/homeMigration';
 import {
   ArrowDownToLine, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
@@ -28,52 +29,6 @@ const emptyPurchase = (): PurchaseDraft => ({
 const localDate = (date: string) => new Date(date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 const moneyInput = (n: number) => (Number.isFinite(n) ? String(n) : '0');
 
-function Modal({ title, onClose, children }: { title: string, onClose: () => void, children: ReactNode }) {
-  const dialog = useRef<HTMLElement>(null);
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const focusables = () => Array.from(dialog.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-    ) ?? []).filter(node => node.getClientRects().length > 0);
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        closeRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const items = focusables();
-      if (!items.length) { event.preventDefault(); dialog.current?.focus(); return; }
-      const first = items[0], last = items[items.length - 1];
-      if (event.shiftKey && (document.activeElement === first || !dialog.current?.contains(document.activeElement))) {
-        event.preventDefault(); last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || !dialog.current?.contains(document.activeElement))) {
-        event.preventDefault(); first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    const id = window.requestAnimationFrame(() => {
-      if (!dialog.current?.contains(document.activeElement)) (focusables()[0] ?? dialog.current)?.focus();
-    });
-    return () => {
-      window.cancelAnimationFrame(id);
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previous?.focus({ preventScroll: true });
-    };
-  }, []);
-  return <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-    <section ref={dialog} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="modal-heading"><h2>{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label="Fechar janela"><X size={20} /></button></div>
-      {children}
-    </section>
-  </div>;
-}
 
 type SyncStatus = 'saved' | 'pending' | 'saving' | 'error' | 'conflict';
 
