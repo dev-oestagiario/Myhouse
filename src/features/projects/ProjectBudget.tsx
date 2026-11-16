@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import {
   Check, Edit3, FilePlus2, Link2, Plus, Receipt, ShoppingBasket,
-  Trash2, Wallet, Wrench,
+  Trash2, Wrench,
 } from 'lucide-react';
 import type { HomeData, Project, ProjectTask, Purchase, PurchaseStatus } from '../../types';
 import { money, newId, priorityNames } from '../../data';
