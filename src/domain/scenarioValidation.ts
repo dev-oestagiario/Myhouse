@@ -34,7 +34,7 @@ export function validateScenarios(home:Pick<HomeData,'projects'|'scenarios'>):vo
     }
     allIds.add(scenario.id);
     counts.set(scenario.projectId,(counts.get(scenario.projectId)??0)+1);
-    if(counts.get(scenario.projectId)!>20)throw new Error('Limite de 20 cenários por projeto.');
+    if((counts.get(scenario.projectId)??0)>20)throw new Error('Limite de 20 cenários por projeto.');
     checkRooms(scenario.rooms,'Cenário');
     if(!Array.isArray(scenario.revisions)||scenario.revisions.length>12){
       throw new Error('Histórico do cenário inválido ou acima de 12 versões.');
