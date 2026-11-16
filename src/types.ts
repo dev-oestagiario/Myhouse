@@ -35,6 +35,16 @@ export interface Room {
   openings?: WallOpening[];
 }
 
+export type PurchaseStatus = 'preciso' | 'pesquisando' | 'orcado' | 'comprado' | 'recebido' | 'instalado' | 'cancelado';
+export interface PurchaseQuote {
+  id: string;
+  supplier: string;
+  /** Cotação por unidade, em centavos. */
+  unitPriceCents: number;
+  url: string;
+  createdAt: string;
+}
+
 export interface Purchase {
   id: string;
   name: string;
@@ -47,6 +57,15 @@ export interface Purchase {
   notes: string;
   url: string;
   createdAt: string;
+  /** Vínculos opcionais: compras antigas permanecem independentes. */
+  projectId?: string;
+  taskId?: string;
+  unit?: string;
+  status?: PurchaseStatus;
+  /** Preço realmente pago por unidade. Null/undefined = ainda não informado. */
+  actualUnitPriceCents?: number | null;
+  supplier?: string;
+  quotes?: PurchaseQuote[];
 }
 
 export interface WorkLog {
@@ -108,6 +127,8 @@ export interface Project {
   updatedAt: string;
   /** Arquivamento reversível: não altera status do projeto nem seu histórico. */
   archivedAt?: string;
+  /** Reserva para imprevistos, percentual inteiro 0–50. */
+  contingencyPercent?: number;
 }
 
 export type ProjectTaskKind = 'tarefa' | 'servico';
@@ -141,6 +162,9 @@ export interface ProjectTask {
   history: ProjectTaskEvent[];
   createdAt: string;
   updatedAt: string;
+  /** Somente mão de obra / serviço; materiais são compras vinculadas. */
+  estimatedCostCents?: number | null;
+  actualCostCents?: number | null;
 }
 
 /** V2 preserva os campos legados para não interromper os fluxos atuais. */
