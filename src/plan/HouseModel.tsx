@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Edges, OrbitControls } from '@react-three/drei';
 import { DoubleSide, Shape } from 'three';
-import type { Direction, Room } from '../types';
+import type { Direction, Room, ScenarioFurniture } from '../types';
+import Furniture3D from './Furniture3D';
 import { getFootprint, getWallSegments, layoutWallPieces } from './geometry';
 
 function RoomFloor({ room, selected, color }: { room: Room; selected: boolean; color: string }) {
@@ -47,11 +48,14 @@ function RoomBoundary({ room, selectedRoomId, selectedWall, onSelect }: {
 }
 
 /** Interactive viewer remains presentation-only; geometry editing lives in the 2D editor. */
-export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSelect }: {
+export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSelect, furniture=[], selectedFurnitureId='', onSelectFurniture }: {
   rooms: Room[];
   selectedRoomId: string;
   selectedWall: Direction;
   onSelect: (id: string, direction: Direction) => void;
+  furniture?: ScenarioFurniture[];
+  selectedFurnitureId?: string;
+  onSelectFurniture?: (id:string)=>void;
 }) {
   const minX = Math.min(...rooms.map(r => r.x));
   const maxX = Math.max(...rooms.map(r => r.x + r.width));
@@ -72,6 +76,12 @@ export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSele
       <RoomFloor room={room} selected={selectedRoomId === room.id} color={i % 2 ? '#e6eef9' : '#f1f5fb'}/>
       <RoomBoundary room={room} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={onSelect}/>
     </group>)}
+    {furniture.map(item=>{
+      const room=rooms.find(room=>room.id===item.roomId);
+      return room?<group key={item.id} position={[room.x,0,room.z]}>
+        <Furniture3D item={item} selected={selectedFurnitureId===item.id} onSelect={onSelectFurniture}/>
+      </group>:null;
+    })}
     <OrbitControls target={[cx, 0, cz]} enablePan enableZoom minDistance={2} maxDistance={120} maxPolarAngle={Math.PI / 2.05}/>
   </Canvas>;
 }
