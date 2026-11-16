@@ -307,7 +307,7 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   await buy.getByRole('button',{name:'Salvar item'}).click();
   await expect(page.getByRole('heading',{name:'Compras e orçamento'})).toBeVisible();
   await expect(page.getByText('Tinta premium')).toBeVisible();
-  await expect(page.getByText('R$ 159,80')).toBeVisible();
+  await expect(page.getByText('R$ 159,80').first()).toBeVisible();
   await expect.poll(()=>state.data.purchases.length).toBe(1);
   expect(state.data.purchases[0].taskId).toBe(state.data.workTasks[0].id);
   expect(state.data.purchases[0].projectId).toBe(state.data.projects[0].id);
@@ -317,7 +317,7 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   const edit=page.getByRole('dialog',{name:'Editar compra do projeto'});
   await edit.getByLabel('Preço unitário pago (R$)').fill('75.50');
   await edit.getByRole('button',{name:'Salvar item'}).click();
-  await expect(page.getByText('R$ 151,00')).toBeVisible();
+  await expect(page.getByText('R$ 151,00').first()).toBeVisible();
   await page.getByLabel('Reserva para imprevistos (%)').fill('10');
   await page.getByRole('button',{name:'Aplicar reserva'}).click();
   await expect(page.getByText('R$ 15,98')).toBeVisible();
@@ -327,13 +327,13 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   await quotes.getByLabel('Preço unitário cotado (R$) *').fill('70,00');
   await quotes.getByRole('button',{name:'Adicionar cotação'}).click();
   await expect(quotes.getByText('Loja Exemplo')).toBeVisible();
-  await quotes.getByRole('button',{name:'Fechar'}).click();
+  await quotes.getByRole('button',{name:'Fechar janela'}).click();
   await page.getByRole('button',{name:'Custos'}).click();
   const labor=page.getByRole('dialog',{name:/Custos do serviço/});
   await labor.getByLabel('Custo previsto (R$)').fill('200,00');
   await labor.getByLabel('Custo efetivamente pago (R$)').fill('180,00');
   await labor.getByRole('button',{name:'Salvar custos'}).click();
-  await expect(page.getByText('R$ 331,00')).toBeVisible();
+  await expect(page.getByText('R$ 331,00').first()).toBeVisible();
   await expect.poll(()=>state.data.purchases[0].quotes?.length).toBe(1);
   await navigate(page,'Lista de compras');
   await expect(page.getByText('Tinta premium')).toBeVisible();
