@@ -3,6 +3,7 @@ import HouseModel from './plan/HouseModel';
 import PlanEditor from './plan/PlanEditor';
 import { getWallSegments, scaleRoomGeometry, validateRoomGeometry } from './plan/geometry';
 import GuidedRoomScan from './scan/GuidedRoomScan';
+import { reconcileSpaces } from './domain/homeMigration';
 import {
   ArrowDownToLine, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
   ClipboardList, Clock3, Download, Edit3, FileClock, Filter, Hammer, Home,
@@ -263,7 +264,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         width: roomDraft.width, length: roomDraft.length, height: roomDraft.height,
         x: roomDraft.x, z: roomDraft.z,
       });
-      setHome(prev => ({ ...prev, rooms: editingRoomId ? prev.rooms.map(r => r.id === editingRoomId ? room : r) : [...prev.rooms, room] }));
+      setHome(prev => reconcileSpaces({ ...prev, rooms: editingRoomId ? prev.rooms.map(r => r.id === editingRoomId ? room : r) : [...prev.rooms, room] }));
       setSelectedRoomId(room.id);
       setRoomOpen(false);
       setPage('works');
@@ -283,7 +284,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
 
   function completeRoomScan(draft: Omit<Room, 'id'>) {
     const room: Room = { id: newId(), ...draft };
-    setHome(previous => ({ ...previous, rooms: [...previous.rooms, room] }));
+    setHome(previous => reconcileSpaces({ ...previous, rooms: [...previous.rooms, room] }));
     setSelectedRoomId(room.id);
     setSelectedWall('leste');
     changePage('floorplan');
@@ -291,8 +292,13 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   }
 
   function deleteRoom(r: Room) {
+    const affectedSpaceIds = home.spaces.filter(space => space.roomId === r.id).map(space => space.id);
+    if (home.projects.some(project => project.spaceIds.some(id => affectedSpaceIds.includes(id)))) {
+      setNotice('Este cômodo está vinculado a um projeto. Desvincule-o do projeto antes de excluir.');
+      return;
+    }
     if (!window.confirm(`Excluir ${r.name} e todos os registros de trabalho associados?`)) return;
-    setHome(prev => ({ ...prev, rooms: prev.rooms.filter(room => room.id !== r.id),
+    setHome(prev => reconcileSpaces({ ...prev, rooms: prev.rooms.filter(room => room.id !== r.id),
       purchases: prev.purchases.map(p => p.roomId === r.id ? { ...p, roomId: '' } : p),
       logs: prev.logs.filter(l => l.roomId !== r.id),
       wallStages: Object.fromEntries(Object.entries(prev.wallStages).filter(([key]) => !key.startsWith(`${r.id}:`))),
