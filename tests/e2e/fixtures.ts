@@ -1,11 +1,12 @@
 import { expect, type Page } from '@playwright/test';
 import type { HomeData } from '../../src/types';
+import { initialHome } from '../../src/data';
 
 const endpoint = 'http://127.0.0.1:54322';
 const userId = '7b93241f-7e41-466c-ab1a-a0d1912126a8';
 const email = 'usuario-teste@example.invalid';
 export const initialFixture: HomeData = {
-  version: 1,
+  ...structuredClone(initialHome),
   rooms: [{ id: 'room-sala', name: 'Sala de teste', width: 4.5, length: 3.2, height: 2.7, x: 0, z: 0 }],
   purchases: [],
   wallStages: {},
