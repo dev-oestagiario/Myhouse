@@ -486,7 +486,7 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   expect(state.data.rooms[0].width).toBe(4.5);
   await page.getByRole('tab',{name:'Interiores 3D'}).click();
   await expect(page.getByRole('button',{name:'Sofá novo'})).toBeVisible();
-  await page.getByRole('button',{name:'Sofá novo'}).click();
+  await page.getByRole('button',{name:'Sofá novo',exact:true}).click();
   await page.getByRole('button',{name:'Girar 90 graus'}).click();
   await page.getByRole('button',{name:'Salvar móvel'}).click();
   await expect.poll(()=>state.data.scenarios[0].furniture.find(f=>f.id===originalId)?.rotation).toBe(180);
