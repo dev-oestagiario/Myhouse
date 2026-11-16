@@ -66,6 +66,8 @@ export interface Purchase {
   actualUnitPriceCents?: number | null;
   supplier?: string;
   quotes?: PurchaseQuote[];
+  /** Etapa livre para agrupamento de orçamento. */
+  phase?: string;
 }
 
 export interface WorkLog {
@@ -165,6 +167,7 @@ export interface ProjectTask {
   /** Somente mão de obra / serviço; materiais são compras vinculadas. */
   estimatedCostCents?: number | null;
   actualCostCents?: number | null;
+  phase?: string;
 }
 
 /** Volumes parametrizados: móveis não são modelos CAD nem preços de mercado. */
@@ -236,6 +239,19 @@ export interface ProjectScenario {
   updatedAt: string;
 }
 
+/** Somente metadados; o conteúdo binário permanece em Storage privado. */
+export interface ProjectFile {
+  id: string;
+  projectId: string;
+  taskId?: string;
+  ownerId: string;
+  name: string;
+  path: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+}
+
 /** V2 preserva os campos legados para não interromper os fluxos atuais. */
 export interface HomeData extends Omit<HomeDataV1, 'version'> {
   version: 2;
@@ -245,4 +261,6 @@ export interface HomeData extends Omit<HomeDataV1, 'version'> {
   workTasks: ProjectTask[];
   /** Opcional no backup V2 legado; migrado para [] ao importar. */
   scenarios: ProjectScenario[];
+  /** Opcional em backups V2 anteriores à F6.7; não contém bytes. */
+  projectFiles?: ProjectFile[];
 }

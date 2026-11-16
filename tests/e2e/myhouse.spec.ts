@@ -565,6 +565,81 @@ test('F6.5 — objeto não cabe no cômodo e projeto arquivado preserva os móve
   expect(state.data.rooms).toHaveLength(1);
 });
 
+test('F6.7 — agenda, fases e custos de projeto sem precisar abrir o 3D',async ({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const project=page.getByRole('dialog',{name:'Novo projeto'});
+  await project.getByLabel('Nome do projeto *').fill('Reforma guiada');
+  await project.getByRole('button',{name:'Salvar projeto'}).click();
+  await page.getByRole('button',{name:'Nova tarefa'}).click();
+  const task=page.getByRole('dialog',{name:'Nova tarefa'});
+  await task.getByLabel('Nome da tarefa *').fill('Preparar o acabamento');
+  await task.getByLabel('Etapa do projeto (opcional)').fill('Acabamento');
+  await task.getByLabel('Prazo previsto (opcional)').fill('2026-11-22');
+  await task.getByRole('button',{name:'Salvar tarefa'}).click();
+  await expect.poll(()=>state.data.workTasks?.[0]?.phase).toBe('Acabamento');
+  await page.getByRole('tab',{name:'Compras e orçamento'}).click();
+  await page.getByRole('button',{name:'Adicionar compra'}).click();
+  const buy=page.getByRole('dialog',{name:'Adicionar compra ao projeto'});
+  await buy.getByLabel('Nome do item *').fill('Tinta para acabamento');
+  await buy.getByLabel('Preço unitário (R$)').fill('80');
+  await buy.getByLabel('Quantidade').fill('2');
+  await buy.getByLabel('Tarefa relacionada (opcional)').selectOption({label:'Preparar o acabamento'});
+  await buy.getByRole('button',{name:'Salvar item'}).click();
+  await page.getByRole('tab',{name:'Acompanhamento'}).click();
+  await expect(page.getByRole('heading',{name:'Acompanhamento do projeto'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Agenda e prioridades'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Orçamento por etapa'})).toBeVisible();
+  await expect(page.getByRole('row',{name:/Acabamento/})).toContainText('R$ 160,00');
+  await page.getByLabel('Exibir pendências').selectOption('semana');
+  await expect(page.getByRole('region',{name:'Agenda de atividades'}).getByText('Preparar o acabamento')).toBeVisible();
+  await expect(page.getByText('Prazo: 22/11/2026')).toBeVisible();
+  await page.getByRole('button',{name:'Concluir'}).click();
+  await expect.poll(()=>state.data.workTasks?.[0]?.status).toBe('concluido');
+  await expect(page.getByRole('progressbar',{name:'Progresso do projeto'})).toHaveAttribute('aria-valuenow','100');
+  await expect(page.getByText('Situação: Concluído')).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('F6.7 — anexo privado com upload e exclusão sem link público',async ({page})=>{
+  const state=await setupMockSession(page);
+  const storageCalls:{method:string;url:string}[]=[];
+  await page.route('**/storage/v1/object/**',async route=>{
+    const request=route.request();
+    storageCalls.push({method:request.method(),url:request.url()});
+    const headers={'content-type':'application/json','access-control-allow-origin':'*',
+      'access-control-allow-headers':'authorization,apikey,content-type,x-client-info'};
+    if(request.method()==='POST'){
+      await route.fulfill({status:200,headers,body:JSON.stringify({Key:'ok',Id:'ok'})});
+    }else if(request.method()==='DELETE'){
+      await route.fulfill({status:200,headers,body:'[]'});
+    }else if(request.method()==='GET'){
+      await route.fulfill({status:200,headers:{'content-type':'application/pdf','access-control-allow-origin':'*'},body:'arquivo teste'});
+    }else await route.fulfill({status:404,headers,body:'{}'});
+  });
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const project=page.getByRole('dialog',{name:'Novo projeto'});
+  await project.getByLabel('Nome do projeto *').fill('Reforma com documentos');
+  await project.getByRole('button',{name:'Salvar projeto'}).click();
+  await page.getByRole('tab',{name:'Arquivos'}).click();
+  await expect(page.getByRole('heading',{name:'Arquivos privados'})).toBeVisible();
+  await page.getByLabel('Escolher arquivo do projeto').setInputFiles({
+    name:'planta.pdf',mimeType:'application/pdf',buffer:Buffer.from('arquivo privado de teste'),
+  });
+  await expect.poll(()=>state.data.projectFiles?.length).toBe(1);
+  expect(state.data.projectFiles?.[0]?.path).toContain('/'+state.data.projects[0].id+'/');
+  expect(storageCalls.some(call=>call.method==='POST'&&call.url.includes('myhouse-project-files'))).toBe(true);
+  await expect(page.getByText('planta.pdf')).toBeVisible();
+  await expect(page.locator('a[href*="/storage/v1/object/public/"]')).toHaveCount(0);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Excluir arquivo planta.pdf'}).click();
+  await expect.poll(()=>state.data.projectFiles?.length).toBe(0);
+  expect(storageCalls.some(call=>call.method==='DELETE')).toBe(true);
+});
+
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {
   await setupMockSession(page);
   await navigate(page, 'Lista de compras');

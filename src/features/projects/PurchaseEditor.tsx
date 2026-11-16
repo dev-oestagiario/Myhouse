@@ -43,6 +43,8 @@ export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lo
     {Boolean(activeProjectId)&&<div className="field"><label htmlFor="p-task">Tarefa relacionada (opcional)</label><select id="p-task" value={draft.taskId??''} onChange={e=>setDraft(p=>({...p,taskId:e.target.value||undefined}))}>
       <option value="">Nenhuma tarefa</option>{tasks.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
     </select></div>}
+    {Boolean(activeProjectId)&&<div className="field"><label htmlFor="p-phase">Etapa do projeto (opcional)</label><input id="p-phase" maxLength={80} list="purchase-phases" value={draft.phase??''} onChange={e=>setDraft(p=>({...p,phase:e.target.value}))} placeholder="Em branco: herda a etapa da tarefa"/>
+      <datalist id="purchase-phases">{Array.from(new Set(tasks.map(t=>t.phase).filter(Boolean))).map(phase=><option key={phase} value={phase}/>)}</datalist></div>}
     <div className="form-row">
       <div className="field"><label htmlFor="p-status">Situação da compra</label><select id="p-status" value={draft.status??currentStatus({...draft,id:'',createdAt:''})} onChange={e=>setStatus(e.target.value as PurchaseStatus)}>
         {Object.entries(PURCHASE_STATUS_NAMES).map(([v,l])=><option value={v} key={v}>{l}</option>)}

@@ -1,6 +1,7 @@
 import type { HomeData, HomeDataV1, Project, Residence, Room, Space } from '../types';
 import { validateRoomGeometry } from '../plan/geometry';
 import { validateProjectTasks } from './taskValidation';
+import { validateProjectFiles } from './fileValidation';
 import { validateScenarios } from './scenarioValidation';
 
 export const DEFAULT_RESIDENCE_ID = 'residence-primary';
@@ -170,6 +171,7 @@ function checkV2(home: HomeData): HomeData {
         throw new Error('Compra vinculada a tarefa de outro projeto ou inexistente.');
       }
     }
+    if (item.phase !== undefined && (typeof item.phase !== 'string' || item.phase.length>80)) throw new Error('Etapa da compra inválida.');
     if (item.unit !== undefined && (typeof item.unit !== 'string' || !item.unit.trim() || item.unit.length>32)) throw new Error('Unidade de compra inválida.');
     if (item.supplier !== undefined && (typeof item.supplier !== 'string' || item.supplier.length>180)) throw new Error('Fornecedor inválido.');
     if (item.status !== undefined && (!PURCHASE_STATES.has(item.status)
@@ -195,6 +197,7 @@ function checkV2(home: HomeData): HomeData {
   }
   validateProjectTasks(home);
   validateScenarios(home);
+  validateProjectFiles(home);
   return home;
 }
 
@@ -215,6 +218,7 @@ export function migrateHome(input: unknown): HomeData {
       projects: [],
       workTasks: [],
       scenarios: [],
+      projectFiles: [],
     };
     return checkV2(result);
   }

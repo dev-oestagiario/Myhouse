@@ -10,6 +10,8 @@ import Modal from '../../shared/Modal';
 import ProjectTasks from './ProjectTasks';
 import ProjectBudget from './ProjectBudget';
 import ScenarioWorkspace from './ScenarioWorkspace';
+import ProjectTracking from './ProjectTracking';
+import ProjectFiles from './ProjectFiles';
 import { projectBudget } from './budgetDomain';
 import { projectTaskProgress } from './taskDomain';
 import {
@@ -20,6 +22,7 @@ import {
 
 type Props = {
   home: HomeData;
+  userId:string;
   onChange: (next: HomeData) => void;
   onOpenRoom: (roomId: string) => void;
 };
@@ -41,11 +44,11 @@ function formatDate(value: string): string {
 
 const projectMoney = (cents: number | null) => cents === null ? 'Não informado' : money(cents / 100);
 
-export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) {
+export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }: Props) {
   const residence = home.residences.find(item => item.type === 'atual') ?? home.residences[0];
   const spaces = home.spaces.filter(item => item.residenceId === residence.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'|'cenarios'>('tarefas');
+  const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'|'cenarios'|'acompanhamento'|'arquivos'>('tarefas');
   const [editId, setEditId] = useState<string | 'new' | null>(null);
   const [editor, setEditor] = useState<EditorDraft>(() => getEditorDraft(null, residence.id));
   const [editorError, setEditorError] = useState('');
@@ -179,13 +182,19 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         <button type="button" role="tab" aria-selected={projectTab==='tarefas'} onClick={()=>setProjectTab('tarefas')}>Tarefas e serviços</button>
         <button type="button" role="tab" aria-selected={projectTab==='orcamento'} onClick={()=>setProjectTab('orcamento')}>Compras e orçamento</button>
         <button type="button" role="tab" aria-selected={projectTab==='cenarios'} onClick={()=>setProjectTab('cenarios')}>Cenários 2D/3D</button>
+        <button type="button" role="tab" aria-selected={projectTab==='acompanhamento'} onClick={()=>setProjectTab('acompanhamento')}>Acompanhamento</button>
+        <button type="button" role="tab" aria-selected={projectTab==='arquivos'} onClick={()=>setProjectTab('arquivos')}>Arquivos</button>
       </div>
-      <div role="tabpanel" aria-label={projectTab==='tarefas'?'Tarefas e serviços':projectTab==='orcamento'?'Compras e orçamento':'Cenários 2D/3D'}>
+      <div role="tabpanel" aria-label={projectTab==='tarefas'?'Tarefas e serviços':projectTab==='orcamento'?'Compras e orçamento':projectTab==='cenarios'?'Cenários 2D/3D':projectTab==='acompanhamento'?'Acompanhamento':'Arquivos'}>
         {projectTab==='tarefas'
           ?<ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
           :projectTab==='orcamento'
             ?<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
-            :<ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/>}
+            :projectTab==='cenarios'
+              ?<ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/>
+              :projectTab==='acompanhamento'
+                ?<ProjectTracking key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')} onOpenFiles={()=>setProjectTab('arquivos')}/>
+                :<ProjectFiles key={selectedProject.id} home={home} project={selectedProject} userId={userId} onChange={onChange}/>}
       </div>
     </div> : <>
       <div className="projects-overview-stats" aria-label="Resumo dos projetos">

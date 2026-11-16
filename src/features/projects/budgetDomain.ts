@@ -93,7 +93,7 @@ export function savePurchase(home:HomeData,draft:PurchaseEdit,id:string|null,now
     ...draft,id:id??newId,createdAt:previous?.createdAt??now,
     name:draft.name.trim(),category:draft.category.trim(),
     unit:(draft.unit||'un.').trim(),
-    status,purchased:BOUGHT.has(status),
+    status,purchased:BOUGHT.has(status),phase:draft.phase?.trim()??'',
     projectId:draft.projectId||undefined,taskId:draft.projectId?(draft.taskId||undefined):undefined,
   };
   return validateHome({...home,purchases:id

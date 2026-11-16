@@ -28,6 +28,7 @@ export function validateProjectTasks(home: Pick<HomeData,'projects'|'spaces'|'wo
       || typeof task.title!=='string' || task.title.trim().length < 2 || task.title.length > 160
       || typeof task.description!=='string' || task.description.length > 4000
       || !KINDS.has(task.kind) || !STATUS.has(task.status) || !PRIORITIES.has(task.priority)
+      || (task.phase !== undefined && (typeof task.phase !== 'string' || task.phase.length>80))
       || (task.spaceId!==null && !validId(task.spaceId))
       || (task.dueDate!==null && (typeof task.dueDate!=='string'||!validLocalDate(task.dueDate)))
       || !Array.isArray(task.checklist) || task.checklist.length>100

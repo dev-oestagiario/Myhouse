@@ -11,12 +11,12 @@ export const TASK_PRIORITY_LABELS: Record<Priority,string> = {
   urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa',
 };
 export type TaskDraft = Pick<ProjectTask,
-  'projectId'|'spaceId'|'kind'|'title'|'description'|'status'|'priority'|'dueDate'|'checklist'|'dependsOn'>;
+  'projectId'|'spaceId'|'kind'|'title'|'description'|'status'|'priority'|'dueDate'|'checklist'|'dependsOn'|'phase'>;
 
 export function blankTask(projectId: string): TaskDraft {
   return {
     projectId, spaceId:null,kind:'tarefa',title:'',description:'',
-    status:'nao-iniciado',priority:'media',dueDate:null,checklist:[],dependsOn:[],
+    status:'nao-iniciado',priority:'media',dueDate:null,checklist:[],dependsOn:[],phase:'',
   };
 }
 
@@ -44,7 +44,7 @@ export function newProjectTask(home: HomeData, draft: TaskDraft, id: string, eve
   projectAvailable(home,draft.projectId);
   if(!id.trim() || !eventId.trim() || home.workTasks.some(task=>task.id===id))throw new Error('ID da tarefa inválido ou repetido.');
   const task: ProjectTask = {
-    ...draft,title:draft.title.trim(),description:draft.description.trim(),
+    ...draft,title:draft.title.trim(),description:draft.description.trim(),phase:draft.phase?.trim()??'',
     checklist:draft.checklist.map(item=>({...item,title:item.title.trim()})),
     dependsOn:[...draft.dependsOn], id,createdAt:at,updatedAt:at,
     history:[{id:eventId,occurredAt:at,description:'Tarefa criada'}],
@@ -57,7 +57,7 @@ export function editProjectTask(home:HomeData,id:string,draft:TaskDraft,eventId:
   if(!previous)throw new Error('Tarefa não encontrada.');
   projectAvailable(home,previous.projectId);
   if(draft.projectId!==previous.projectId)throw new Error('Mover tarefas entre projetos não é permitido nesta etapa.');
-  const next=record({...previous,...draft,title:draft.title.trim(),description:draft.description.trim(),
+  const next=record({...previous,...draft,title:draft.title.trim(),description:draft.description.trim(),phase:draft.phase?.trim()??'',
     checklist:draft.checklist.map(item=>({...item,title:item.title.trim()})),
     dependsOn:[...draft.dependsOn],
   },eventId,at,'Informações atualizadas');
@@ -89,6 +89,7 @@ export function removeProjectTask(home:HomeData,id:string,at:string):HomeData {
   const previous=home.workTasks.find(task=>task.id===id);
   if(!previous)throw new Error('Tarefa não encontrada.');
   projectAvailable(home,previous.projectId);
+  if((home.projectFiles??[]).some(file=>file.taskId===id)) throw new Error('Esta tarefa possui arquivos. Exclua os anexos antes de removê-la.');
   if(home.workTasks.some(task=>task.dependsOn.includes(id))) {
     throw new Error('Outra tarefa depende desta. Remova o vínculo de dependência antes de excluir.');
   }
