@@ -32,6 +32,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
   const [formError,setFormError]=useState('');
   const [notice,setNotice]=useState('');
   const [filter,setFilter]=useState<Filter>('todas');
+  const [view,setView]=useState<'lista'|'quadro'>('lista');
   const [search,setSearch]=useState('');
   const [expandedId,setExpandedId]=useState<string|null>(null);
   const archived=Boolean(project.archivedAt);
@@ -75,33 +76,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
   const removeChecklist=(id:string)=>setDraft(prev=>({...prev,checklist:prev.checklist.filter(item=>item.id!==id)}));
   const projectSpaces=project.spaceIds.map(id=>home.spaces.find(space=>space.id===id)).filter((item):item is NonNullable<typeof item>=>Boolean(item));
   const selectableDeps=tasks.filter(task=>task.id!==editingId);
-
-  return <section className="task-workspace panel" aria-label="Tarefas do projeto">
-    <div className="task-workspace-head">
-      <div><span className="eyebrow dark-eyebrow">PLANEJAMENTO E EXECUÇÃO</span><h3>Tarefas e serviços</h3>
-        <p>Organize trabalhos de qualquer tipo, como pintar, instalar móveis, contratar serviços ou montar um deck.</p></div>
-      <button type="button" className="btn btn-primary" disabled={archived} onClick={()=>openEditor()}><Plus size={17}/>Nova tarefa</button>
-    </div>
-    {notice&&<div className="task-notice" role="status">{notice}<button type="button" aria-label="Dispensar aviso" onClick={()=>setNotice('')}>×</button></div>}
-    {archived&&<p className="task-archived-notice" role="status">Este projeto está arquivado. Reative-o para criar ou atualizar tarefas.</p>}
-    <div className="task-stats">
-      <div><ClipboardList size={18}/><span>Total</span><strong>{summary.total}</strong></div>
-      <div><Clock3 size={18}/><span>Em andamento</span><strong>{summary.active}</strong></div>
-      <div><CheckCheck size={18}/><span>Concluídas</span><strong>{summary.done}</strong></div>
-      <div><AlertTriangle size={18}/><span>Atrasadas</span><strong>{summary.overdue}</strong></div>
-    </div>
-    <div className="task-progress" role="group" aria-label="Progresso das tarefas">
-      <div><strong>{summary.percent}% concluído</strong><span>{summary.done} de {summary.total} tarefas</span></div>
-      <div className="task-progress-track" role="progressbar" aria-label="Tarefas concluídas" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.percent}><span style={{width:`${summary.percent}%`}}/></div>
-    </div>
-    <div className="task-filters" role="group" aria-label="Filtrar tarefas">
-      <label>Pesquisar tarefas<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou descrição"/></label>
-      <label>Exibição<select value={filter} onChange={e=>setFilter(e.target.value as Filter)}><option value="todas">Todas</option><option value="pendentes">Pendentes</option><option value="concluidas">Concluídas</option></select></label>
-    </div>
-    {!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
-        <p>{tasks.length?'Altere os filtros para encontrar os serviços deste projeto.':'Cadastre os trabalhos necessários para realizar este projeto. Não é preciso ter uma planta 3D.'}</p>
-        {!tasks.length&&!archived&&<button type="button" className="btn btn-outline" onClick={()=>openEditor()}><Plus size={16}/>Adicionar primeira tarefa</button>}
-      </div> : <div className="task-list">{filtered.map(task=>{
+  const renderTask=(task:ProjectTask)=>{
       const checked=task.checklist.filter(item=>item.done).length;
       const fraction=taskChecklistProgress(task);
       const deps=task.dependsOn.map(id=>tasks.find(item=>item.id===id)).filter((item):item is ProjectTask=>Boolean(item));
@@ -142,7 +117,49 @@ export default function ProjectTasks({home,project,onChange}:Props) {
         </button>
         {expandedId===task.id&&<ol className="task-history">{[...task.history].reverse().map(event=><li key={event.id}><time dateTime={event.occurredAt}>{shortTime(event.occurredAt)}</time><span>{event.description}</span></li>)}</ol>}
       </article>;
-    })}</div>}
+      };
+
+
+  return <section className="task-workspace panel" aria-label="Tarefas do projeto">
+    <div className="task-workspace-head">
+      <div><span className="eyebrow dark-eyebrow">PLANEJAMENTO E EXECUÇÃO</span><h3>Tarefas e serviços</h3>
+        <p>Organize trabalhos de qualquer tipo, como pintar, instalar móveis, contratar serviços ou montar um deck.</p></div>
+      <button type="button" className="btn btn-primary" disabled={archived} onClick={()=>openEditor()}><Plus size={17}/>Nova tarefa</button>
+    </div>
+    {notice&&<div className="task-notice" role="status">{notice}<button type="button" aria-label="Dispensar aviso" onClick={()=>setNotice('')}>×</button></div>}
+    {archived&&<p className="task-archived-notice" role="status">Este projeto está arquivado. Reative-o para criar ou atualizar tarefas.</p>}
+    <div className="task-stats">
+      <div><ClipboardList size={18}/><span>Total</span><strong>{summary.total}</strong></div>
+      <div><Clock3 size={18}/><span>Em andamento</span><strong>{summary.active}</strong></div>
+      <div><CheckCheck size={18}/><span>Concluídas</span><strong>{summary.done}</strong></div>
+      <div><AlertTriangle size={18}/><span>Atrasadas</span><strong>{summary.overdue}</strong></div>
+    </div>
+    <div className="task-progress" role="group" aria-label="Progresso das tarefas">
+      <div><strong>{summary.percent}% concluído</strong><span>{summary.done} de {summary.total} tarefas</span></div>
+      <div className="task-progress-track" role="progressbar" aria-label="Tarefas concluídas" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.percent}><span style={{width:`${summary.percent}%`}}/></div>
+    </div>
+    <div className="task-filters" role="group" aria-label="Filtrar tarefas">
+      <label>Pesquisar tarefas<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou descrição"/></label>
+      <label>Exibição<select value={filter} onChange={e=>setFilter(e.target.value as Filter)}><option value="todas">Todas</option><option value="pendentes">Pendentes</option><option value="concluidas">Concluídas</option></select></label>
+    </div>
+    {!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
+        <p>{tasks.length?'Altere os filtros para encontrar os serviços deste projeto.':'Cadastre os trabalhos necessários para realizar este projeto. Não é preciso ter uma planta 3D.'}</p>
+        {!tasks.length&&!archived&&<button type="button" className="btn btn-outline" onClick={()=>openEditor()}><Plus size={16}/>Adicionar primeira tarefa</button>}
+      </div> : <>
+      <div className="task-view-switch" role="group" aria-label="Visualização das tarefas">
+        <button type="button" aria-pressed={view==='lista'} className={view==='lista'?'active':''} onClick={()=>setView('lista')}>Lista</button>
+        <button type="button" aria-pressed={view==='quadro'} className={view==='quadro'?'active':''} onClick={()=>setView('quadro')}>Quadro</button>
+      </div>
+      {view==='lista'
+        ? <div className="task-list">{filtered.map(renderTask)}</div>
+        : <div className="task-board" aria-label="Quadro de tarefas por situação">
+            {(['nao-iniciado','em-andamento','concluido'] as ProjectTaskStatus[]).map(status=>
+              <section key={status} className="task-board-column">
+                <h4>{TASK_STATUS_LABELS[status]} <span>({filtered.filter(item=>item.status===status).length})</span></h4>
+                <div className="task-board-items">{filtered.filter(item=>item.status===status).map(renderTask)}</div>
+              </section>)}
+          </div>}
+    </>}}
     {editingId!==null&&<Modal title={editingId==='new'?'Nova tarefa':'Editar tarefa'} onClose={()=>setEditingId(null)}>
       <form className="modal-form task-editor" onSubmit={commit}>
         <div className="field"><label htmlFor="task-name">Nome da tarefa *</label><input id="task-name" required minLength={2} maxLength={160}
