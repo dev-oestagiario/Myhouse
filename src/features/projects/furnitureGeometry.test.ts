@@ -121,9 +121,9 @@ describe('F6.5 — interiores e decoração por cenário',()=>{
     const data=withSofa(),scene=getScene(data),furniture=scene.furniture[0];
     const corrupt=(f:ScenarioFurniture[])=>({...data,scenarios:[{...scene,furniture:f}]});
     expect(()=>validateHome(corrupt([furniture,furniture]))).toThrow();
-    expect(()=>validateHome(corrupt([{...furniture,kind:'importado'} as ScenarioFurniture]))).toThrow();
+    expect(()=>validateHome(corrupt([{...furniture,kind:'importado'} as unknown as ScenarioFurniture]))).toThrow();
     expect(()=>validateHome(corrupt([{...furniture,x:99}]))).toThrow();
-    expect(()=>validateHome(corrupt([{...furniture,color:'hack'} as ScenarioFurniture]))).toThrow();
+    expect(()=>validateHome(corrupt([{...furniture,color:'hack'} as unknown as ScenarioFurniture]))).toThrow();
   });
   it('cenário arquivado é somente leitura e exclusão requer remover mobiliário junto ao cenário',()=>{
     const data=withSofa();
