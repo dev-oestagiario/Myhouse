@@ -7,7 +7,7 @@ create table if not exists public.user_homes (
   data jsonb not null default '{"version":2,"rooms":[],"purchases":[],"wallStages":{},"logs":[],"residences":[{"id":"residence-primary","name":"Minha casa","type":"atual"}],"spaces":[],"projects":[]}'::jsonb,
   revision integer not null default 1 check (revision > 0),
   updated_at timestamptz not null default now(),
-  constraint user_homes_data_version check (
+  constraint user_homes_data_version check (coalesce(
     jsonb_typeof(data) = 'object' and data->>'version' in ('1','2')
     and jsonb_typeof(data->'rooms') = 'array'
     and jsonb_typeof(data->'purchases') = 'array'
@@ -21,7 +21,7 @@ create table if not exists public.user_homes (
         and jsonb_typeof(data->'projects') = 'array'
       )
     )
-  )
+  , false))
 );
 
 alter table public.user_homes enable row level security;
