@@ -17,7 +17,7 @@ import {
   Layers3, Menu, Package, Paintbrush, Plus, RotateCcw, Save, Search,
   ShoppingBasket, Trash2, Upload, Wallet, X, Cloud, CloudOff, LogOut, RefreshCw, ScanLine,
 } from 'lucide-react';
-import type { Direction, HomeData, Priority, Purchase, Room, Stage, TaskStatus } from './types';
+import type { Direction, HomeData, Purchase, Room, Stage, TaskStatus } from './types';
 import { DIRECTIONS, STAGES } from './types';
 import { supabase } from './supabase';
 import {
