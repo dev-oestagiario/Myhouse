@@ -404,7 +404,7 @@ test('F6.4 — criar cenário da sala, editar medidas, comparar e recuperar a ve
   await history.first().click();
   await expect.poll(()=>state.data.scenarios[0].rooms[0].footprint).toBeUndefined();
   expect(state.data.rooms[0].width).toBe(4.5);
-  await page.getByRole('button',{name:'Duplicar',exact:true}).click();
+  await page.locator('.interior-editor').getByRole('button',{name:'Duplicar',exact:true}).click();
   await expect.poll(()=>state.data.scenarios?.length).toBe(2);
   expect(state.data.scenarios[1].rooms[0].width).toBe(6);
   await navigate(page,'Obras');
@@ -509,9 +509,7 @@ test('F6.5 — objeto não cabe no cômodo e projeto arquivado preserva os móve
   await page.getByLabel('Posição X (m)').fill('2');
   await page.getByRole('button',{name:'Salvar móvel'}).click();
   await expect.poll(()=>state.data.scenarios[0].furniture[0].x).toBe(2);
-  await page.getByRole('tab',{name:'Vista 3D'}).click();
   await page.getByRole('button',{name:'Arquivar projeto'}).click();
-  await page.getByRole('tab',{name:'Interiores 3D'}).click();
   await expect(page.getByRole('button',{name:'Adicionar cadeira'})).toBeDisabled();
   await expect(page.getByRole('button',{name:'Salvar móvel'})).toBeDisabled();
   await page.getByRole('button',{name:'Reativar projeto'}).click();
