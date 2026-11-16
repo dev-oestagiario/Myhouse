@@ -9,6 +9,7 @@ import { money, newId, priorityOrder } from '../../data';
 import Modal from '../../shared/Modal';
 import ProjectTasks from './ProjectTasks';
 import ProjectBudget from './ProjectBudget';
+import ScenarioWorkspace from './ScenarioWorkspace';
 import { projectBudget } from './budgetDomain';
 import { projectTaskProgress } from './taskDomain';
 import {
@@ -44,7 +45,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
   const residence = home.residences.find(item => item.type === 'atual') ?? home.residences[0];
   const spaces = home.spaces.filter(item => item.residenceId === residence.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'>('tarefas');
+  const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'|'cenarios'>('tarefas');
   const [editId, setEditId] = useState<string | 'new' | null>(null);
   const [editor, setEditor] = useState<EditorDraft>(() => getEditorDraft(null, residence.id));
   const [editorError, setEditorError] = useState('');
@@ -171,17 +172,20 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         <section className="panel projects-detail-panel">
           <div className="projects-panel-heading"><ClipboardList size={20}/><h3>Planejamento da execução</h3></div>
           <p><strong>{selectedTaskProgress.percent}% das tarefas concluídas.</strong> Registre serviços, checklists, prioridades, prazos e dependências na seção abaixo.</p>
-          <p>Compras, materiais, fornecedores e orçamento já podem ser associados a este projeto. O planejamento visual 2D/3D será desenvolvido na F6.4.</p>
+          <p>Compras, materiais, fornecedores e orçamento já podem ser associados a este projeto. Crie versões futuras da planta na aba Cenários 2D/3D, sem modificar os cômodos da casa atual.</p>
         </section>
       </div>
       <div className="projects-section-tabs" role="tablist" aria-label="Planejamento do projeto">
         <button type="button" role="tab" aria-selected={projectTab==='tarefas'} onClick={()=>setProjectTab('tarefas')}>Tarefas e serviços</button>
         <button type="button" role="tab" aria-selected={projectTab==='orcamento'} onClick={()=>setProjectTab('orcamento')}>Compras e orçamento</button>
+        <button type="button" role="tab" aria-selected={projectTab==='cenarios'} onClick={()=>setProjectTab('cenarios')}>Cenários 2D/3D</button>
       </div>
-      <div role="tabpanel" aria-label={projectTab==='tarefas'?'Tarefas e serviços':'Compras e orçamento'}>
+      <div role="tabpanel" aria-label={projectTab==='tarefas'?'Tarefas e serviços':projectTab==='orcamento'?'Compras e orçamento':'Cenários 2D/3D'}>
         {projectTab==='tarefas'
           ?<ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
-          :<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>}
+          :projectTab==='orcamento'
+            ?<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
+            :<ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>}
       </div>
     </div> : <>
       <div className="projects-overview-stats" aria-label="Resumo dos projetos">
@@ -205,7 +209,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
     </>}
     {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={()=>setEditId(null)}>
       <form className="modal-form projects-form" onSubmit={commit}>
-        <p className="form-hint">Cadastre sua ideia e organize tarefas, compras, serviços e orçamento no projeto. Cenários 3D serão disponibilizados na próxima fase.</p>
+        <p className="form-hint">Cadastre sua ideia e organize tarefas, compras, serviços e orçamento no projeto. Na aba Cenários 2D/3D, você poderá visualizar alternativas para a planta.</p>
         <div className="field"><label htmlFor="project-name">Nome do projeto *</label><input id="project-name" required minLength={2} maxLength={120} value={editor.name} onChange={e=>setEditor(p=>({...p,name:e.target.value}))} placeholder="Ex.: Reformar a sala, Deck no quintal"/></div>
         <div className="field"><label htmlFor="project-description">O que pretende mudar?</label><textarea id="project-description" rows={3} maxLength={4000} value={editor.description} onChange={e=>setEditor(p=>({...p,description:e.target.value}))} placeholder="Descreva o resultado que deseja alcançar."/></div>
         <div className="form-row">

@@ -13,6 +13,7 @@ export const initialHome: HomeData = {
   spaces: [],
   projects: [],
   workTasks: [],
+  scenarios: [],
 };
 
 export const priorityNames: Record<Priority, string> = {

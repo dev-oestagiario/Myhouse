@@ -113,6 +113,9 @@ export function setProjectArchived(home: HomeData, id: string, archived: boolean
 
 export function deleteProject(home: HomeData, id: string): HomeData {
   if (!home.projects.some(item => item.id === id)) throw new Error('Projeto não encontrado.');
+  if (home.scenarios.some(item=>item.projectId===id)) {
+    throw new Error('Este projeto possui cenários planejados. Exclua os cenários antes de excluir o projeto, ou arquive-o.');
+  }
   if (home.purchases.some(item=>item.projectId===id)) {
     throw new Error('Este projeto possui compras vinculadas. Desvincule os itens antes de excluir, ou arquive-o.');
   }
