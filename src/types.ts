@@ -106,6 +106,8 @@ export interface Project {
   budgetTargetCents: number | null;
   createdAt: string;
   updatedAt: string;
+  /** Arquivamento reversível: não altera status do projeto nem seu histórico. */
+  archivedAt?: string;
 }
 
 /** V2 preserva os campos legados para não interromper os fluxos atuais. */
