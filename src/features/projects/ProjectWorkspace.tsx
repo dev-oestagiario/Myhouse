@@ -8,6 +8,8 @@ import type { HomeData, Priority, Project, ProjectStatus, ProjectType, Space } f
 import { money, newId, priorityOrder } from '../../data';
 import Modal from '../../shared/Modal';
 import ProjectTasks from './ProjectTasks';
+import ProjectBudget from './ProjectBudget';
+import { projectBudget } from './budgetDomain';
 import { projectTaskProgress } from './taskDomain';
 import {
   createProject, deleteProject, formatBudgetInput, newProjectDraft, parseBudgetCents,
@@ -42,6 +44,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
   const residence = home.residences.find(item => item.type === 'atual') ?? home.residences[0];
   const spaces = home.spaces.filter(item => item.residenceId === residence.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'>('tarefas');
   const [editId, setEditId] = useState<string | 'new' | null>(null);
   const [editor, setEditor] = useState<EditorDraft>(() => getEditorDraft(null, residence.id));
   const [editorError, setEditorError] = useState('');
@@ -94,6 +97,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         : updateProject(home,projectId,draft,timestamp);
       onChange(updated);
       setSelectedId(projectId);
+      setProjectTab('tarefas');
       setEditId(null);
       setFeedback(editId === 'new' ? 'Projeto cadastrado. Aguarde a sincronização na nuvem.' : 'Projeto atualizado. Aguarde a sincronização na nuvem.');
     } catch(problem) {
@@ -124,6 +128,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
 
   const areaNames=(item:Project)=>item.spaceIds.map(id=>home.spaces.find(space=>space.id===id)?.name).filter(Boolean).join(', ') || 'Sem ambiente vinculado';
   const selectedTaskProgress=projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===selectedProject?.id));
+  const selectedBudget=selectedProject?projectBudget(home,selectedProject.id):null;
 
   return <section className="projects-workspace" aria-label="Gerenciamento de projetos">
     <div className="page-title-row projects-title">
@@ -148,7 +153,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
       <div className="projects-summary">
         <div><span>Situação</span><strong>{selectedProject.archivedAt ? 'Arquivado' : PROJECT_STATUS_LABELS[selectedProject.status]}</strong></div>
         <div><span>Prioridade</span><strong>{PROJECT_PRIORITY_LABELS[selectedProject.priority]}</strong></div>
-        <div><span>Orçamento previsto</span><strong>{projectMoney(selectedProject.budgetTargetCents)}</strong></div>
+        <div><span>Orçamento previsto</span><strong>{projectMoney(selectedProject.budgetTargetCents)}</strong><small>Projeção atual: {money((selectedBudget?.forecastCents??0)/100)}</small></div>
         <div><span>Tarefas concluídas</span><strong>{selectedTaskProgress.done} / {selectedTaskProgress.total}</strong></div>
       </div>
       <div className="projects-detail-grid">
@@ -166,10 +171,18 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         <section className="panel projects-detail-panel">
           <div className="projects-panel-heading"><ClipboardList size={20}/><h3>Planejamento da execução</h3></div>
           <p><strong>{selectedTaskProgress.percent}% das tarefas concluídas.</strong> Registre serviços, checklists, prioridades, prazos e dependências na seção abaixo.</p>
-          <p>Na F6.3, compras e orçamento detalhado serão vinculados às tarefas. O editor de cenários 2D/3D será desenvolvido na F6.4.</p>
+          <p>Compras, materiais, fornecedores e orçamento já podem ser associados a este projeto. O planejamento visual 2D/3D será desenvolvido na F6.4.</p>
         </section>
       </div>
-      <ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
+      <div className="projects-section-tabs" role="tablist" aria-label="Planejamento do projeto">
+        <button type="button" role="tab" aria-selected={projectTab==='tarefas'} onClick={()=>setProjectTab('tarefas')}>Tarefas e serviços</button>
+        <button type="button" role="tab" aria-selected={projectTab==='orcamento'} onClick={()=>setProjectTab('orcamento')}>Compras e orçamento</button>
+      </div>
+      <div role="tabpanel" aria-label={projectTab==='tarefas'?'Tarefas e serviços':'Compras e orçamento'}>
+        {projectTab==='tarefas'
+          ?<ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
+          :<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>}
+      </div>
     </div> : <>
       <div className="projects-overview-stats" aria-label="Resumo dos projetos">
         <div><FolderKanban size={20}/><span>Projetos ativos</span><strong>{activeCount}</strong></div>
@@ -187,12 +200,12 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         <h2>{project.name}</h2>
         <p>{project.description || 'Projeto sem descrição. Abra para planejar os próximos passos.'}</p>
         <div className="projects-card-meta"><span><Layers3 size={15}/>{areaNames(project)}</span><span><Wallet size={15}/>{projectMoney(project.budgetTargetCents)}</span><span><ClipboardList size={15}/>{projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===project.id)).percent}% das tarefas</span></div>
-        <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline" onClick={()=>{setSelectedId(project.id);setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
+        <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline" onClick={()=>{setSelectedId(project.id);setProjectTab('tarefas');setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
       </article>)}</div> : <div className="projects-empty panel"><FolderKanban size={35}/><h2>{home.projects.some(p=>p.residenceId===residence.id) ? 'Nenhum projeto encontrado' : 'Comece com uma ideia para sua casa'}</h2><p>{home.projects.some(p=>p.residenceId===residence.id) ? 'Experimente alterar os filtros ou procurar nos projetos arquivados.' : 'Planeje uma reforma, uma mudança ou um espaço novo, como um deck. Não é necessário ter a planta 3D pronta.'}</p><button type="button" className="btn btn-primary" onClick={()=>openEditor()}><Plus size={17}/>Criar projeto</button></div>}
     </>}
     {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={()=>setEditId(null)}>
       <form className="modal-form projects-form" onSubmit={commit}>
-        <p className="form-hint">Cadastre sua ideia agora. Depois, organize serviços e tarefas dentro do projeto. Compras vinculadas e cenários 3D virão nas próximas fases.</p>
+        <p className="form-hint">Cadastre sua ideia e organize tarefas, compras, serviços e orçamento no projeto. Cenários 3D serão disponibilizados na próxima fase.</p>
         <div className="field"><label htmlFor="project-name">Nome do projeto *</label><input id="project-name" required minLength={2} maxLength={120} value={editor.name} onChange={e=>setEditor(p=>({...p,name:e.target.value}))} placeholder="Ex.: Reformar a sala, Deck no quintal"/></div>
         <div className="field"><label htmlFor="project-description">O que pretende mudar?</label><textarea id="project-description" rows={3} maxLength={4000} value={editor.description} onChange={e=>setEditor(p=>({...p,description:e.target.value}))} placeholder="Descreva o resultado que deseja alcançar."/></div>
         <div className="form-row">
@@ -201,7 +214,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
         </div>
         <div className="form-row">
           <div className="field"><label htmlFor="project-priority">Prioridade</label><select id="project-priority" value={editor.priority} onChange={e=>setEditor(p=>({...p,priority:e.target.value as Priority}))}>{Object.entries(PROJECT_PRIORITY_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
-          <div className="field"><label htmlFor="project-budget">Orçamento previsto (R$)</label><input id="project-budget" inputMode="decimal" value={editor.budgetText} onChange={e=>setEditor(p=>({...p,budgetText:e.target.value}))} placeholder="Ex.: 2500,00"/><small>Opcional, apenas uma meta inicial. Os custos detalhados virão na F6.3.</small></div>
+          <div className="field"><label htmlFor="project-budget">Orçamento previsto (R$)</label><input id="project-budget" inputMode="decimal" value={editor.budgetText} onChange={e=>setEditor(p=>({...p,budgetText:e.target.value}))} placeholder="Ex.: 2500,00"/><small>Opcional, apenas uma meta inicial. Adicione materiais e serviços em Compras e orçamento.</small></div>
         </div>
         <fieldset className="projects-space-picker"><legend>Ambientes envolvidos (opcional)</legend>
           {spaces.length ? <div className="projects-space-options">{spaces.map((space:Space)=><label key={space.id}><input type="checkbox" checked={editor.spaceIds.includes(space.id)} onChange={e=>setEditor(p=>({
