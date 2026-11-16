@@ -33,7 +33,6 @@ const emptyPurchase = (): PurchaseDraft => ({
   quantity: 1, unitPrice: 0, purchased: false, notes: '', url: '',
 });
 const localDate = (date: string) => new Date(date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-const moneyInput = (n: number) => (Number.isFinite(n) ? String(n) : '0');
 
 
 type SyncStatus = 'saved' | 'pending' | 'saving' | 'error' | 'conflict';
