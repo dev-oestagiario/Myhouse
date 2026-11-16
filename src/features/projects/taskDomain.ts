@@ -101,7 +101,7 @@ export function taskChecklistProgress(task:Pick<ProjectTask,'checklist'>):number
 export function projectTaskProgress(tasks:ProjectTask[]):{total:number;done:number;active:number;percent:number;overdue:number} {
   const total=tasks.length,done=tasks.filter(task=>task.status==='concluido').length;
   const active=tasks.filter(task=>task.status==='em-andamento').length;
-  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const overdue=tasks.filter(task=>task.status!=='concluido' && task.dueDate!==null && task.dueDate<today).length;
   return { total,done,active,percent:total?Math.round(done*100/total):0,overdue };
 }
