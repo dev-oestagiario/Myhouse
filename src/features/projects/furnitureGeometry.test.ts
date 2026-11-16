@@ -85,7 +85,7 @@ describe('F6.5 — interiores e decoração por cenário',()=>{
     const sofa=placeFurniture('sofa',room,[],'sofa');
     const against=alignFurnitureToWall(sofa,room,0);
     expect(against.rotation).toBe(0);
-    expect(against.z).toBeCloseTo(sofa.depth/2+.08,2);
+    expect(against.z).toBe(Math.round((sofa.depth/2+.08)*100)/100);
     expect(furnitureFitsRoom(against,room)).toBe(true);
     expect(()=>alignFurnitureToWall(sofa,room,99)).toThrow();
   });
