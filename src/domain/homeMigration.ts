@@ -23,7 +23,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function hasName(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= 180;
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function hasId(value: unknown): value is string {
@@ -57,7 +57,7 @@ function validateLegacyFields(raw: Record<string, unknown>) {
   for (const item of purchases) {
     if (!isObject(item) || !hasId(item.id) || !hasName(item.name)
       || typeof item.category !== 'string' || typeof item.roomId !== 'string'
-      || !Number.isFinite(item.quantity) || item.quantity <= 0
+      || !Number.isFinite(item.quantity)
       || !Number.isFinite(item.unitPrice) || item.unitPrice < 0) {
       throw new Error('Compras inválidas.');
     }
@@ -173,7 +173,8 @@ export function migrateHome(input: unknown): HomeData {
   if (!Array.isArray(home.residences) || !Array.isArray(home.spaces) || !Array.isArray(home.projects)) {
     throw new Error('Backup V2 incompleto.');
   }
-  // Completa somente vínculos internos faltantes, sem alterar projetos/cenários existentes.
-  const normalized = reconcileSpaces({ ...home, ...legacy });
+  // Rejeita vínculos corrompidos ANTES da normalização: não descartar dados silenciosamente.
+  const checked = checkV2({ ...home, ...legacy });
+  const normalized = reconcileSpaces(checked);
   return checkV2(normalized);
 }
