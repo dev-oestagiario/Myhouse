@@ -593,7 +593,7 @@ test('F6.7 — agenda, fases e custos de projeto sem precisar abrir o 3D',async 
   await expect(page.getByRole('heading',{name:'Orçamento por etapa'})).toBeVisible();
   await expect(page.getByRole('row',{name:/Acabamento/})).toContainText('R$ 160,00');
   await page.getByLabel('Exibir pendências').selectOption('semana');
-  await expect(page.getByText('Preparar o acabamento')).toBeVisible();
+  await expect(page.getByRole('region',{name:'Agenda de atividades'}).getByText('Preparar o acabamento')).toBeVisible();
   await expect(page.getByText('Prazo: 22/11/2026')).toBeVisible();
   await page.getByRole('button',{name:'Concluir'}).click();
   await expect.poll(()=>state.data.workTasks?.[0]?.status).toBe('concluido');
