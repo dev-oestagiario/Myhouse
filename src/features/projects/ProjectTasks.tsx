@@ -19,7 +19,7 @@ const formValue=(task:ProjectTask):TaskDraft=>({
   projectId:task.projectId,spaceId:task.spaceId,kind:task.kind,title:task.title,
   description:task.description,status:task.status,priority:task.priority,
   dueDate:task.dueDate,checklist:task.checklist.map(item=>({...item})),
-  dependsOn:[...task.dependsOn],
+  dependsOn:[...task.dependsOn],phase:task.phase??'',
 });
 const formatDate=(date:string)=>date.split('-').reverse().join('/');
 const shortTime=(iso:string)=>new Date(iso).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
@@ -95,6 +95,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
         </div>
         <div className="task-meta">
           <span className={`task-priority ${task.priority}`}>{TASK_PRIORITY_LABELS[task.priority]}</span>
+          {task.phase?.trim()&&<span>Etapa: {task.phase}</span>}
           <span>{task.spaceId ? home.spaces.find(space=>space.id===task.spaceId)?.name??'Ambiente indisponível' : 'Sem ambiente'}</span>
           {task.dueDate&&<span className="task-due"><CalendarDays size={14}/>Até {formatDate(task.dueDate)}</span>}
         </div>
@@ -180,6 +181,8 @@ export default function ProjectTasks({home,project,onChange}:Props) {
           <div className="field"><label htmlFor="task-date">Prazo previsto (opcional)</label><input id="task-date" type="date" value={draft.dueDate??''}
             onChange={e=>setDraft(p=>({...p,dueDate:e.target.value||null}))}/></div>
         </div>
+        <div className="field"><label htmlFor="task-phase">Etapa do projeto (opcional)</label><input id="task-phase" maxLength={80} list="task-phases" placeholder="Ex.: Preparação, acabamento" value={draft.phase??''} onChange={e=>setDraft(p=>({...p,phase:e.target.value}))}/>
+          <datalist id="task-phases">{Array.from(new Set(tasks.map(t=>t.phase).filter(Boolean))).map(phase=><option key={phase} value={phase}/>)}</datalist></div>
         {!!projectSpaces.length&&<div className="field"><label htmlFor="task-space">Ambiente (opcional)</label><select id="task-space" value={draft.spaceId??''}
           onChange={e=>setDraft(p=>({...p,spaceId:e.target.value||null}))}>
           <option value="">Sem ambiente definido</option>{projectSpaces.map(space=><option value={space.id} key={space.id}>{space.name}</option>)}</select></div>}
