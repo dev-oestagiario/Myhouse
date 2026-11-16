@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { initialHome, validateHome } from '../../data';
 import { makeSpaceForRoom } from '../../domain/homeMigration';
 import { createProject, deleteProject, newProjectDraft, updateProject } from './projectDomain';
-import type { HomeData, ProjectTask, Room } from '../../types';
+import type { HomeData, Room } from '../../types';
 import {
   blankTask, editProjectTask, newProjectTask, projectTaskProgress, removeProjectTask,
   setProjectTaskStatus, taskChecklistProgress, toggleProjectChecklist,
