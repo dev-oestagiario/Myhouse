@@ -1,4 +1,4 @@
-import type { HomeData, ProjectScenario, Room, ScenarioRevision } from '../../types';
+import type { HomeData, ProjectScenario, Room, ScenarioRevision, ScenarioFurniture } from '../../types';
 import { validateHome } from '../../data';
 import { scaleRoomGeometry, validateRoomGeometry } from '../../plan/geometry';
 
@@ -34,15 +34,16 @@ function updateHome(home:HomeData,scenario:ProjectScenario):HomeData {
       ?{...project,updatedAt:scenario.updatedAt}:project)});
 }
 function snapshot(scenario:ProjectScenario,revisionId:string,at:string,label:string):ScenarioRevision {
-  return {id:revisionId,savedAt:at,label,rooms:structuredClone(scenario.rooms)};
+  return {id:revisionId,savedAt:at,label,rooms:structuredClone(scenario.rooms),furniture:structuredClone(scenario.furniture)};
 }
-function updateRooms(home:HomeData,scenarioId:string,rooms:Room[],revisionId:string,at:string,label:string):HomeData {
+function updateRooms(home:HomeData,scenarioId:string,rooms:Room[],revisionId:string,at:string,label:string,furniture?:ScenarioFurniture[]):HomeData {
   validMoment(at);
   const old=findScenario(home,scenarioId);
   if(!revisionId.trim() || old.revisions.some(item=>item.id===revisionId))throw new Error('Versão do cenário inválida ou duplicada.');
-  if(JSON.stringify(old.rooms)===JSON.stringify(rooms))return home;
+  const nextFurniture=furniture??old.furniture;
+  if(JSON.stringify(old.rooms)===JSON.stringify(rooms)&&JSON.stringify(old.furniture)===JSON.stringify(nextFurniture))return home;
   const revised:ProjectScenario={
-    ...old,rooms:structuredClone(rooms),updatedAt:at,
+    ...old,rooms:structuredClone(rooms),furniture:structuredClone(nextFurniture),updatedAt:at,
     revisions:[...old.revisions,snapshot(old,revisionId,at,label)].slice(-12),
   };
   return updateHome(home,revised);
@@ -54,7 +55,7 @@ export function createScenario(home:HomeData,projectId:string,name:string,id:str
   editable(home,projectId);
   if(!id.trim()||home.scenarios.some(item=>item.id===id))throw new Error('ID de cenário inválido ou duplicado.');
   const scenario:ProjectScenario={
-    id,projectId,name:checkName(name),description:'',rooms:mode==='projeto'?sourceRooms(home,projectId):[],
+    id,projectId,name:checkName(name),description:'',rooms:mode==='projeto'?sourceRooms(home,projectId):[],furniture:[],
     revisions:[],createdAt:at,updatedAt:at,
   };
   return validateHome({...home,scenarios:[...home.scenarios,scenario],
@@ -65,7 +66,7 @@ export function duplicateScenario(home:HomeData,sourceId:string,id:string,name:s
   validMoment(at);
   if(!id.trim()||home.scenarios.some(item=>item.id===id))throw new Error('ID de cenário inválido ou duplicado.');
   const copy:ProjectScenario={id,projectId:source.projectId,
-    name:checkName(name),description:source.description,rooms:structuredClone(source.rooms),
+    name:checkName(name),description:source.description,rooms:structuredClone(source.rooms),furniture:structuredClone(source.furniture),
     revisions:[],createdAt:at,updatedAt:at};
   return validateHome({...home,scenarios:[...home.scenarios,copy]});
 }
@@ -110,6 +111,7 @@ export function removeScenarioRoom(home:HomeData,scenarioId:string,roomId:string
   const old=findScenario(home,scenarioId);
   const found=old.rooms.find(room=>room.id===roomId);
   if(!found)throw new Error('Cômodo não encontrado neste cenário.');
+  if(old.furniture.some(item=>item.roomId===roomId))throw new Error('Remova ou realoque os móveis deste espaço antes de excluí-lo.');
   return updateRooms(home,scenarioId,old.rooms.filter(room=>room.id!==roomId),revisionId,at,
     `Antes de remover ${found.name}`);
 }
@@ -118,10 +120,32 @@ export function restoreScenarioRevision(home:HomeData,scenarioId:string,oldRevis
   const target=scenario.revisions.find(item=>item.id===oldRevisionId);
   if(!target)throw new Error('Versão não encontrada.');
   return updateRooms(home,scenarioId,structuredClone(target.rooms),revisionId,at,
-    'Antes de restaurar versão anterior');
+    'Antes de restaurar versão anterior',structuredClone(target.furniture));
 }
 export function resetScenarioToActual(home:HomeData,scenarioId:string,revisionId:string,at:string):HomeData {
   const old=findScenario(home,scenarioId);
   return updateRooms(home,scenarioId,sourceRooms(home,old.projectId),revisionId,at,
-    'Antes de recriar a proposta a partir da planta atual');
+    'Antes de recriar a proposta a partir da planta atual',[]);
+}
+
+/** Cada edição confirmada cria revisão única contendo planta e móveis. */
+export function addScenarioFurniture(home:HomeData,scenarioId:string,item:ScenarioFurniture,revisionId:string,at:string):HomeData {
+  const scenario=findScenario(home,scenarioId);
+  if(scenario.furniture.some(other=>other.id===item.id))throw new Error('Já existe um móvel com este identificador.');
+  return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,'Antes de adicionar '+item.name,
+    [...scenario.furniture,item]);
+}
+export function updateScenarioFurniture(home:HomeData,scenarioId:string,item:ScenarioFurniture,revisionId:string,at:string):HomeData {
+  const scenario=findScenario(home,scenarioId);
+  const before=scenario.furniture.find(other=>other.id===item.id);
+  if(!before)throw new Error('Móvel não encontrado.');
+  return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,'Antes de editar '+before.name,
+    scenario.furniture.map(other=>other.id===item.id?item:other));
+}
+export function removeScenarioFurniture(home:HomeData,scenarioId:string,id:string,revisionId:string,at:string):HomeData {
+  const scenario=findScenario(home,scenarioId);
+  const item=scenario.furniture.find(other=>other.id===id);
+  if(!item)throw new Error('Móvel não encontrado.');
+  return updateRooms(home,scenarioId,scenario.rooms,revisionId,at,'Antes de remover '+item.name,
+    scenario.furniture.filter(other=>other.id!==id));
 }

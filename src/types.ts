@@ -167,12 +167,36 @@ export interface ProjectTask {
   actualCostCents?: number | null;
 }
 
+/** Volumes parametrizados: móveis não são modelos CAD nem preços de mercado. */
+export type FurnitureKind =
+  | 'sofa' | 'poltrona' | 'cama' | 'mesa' | 'cadeira' | 'guarda-roupa'
+  | 'escrivaninha' | 'estante' | 'tapete' | 'planta' | 'armario' | 'luminaria';
+export type FurnitureColor = 'azul' | 'cinza' | 'madeira' | 'branco' | 'verde';
+
+export interface ScenarioFurniture {
+  id: string;
+  /** ID do cômodo dentro do cenário, nunca um identificador de espaço da planta real. */
+  roomId: string;
+  kind: FurnitureKind;
+  name: string;
+  /** Centro sobre o piso, em metros relativos à origem do cômodo. */
+  x: number;
+  z: number;
+  /** Graus em torno do eixo vertical. */
+  rotation: number;
+  width: number;
+  depth: number;
+  height: number;
+  color: FurnitureColor;
+}
+
 /** Histórico reversível do desenho; snapshot isolado dos cômodos reais. */
 export interface ScenarioRevision {
   id: string;
   savedAt: string;
   label: string;
   rooms: Room[];
+  furniture: ScenarioFurniture[];
 }
 
 /** Alternativa espacial de um projeto: nunca modifica HomeData.rooms. */
@@ -182,6 +206,7 @@ export interface ProjectScenario {
   name: string;
   description: string;
   rooms: Room[];
+  furniture: ScenarioFurniture[];
   revisions: ScenarioRevision[];
   createdAt: string;
   updatedAt: string;

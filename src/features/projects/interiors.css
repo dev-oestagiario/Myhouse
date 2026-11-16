@@ -1,0 +1,59 @@
+.interior-workspace{padding:16px 0 2px;min-width:0}
+.interior-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin:0 0 14px}
+.interior-head h4{font-size:16px;font-weight:800;color:#244c80}
+.interior-head p{font-size:12px;color:#627992;line-height:1.65;max-width:580px;margin-top:6px}
+.interior-head>label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800;color:#4b6685;min-width:190px}
+.interior-head select,.interior-catalog label select,.interior-editor input,.interior-editor select,.interior-align select{height:41px;border:1px solid #ccdbef;border-radius:9px;background:#fff;color:#244a79;padding:8px 10px;min-width:0;width:100%;font-size:12px}
+.interior-error{color:#963d3a;border:1px solid #e9baba;background:#fff3f1;padding:11px 13px;font-size:12px;border-radius:8px;margin:11px 0;line-height:1.65}
+.interior-feedback{color:#285889;border:1px solid #bcd6f4;background:#f0f6ff;padding:11px 13px;font-size:12px;border-radius:8px;margin:11px 0;line-height:1.65}
+.interior-empty{padding:30px 16px;border:1px dashed #bed1e9;border-radius:10px;background:#f8faff;text-align:center;color:#5d7795;font-size:12px;line-height:1.6}
+.interior-views{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:13px}
+.interior-canvas-panel{border:1px solid #d9e6f5;background:#f6f9fe;border-radius:12px;padding:12px;min-width:0}
+.interior-canvas-panel h5{font-size:12px;font-weight:800;color:#2a5487;margin-bottom:10px}
+.interior-canvas-panel>p{font-size:10px;color:#6b829e;margin-top:8px;line-height:1.5}
+.interior-model{height:320px;border-radius:8px;overflow:hidden;background:#edf3fb}
+.interior-floor-map{height:320px;width:100%;display:block;border-radius:8px;background:#f7faff;touch-action:none}
+.interior-floor-object{cursor:grab;touch-action:none}
+.interior-floor-object:active{cursor:grabbing}
+.interior-workspace-bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(285px,.95fr);gap:12px;align-items:start}
+.interior-catalog,.interior-inspector{padding:15px;border:1px solid #dce7f5;background:white;border-radius:12px;min-width:0}
+.interior-section-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.interior-section-header h5{font-size:13px;color:#274f80;font-weight:800}
+.interior-section-header span{font-size:11px;color:#647d98}
+.interior-catalog>label{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:750;color:#5b7290;margin-bottom:13px}
+.interior-catalog>label select{max-width:220px}
+.interior-catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.interior-catalog-item{display:flex;gap:10px;align-items:center;text-align:left;min-height:65px;padding:10px 11px;border:1px solid #dce7f5;border-radius:10px;background:#f9fbff;color:#34577f;cursor:pointer;min-width:0}
+.interior-catalog-item:hover:not(:disabled){border-color:#7fb3f3;background:#edf5ff}
+.interior-catalog-item:focus-visible,.interior-item-picker button:focus-visible{outline:3px solid #8ab8f5;outline-offset:2px}
+.interior-catalog-item:disabled{opacity:.5;cursor:not-allowed}
+.interior-catalog-item>span:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.interior-catalog-item strong{font-size:12px;color:#2a5184;overflow-wrap:anywhere}
+.interior-catalog-item small{font-size:10px;color:#6b819b}
+.interior-catalog-icon{width:27px;height:27px;border:2px solid #738ba8;border-radius:7px;flex-shrink:0;box-shadow:inset 0 0 0 4px #ffffff63}
+.interior-item-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
+.interior-item-picker button{border:1px solid #d2e1f3;border-radius:7px;background:#f8fbff;padding:8px 11px;color:#41658d;font-size:11px;max-width:100%;overflow-wrap:anywhere}
+.interior-item-picker button[aria-pressed="true"]{border-color:#719fe0;background:#e6f0ff;color:#1a54a0;font-weight:800}
+.interior-item-picker>p{font-size:12px;line-height:1.6;color:#627b97}
+.interior-editor{display:flex;flex-direction:column;gap:12px}
+.interior-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.interior-field>label,.interior-align>label{font-size:11px;font-weight:750;color:#506b8b}
+.interior-fields-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.interior-fields-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.interior-quick-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.interior-quick-actions button{min-width:42px;min-height:41px;border:1px solid #d2e0f1;border-radius:8px;background:#f4f8fe;color:#2d63a2;display:grid;place-items:center}
+.interior-quick-actions button:hover{background:#e5f1ff}
+.interior-align{display:flex;flex-direction:column;gap:6px}
+.interior-align>div{display:flex;align-items:center;gap:7px}
+.interior-align select{flex:1}
+.interior-align .btn{min-height:41px;font-size:11px;padding:8px 11px}
+.interior-overlap{padding:10px;border:1px solid #f0d49a;background:#fff9ee;border-radius:9px;color:#89622a;font-size:11px;line-height:1.5}
+.interior-tip,.interior-safety-note{font-size:11px;color:#657d9b;line-height:1.65}
+.interior-editor-actions{display:flex;gap:7px;flex-wrap:wrap}
+.interior-editor-actions .btn{flex:1 1 120px;min-height:42px;font-size:11px;padding:8px 9px}
+.interior-no-selection{padding:29px 15px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;background:#f6faff;color:#6783a0;border:1px dashed #cadaed;border-radius:9px}
+.interior-no-selection p{font-size:12px;line-height:1.6}
+.interior-safety-note{margin-top:14px;border-top:1px solid #e6edf8;padding-top:14px}
+@media(max-width:1000px){.interior-views,.interior-workspace-bottom{grid-template-columns:1fr}.interior-model,.interior-floor-map{height:300px}}
+@media(max-width:640px){.interior-head{flex-direction:column}.interior-head>label{width:100%}.interior-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.interior-catalog,.interior-inspector{padding:12px}.interior-fields-three{grid-template-columns:repeat(3,minmax(0,1fr))}.interior-model,.interior-floor-map{height:265px}}
+@media(max-width:370px){.interior-catalog-grid{grid-template-columns:1fr}.interior-fields-three{grid-template-columns:1fr 1fr}.interior-head select{width:100%}}

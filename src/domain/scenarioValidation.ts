@@ -1,5 +1,6 @@
 import type { HomeData, ProjectScenario, Room } from '../types';
 import { validateRoomGeometry } from '../plan/geometry';
+import { validateFurniture } from '../features/projects/furnitureGeometry';
 
 const validId=(s:unknown):s is string=>typeof s==='string'&&s.trim().length>0&&s.length<=160;
 const validDate=(s:unknown):s is string=>typeof s==='string'&&Number.isFinite(Date.parse(s));
@@ -36,6 +37,7 @@ export function validateScenarios(home:Pick<HomeData,'projects'|'scenarios'>):vo
     counts.set(scenario.projectId,(counts.get(scenario.projectId)??0)+1);
     if((counts.get(scenario.projectId)??0)>20)throw new Error('Limite de 20 cenários por projeto.');
     checkRooms(scenario.rooms,'Cenário');
+    validateFurniture(scenario.furniture,scenario.rooms);
     if(!Array.isArray(scenario.revisions)||scenario.revisions.length>12){
       throw new Error('Histórico do cenário inválido ou acima de 12 versões.');
     }
@@ -48,6 +50,7 @@ export function validateScenarios(home:Pick<HomeData,'projects'|'scenarios'>):vo
       }
       revisionIds.add(revision.id);
       checkRooms(revision.rooms,'Versão histórica');
+      validateFurniture(revision.furniture,revision.rooms);
     });
   });
 }
