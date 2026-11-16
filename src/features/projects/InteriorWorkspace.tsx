@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type PointerEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Copy, Grid2X2, Move, Plus, RotateCw, Trash2 } from 'lucide-react';
-import type { HomeData, ProjectScenario, ScenarioFurniture, FurnitureColor, FurnitureKind, Room } from '../../types';
+import type { HomeData, ProjectScenario, ScenarioFurniture, FurnitureColor, FurnitureKind } from '../../types';
 import { newId,number } from '../../data';
 import { getFootprint, getWallSegments } from '../../plan/geometry';
 import HouseModel from '../../plan/HouseModel';
@@ -166,7 +166,7 @@ export default function InteriorWorkspace({home,scenario,archived,onChange}:Prop
               }}>
               <polygon points={furnitureCorners(item).map(pt=>`${room.x+pt.x},${room.z+pt.z}`).join(' ')}
                 fill={FURNITURE_COLORS[item.color].hex} fillOpacity=".92"
-                stroke={selectedId===item.id?'#174fbb':'#587596'} strokeWidth={selectedId===item.id?.065:.025}/>
+                stroke={selectedId===item.id?'#174fbb':'#587596'} strokeWidth={selectedId===item.id ? .065 : .025}/>
               <text x={room.x+item.x} y={room.z+item.z} textAnchor="middle" dominantBaseline="middle"
                 fontSize=".18" fill="#173b64" pointerEvents="none">{item.name.length>14?item.name.slice(0,12)+'…':item.name}</text>
             </g>)}
