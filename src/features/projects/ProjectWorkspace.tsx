@@ -185,7 +185,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
           ?<ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
           :projectTab==='orcamento'
             ?<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
-            :<ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>}
+            :<ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/>}
       </div>
     </div> : <>
       <div className="projects-overview-stats" aria-label="Resumo dos projetos">

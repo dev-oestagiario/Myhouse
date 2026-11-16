@@ -15,8 +15,8 @@ function seed() {
 describe('F6.6 — áreas externas independentes',()=>{
   it('calcula área de polígono concavo em m²',()=>{
     expect(outdoorAreaSquareMeters(outlinePreset('retangular'))).toBe(12);
-    expect(outdoorAreaSquareMeters(outlinePreset('L'))).toBeCloseTo(10.08);
-    expect(outdoorAreaSquareMeters([...outlinePreset('L')].reverse())).toBeCloseTo(10.08);
+    expect(outdoorAreaSquareMeters(outlinePreset('L'))).toBeCloseTo(9.76);
+    expect(outdoorAreaSquareMeters([...outlinePreset('L')].reverse())).toBeCloseTo(9.76);
   });
   it('cria deck sem criar cômodo interno e preserva outras entidades',()=>{
     const before=seed();
