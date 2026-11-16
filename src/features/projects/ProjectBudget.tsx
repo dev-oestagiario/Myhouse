@@ -4,7 +4,7 @@ import {
   Trash2, Wrench,
 } from 'lucide-react';
 import type { HomeData, Project, ProjectTask, Purchase, PurchaseStatus } from '../../types';
-import { money, newId, priorityNames } from '../../data';
+import { money, newId } from '../../data';
 import Modal from '../../shared/Modal';
 import PurchaseEditor from './PurchaseEditor';
 import {
