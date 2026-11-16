@@ -1,4 +1,4 @@
-import type { HomeData, Project, ProjectTask, Purchase, PurchaseQuote, PurchaseStatus } from '../../types';
+import type { HomeData, Project, Purchase, PurchaseQuote, PurchaseStatus } from '../../types';
 import { validateHome } from '../../data';
 
 export const PURCHASE_STATUS_NAMES: Record<PurchaseStatus,string> = {
