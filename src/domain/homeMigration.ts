@@ -225,7 +225,13 @@ export function migrateHome(input: unknown): HomeData {
   // Rejeita vínculos corrompidos ANTES da normalização: não descartar dados silenciosamente.
   const checked = checkV2({ ...home, ...legacy,
     workTasks: home.workTasks === undefined ? [] : home.workTasks,
-    scenarios: home.scenarios === undefined ? [] : home.scenarios });
+    scenarios: home.scenarios === undefined ? [] : Array.isArray(home.scenarios)
+      ? home.scenarios.map(scenario=>scenario&&typeof scenario==='object'
+        ? {...scenario,furniture:scenario.furniture===undefined?[]:scenario.furniture,
+          revisions:Array.isArray(scenario.revisions)?scenario.revisions.map(revision=>revision&&typeof revision==='object'
+            ?{...revision,furniture:revision.furniture===undefined?[]:revision.furniture}:revision):scenario.revisions}
+        : scenario)
+      : home.scenarios });
   const normalized = reconcileSpaces(checked);
   return checkV2(normalized);
 }
