@@ -1,3 +1,4 @@
+import './projects.css';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Archive, ArrowLeft, ArrowRight, CalendarDays, Check, ClipboardList, Edit3,
