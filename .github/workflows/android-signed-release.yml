@@ -33,6 +33,8 @@ jobs:
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: false
           packages: platform-tools
+      - name: Exigir evidências de publicação F6.8
+        run: node scripts/assert-release-ready.mjs
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
       - name: Testar regras e compilar Android

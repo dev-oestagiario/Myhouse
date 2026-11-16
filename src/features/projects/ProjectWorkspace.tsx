@@ -1,5 +1,5 @@
 import './projects.css';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Archive, ArrowLeft, ArrowRight, CalendarDays, Check, ClipboardList, Edit3,
   FolderKanban, Home, Layers3, Plus, RotateCcw, Search, Trash2, Wallet,
@@ -9,7 +9,7 @@ import { money, newId, priorityOrder } from '../../data';
 import Modal from '../../shared/Modal';
 import ProjectTasks from './ProjectTasks';
 import ProjectBudget from './ProjectBudget';
-import ScenarioWorkspace from './ScenarioWorkspace';
+const ScenarioWorkspace = lazy(() => import('./ScenarioWorkspace'));
 import ProjectTracking from './ProjectTracking';
 import ProjectFiles from './ProjectFiles';
 import { projectBudget } from './budgetDomain';
@@ -191,7 +191,7 @@ export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }:
           :projectTab==='orcamento'
             ?<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
             :projectTab==='cenarios'
-              ?<ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/>
+              ?<Suspense fallback={<p role="status" className="projects-panel-empty">Carregando o editor espacial… Tarefas e orçamento continuam disponíveis.</p>}><ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/></Suspense>
               :projectTab==='acompanhamento'
                 ?<ProjectTracking key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')} onOpenFiles={()=>setProjectTab('arquivos')}/>
                 :<ProjectFiles key={selectedProject.id} home={home} project={selectedProject} userId={userId} onChange={onChange}/>}
