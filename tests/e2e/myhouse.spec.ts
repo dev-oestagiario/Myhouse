@@ -202,6 +202,87 @@ test('F6.1 — filtra projetos por situação e pesquisa', async ({ page }) => {
   await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toBeVisible();
 });
 
+test('F6.2 — criar serviço com checklist, acompanhar progresso, arquivar e reativar',async ({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const projectModal=page.getByRole('dialog',{name:'Novo projeto'});
+  await projectModal.getByLabel('Nome do projeto *').fill('Renovar a sala');
+  await projectModal.getByRole('checkbox',{name:'Sala de teste'}).check();
+  await projectModal.getByRole('button',{name:'Salvar projeto'}).click();
+  await expect(page.getByRole('heading',{name:'Tarefas e serviços'})).toBeVisible();
+  await page.getByRole('button',{name:'Nova tarefa'}).click();
+  const taskModal=page.getByRole('dialog',{name:'Nova tarefa'});
+  await taskModal.getByLabel('Nome da tarefa *').fill('Pintar as paredes');
+  await taskModal.getByLabel('Tipo').selectOption('servico');
+  await taskModal.getByLabel('Prioridade').selectOption('alta');
+  await taskModal.getByLabel('Prazo previsto (opcional)').fill('2026-12-20');
+  await taskModal.getByLabel('Ambiente (opcional)').selectOption({label:'Sala de teste'});
+  await taskModal.getByRole('button',{name:'Adicionar etapa'}).click();
+  await taskModal.getByRole('textbox',{name:'Etapa 1'}).fill('Cobrir móveis');
+  await taskModal.getByRole('button',{name:'Salvar tarefa'}).click();
+  await expect(page.getByRole('heading',{name:'Pintar as paredes'})).toBeVisible();
+  await expect(page.getByText('Até 20/12/2026')).toBeVisible();
+  await expect.poll(()=>state.data.workTasks?.length).toBe(1);
+  expect(state.data.workTasks[0].spaceId).toBe(state.data.projects[0].spaceIds[0]);
+  expect(state.data.workTasks[0].kind).toBe('servico');
+  await page.getByRole('checkbox',{name:'Cobrir móveis'}).check();
+  await expect(page.getByText('1/1')).toBeVisible();
+  await page.getByRole('combobox',{name:'Situação de Pintar as paredes'}).selectOption('concluido');
+  await expect(page.getByRole('progressbar',{name:'Tarefas concluídas'})).toHaveAttribute('aria-valuenow','100');
+  await page.getByRole('button',{name:'Ver histórico'}).click();
+  await expect(page.getByText('Concluiu: Cobrir móveis')).toBeVisible();
+  await page.getByRole('button',{name:'Arquivar projeto'}).click();
+  await expect(page.getByRole('button',{name:'Nova tarefa'})).toBeDisabled();
+  await page.getByRole('button',{name:'Reativar projeto'}).click();
+  await expect(page.getByRole('button',{name:'Nova tarefa'})).toBeEnabled();
+  await expect.poll(()=>state.data.workTasks[0]?.status).toBe('concluido');
+  await navigate(page,'Obras');
+  await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue('room-sala');
+});
+
+test('F6.2 — dependências e integridade na exclusão',async ({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const projectModal=page.getByRole('dialog',{name:'Novo projeto'});
+  await projectModal.getByLabel('Nome do projeto *').fill('Deck no quintal');
+  await projectModal.getByRole('button',{name:'Salvar projeto'}).click();
+  async function addTask(title:string,dependency?:string){
+    await page.getByRole('button',{name:'Nova tarefa'}).click();
+    const dialog=page.getByRole('dialog',{name:'Nova tarefa'});
+    await dialog.getByLabel('Nome da tarefa *').fill(title);
+    if(dependency) await dialog.getByRole('checkbox',{name:dependency}).check();
+    await dialog.getByRole('button',{name:'Salvar tarefa'}).click();
+  }
+  await addTask('Preparar o espaço');
+  await addTask('Montar a plataforma','Preparar o espaço');
+  await expect.poll(()=>state.data.workTasks.length).toBe(2);
+  await page.getByRole('combobox',{name:'Situação de Montar a plataforma'}).selectOption('concluido');
+  await expect(page.getByText('Não é possível concluir uma tarefa antes das dependências.')).toBeVisible();
+  expect(state.data.workTasks.find(t=>t.title==='Montar a plataforma')?.status).toBe('nao-iniciado');
+  await page.getByRole('combobox',{name:'Situação de Preparar o espaço'}).selectOption('concluido');
+  await page.getByRole('combobox',{name:'Situação de Montar a plataforma'}).selectOption('concluido');
+  await expect(page.getByRole('progressbar',{name:'Tarefas concluídas'})).toHaveAttribute('aria-valuenow','100');
+  await page.getByRole('button',{name:'Quadro',exact:true}).click();
+  await expect(page.getByRole('group',{name:'Visualização das tarefas'}).getByRole('button',{name:'Quadro'})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.task-board-column')).toHaveCount(3);
+  await expect(page.locator('.task-board-column').last().getByRole('heading',{name:'Montar a plataforma'})).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await page.getByRole('button',{name:'Lista',exact:true}).click();
+  await page.getByRole('button',{name:'Excluir tarefa Preparar o espaço'}).click();
+  // Confirmação é necessária antes de tentar apagar trabalho vinculado.
+  // Sem aceitar o confirm do browser, a tarefa permanece.
+  await expect.poll(()=>state.data.workTasks.length).toBe(2);
+  page.once('dialog',dialog=>void dialog.accept());
+  await page.getByRole('button',{name:'Excluir projeto'}).click();
+  await expect(page.getByText(/Este projeto possui tarefas/)).toBeVisible();
+  expect(state.data.projects).toHaveLength(1);
+  await page.getByRole('button',{name:'Arquivar projeto'}).click();
+  await expect(page.getByRole('button',{name:'Reativar projeto'})).toBeVisible();
+});
+
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {
   await setupMockSession(page);
   await navigate(page, 'Lista de compras');

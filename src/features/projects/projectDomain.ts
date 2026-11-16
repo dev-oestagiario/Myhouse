@@ -85,6 +85,9 @@ export function updateProject(home: HomeData, id: string, draft: ProjectDraft, t
   if (!current) throw new Error('Projeto não encontrado.');
   const safe = validateProjectDraft(home, draft);
   if (current.archivedAt) throw new Error('Reative o projeto antes de editá-lo.');
+  if ((home.workTasks ?? []).some(task=>task.projectId===id && task.spaceId!==null && !safe.spaceIds.includes(task.spaceId))) {
+    throw new Error('Existem tarefas vinculadas a um ambiente removido. Ajuste essas tarefas antes de desvincular o ambiente.');
+  }
   return validateHome({ ...home, projects: home.projects.map(item => item.id === id
     ? { ...item, ...safe, updatedAt: timestamp } : item) });
 }
@@ -106,6 +109,9 @@ export function setProjectArchived(home: HomeData, id: string, archived: boolean
 
 export function deleteProject(home: HomeData, id: string): HomeData {
   if (!home.projects.some(item => item.id === id)) throw new Error('Projeto não encontrado.');
-  // F6.1 não possui tarefas/compras vinculadas; F6.2/F6.3 acrescentarão gate por dependências.
+  if ((home.workTasks ?? []).some(task=>task.projectId===id)) {
+    throw new Error('Este projeto possui tarefas. Exclua ou transfira as tarefas antes de excluir o projeto, ou arquive-o.');
+  }
+  // Compras vinculadas a projetos serão tratadas na F6.3, com integridade referencial própria.
   return validateHome({ ...home, projects: home.projects.filter(item => item.id !== id) });
 }
