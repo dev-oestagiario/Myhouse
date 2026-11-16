@@ -192,7 +192,7 @@ export default function ProjectWorkspace({ home, onChange, onOpenRoom }: Props) 
     </>}
     {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={()=>setEditId(null)}>
       <form className="modal-form projects-form" onSubmit={commit}>
-        <p className="form-hint">Cadastre sua ideia agora. Você poderá adicionar serviços, compras e cenários 3D nas próximas etapas.</p>
+        <p className="form-hint">Cadastre sua ideia agora. Depois, organize serviços e tarefas dentro do projeto. Compras vinculadas e cenários 3D virão nas próximas fases.</p>
         <div className="field"><label htmlFor="project-name">Nome do projeto *</label><input id="project-name" required minLength={2} maxLength={120} value={editor.name} onChange={e=>setEditor(p=>({...p,name:e.target.value}))} placeholder="Ex.: Reformar a sala, Deck no quintal"/></div>
         <div className="field"><label htmlFor="project-description">O que pretende mudar?</label><textarea id="project-description" rows={3} maxLength={4000} value={editor.description} onChange={e=>setEditor(p=>({...p,description:e.target.value}))} placeholder="Descreva o resultado que deseja alcançar."/></div>
         <div className="form-row">
