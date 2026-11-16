@@ -126,6 +126,82 @@ test('ação Sair fica na área da conta e não polui o cabeçalho', async ({pag
   await expect(page.locator('.sidebar-account-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(1);
 });
 
+test('F6.1 — cria projeto de deck sem cômodo e edita com orçamento e ambiente', async ({ page }) => {
+  const state = await setupMockSession(page);
+  await navigate(page, 'Projetos');
+  await expect(page.getByRole('heading', { name: 'Projetos da casa' })).toBeVisible();
+  await page.getByRole('button', { name: 'Novo projeto' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Novo projeto' });
+  await dialog.getByLabel('Nome do projeto *').fill('Deck no quintal');
+  await dialog.getByLabel('O que pretende mudar?').fill('Planejar uma plataforma externa.');
+  await dialog.getByLabel('Tipo de projeto').selectOption('ampliacao');
+  await dialog.getByLabel('Orçamento previsto (R$)').fill('2500,50');
+  await dialog.getByRole('button', { name: 'Salvar projeto' }).click();
+  await expect(page.getByRole('heading', { name: 'Deck no quintal' })).toBeVisible();
+  await expect(page.getByText('Sem ambiente vinculado.')).toHaveCount(0);
+  await expect(page.getByText('Ainda não há ambientes vinculados.')).toBeVisible();
+  await expect(page.getByText('R$ 2.500,50')).toBeVisible();
+  await page.getByRole('button', { name: 'Editar projeto' }).click();
+  const edit = page.getByRole('dialog', { name: 'Editar projeto' });
+  await edit.getByLabel('Situação').selectOption('planejando');
+  await edit.getByLabel('Prioridade').selectOption('alta');
+  await edit.getByRole('checkbox', { name: 'Sala de teste' }).check();
+  await edit.getByRole('button', { name: 'Salvar projeto' }).click();
+  await expect(page.getByText('Planejando', { exact: true })).toBeVisible();
+  await expect(page.getByText('Sala de teste')).toBeVisible();
+  await expect.poll(() => state.data.projects[0]?.spaceIds.length).toBe(1);
+  expect(state.data.projects[0].budgetTargetCents).toBe(250050);
+  expect(state.data.projects[0].status).toBe('planejando');
+  expect(state.data.rooms[0].name).toBe('Sala de teste');
+  await navigate(page,'Obras');
+  await page.getByRole('button', { name: 'Excluir Sala de teste' }).click();
+  await expect(page.getByText('Este cômodo está vinculado a um projeto.')).toBeVisible();
+  expect(state.data.rooms).toHaveLength(1);
+});
+
+test('F6.1 — arquiva, filtra, reativa e exclui projeto sem apagar cômodos', async ({ page }) => {
+  const state = await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const dialog=page.getByRole('dialog',{name:'Novo projeto'});
+  await dialog.getByLabel('Nome do projeto *').fill('Renovar sala');
+  await dialog.getByRole('checkbox',{name:'Sala de teste'}).check();
+  await dialog.getByRole('button',{name:'Salvar projeto'}).click();
+  await page.getByRole('button',{name:'Arquivar projeto'}).click();
+  await expect(page.getByRole('button',{name:'Reativar projeto'})).toBeVisible();
+  await page.getByRole('button',{name:'Todos os projetos'}).click();
+  await expect(page.getByRole('button',{name:/Ver projeto/})).toHaveCount(0);
+  await page.getByLabel('Exibição').selectOption('arquivados');
+  await expect(page.getByRole('heading',{name:'Renovar sala'})).toBeVisible();
+  await page.getByRole('button',{name:'Ver projeto'}).click();
+  await page.getByRole('button',{name:'Reativar projeto'}).click();
+  await expect(page.getByRole('button',{name:'Editar projeto'})).toBeVisible();
+  page.once('dialog', dialog=>void dialog.accept());
+  await page.getByRole('button',{name:'Excluir projeto'}).click();
+  await expect(page.getByRole('heading',{name:'Renovar sala'})).toHaveCount(0);
+  await expect.poll(()=>state.data.projects.length).toBe(0);
+  expect(state.data.rooms).toHaveLength(1);
+});
+
+test('F6.1 — filtra projetos por situação e pesquisa', async ({ page }) => {
+  await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const dialog=page.getByRole('dialog',{name:'Novo projeto'});
+  await dialog.getByLabel('Nome do projeto *').fill('Pintura da cozinha');
+  await dialog.getByLabel('Situação').selectOption('em-execucao');
+  await dialog.getByRole('button',{name:'Salvar projeto'}).click();
+  await page.getByRole('button',{name:'Todos os projetos'}).click();
+  await page.getByLabel('Pesquisar projetos').fill('deck');
+  await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toHaveCount(0);
+  await page.getByLabel('Pesquisar projetos').fill('pintura');
+  await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toBeVisible();
+  await page.getByLabel('Situação').selectOption('concluido');
+  await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toHaveCount(0);
+  await page.getByLabel('Situação').selectOption('em-execucao');
+  await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toBeVisible();
+});
+
 test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }) => {
   await setupMockSession(page);
   await navigate(page, 'Lista de compras');
@@ -140,7 +216,7 @@ test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }
 
 test('navegação e principais formulários sem violações axe graves', async ({ page }) => {
   await setupMockSession(page);
-  for (const area of ['Lista de compras','Obras','Editar planta 2D']) {
+  for (const area of ['Lista de compras','Obras','Editar planta 2D','Projetos']) {
     await navigate(page, area);
     const violations = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
     expect(violations.violations.filter(v => ['critical', 'serious'].includes(v.impact ?? ''))).toEqual([]);
@@ -150,7 +226,7 @@ test('navegação e principais formulários sem violações axe graves', async (
 test('telas móveis não criam rolagem horizontal', async ({ page, isMobile }) => {
   if (!isMobile) test.skip();
   await setupMockSession(page);
-  for (const route of ['Obras', 'Editar planta 2D', 'Escanear cômodo']) {
+  for (const route of ['Obras', 'Editar planta 2D', 'Escanear cômodo', 'Projetos']) {
     await navigate(page, route);
     const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: window.innerWidth }));
     expect(sizes.content).toBeLessThanOrEqual(sizes.viewport + 1);
