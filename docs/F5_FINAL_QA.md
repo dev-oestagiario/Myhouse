@@ -41,3 +41,6 @@ Para cada cômodo de referência, registrar: modelo Android, versão, presença 
 Apenas um APK após conclusão das Etapas 1–3: o merge na `main` dispara `.github/workflows/android-apk.yml`, publica um único arquivo `MyHouse.apk` em Releases, de caráter **debug/testes**. Não é uma assinatura persistente de produção e não implica avaliação em hardware. Antes da instalação por cima de versões anteriores, conferir backup e sincronização Supabase.
 
 A assinatura de produção permanece dependente de uma chave sob controle do responsável e dos Secrets do GitHub. Não criar ou publicar chaves privadas no repositório.
+
+
+> Atualização F6.8: o fluxo de release automático mencionado acima é legado. A partir de F6.8 a distribuição é manual, com evidências de QA, segurança do Storage, migração V2 e hardware registradas em `docs/F6_8_RELEASE_GATE.md`.

@@ -65,3 +65,6 @@ Depois, executar **Actions → Publicar APK Android assinado (manual) → Run wo
 ## Status do projeto
 
 `F4` só pode ser considerada concluída para **lançamento público** após assinatura persistente configurada, APK assinado verificado e a matriz de testes em aparelhos reais aprovada. Até lá, a entrega é de automação/infraestrutura de qualidade e uma trilha pronta para assinatura.
+
+
+> Atualização F6.8: o gatilho automático de APK ao enviar para `main` será removido. O APK debug é gerado apenas manualmente e como artifact, sem GitHub Release. A publicação segue os gates de `docs/F6_8_RELEASE_GATE.md`.

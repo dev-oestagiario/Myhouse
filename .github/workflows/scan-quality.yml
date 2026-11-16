@@ -21,13 +21,14 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Testes de regras da planta
         run: npm run test
+      - name: Verificar TypeScript
+        run: npm run check
       - name: Compilação React e TypeScript
         run: npm run build
 
   android:
-    # PRs para develop validam React e E2E, sem publicar APK Android.
-    # Um build Android de verificação continua disponível sob execução manual explícita.
-    if: github.event_name == 'workflow_dispatch'
+    # Compile-only: a verificação Android não publica nem anexa APK para distribuição.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -79,3 +80,32 @@ jobs:
             test-results/
           retention-days: 7
           if-no-files-found: ignore
+
+  postgres:
+    name: Migrar HomeData V1/V2 com dados sintéticos
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: myhouse_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: integration_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d myhouse_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: integration_test_only
+      PGDATABASE: myhouse_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar cliente Postgres
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Simular a migração V1 para V2 e rejeição de documentos inválidos
+        run: psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-v2-migration.sql
