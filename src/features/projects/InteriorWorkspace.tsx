@@ -6,7 +6,7 @@ import { getFootprint, getWallSegments } from '../../plan/geometry';
 import HouseModel from '../../plan/HouseModel';
 import {
   FURNITURE_CATALOG,FURNITURE_COLORS,alignFurnitureToWall,furnitureCollisions,
-  furnitureCorners,placeFurniture,
+  furnitureCorners,placeFurniture,duplicateFurniture,
 } from './furnitureGeometry';
 import {
   addScenarioFurniture,removeScenarioFurniture,updateScenarioFurniture,
@@ -74,10 +74,10 @@ export default function InteriorWorkspace({home,scenario,archived,onChange}:Prop
   function duplicate(){
     if(!selected||!room||archived)return;
     try{
-      const placed=placeFurniture(selected.kind,room,scenario.furniture,newId());
-      if(commit(()=>addScenarioFurniture(home,scenario.id,{...placed,name:selected.name+' — cópia'},
+      const placed=duplicateFurniture(selected,room,scenario.furniture,newId());
+      if(commit(()=>addScenarioFurniture(home,scenario.id,placed,
         newId(),new Date().toISOString()),'Cópia do objeto adicionada ao cenário.')){
-        setSelectedId(placed.id);setDraft({...placed,name:selected.name+' — cópia'});
+        setSelectedId(placed.id);setDraft(placed);
       }
     }catch(problem){setError(problem instanceof Error?problem.message:'Não foi possível duplicar este móvel.');}
   }
