@@ -30,7 +30,7 @@ export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lo
     <div className="form-row three">
       <div className="field"><label htmlFor="p-qty">Quantidade</label><input id="p-qty" type="number" min=".01" step="any" value={draft.quantity} onChange={e=>setDraft(p=>({...p,quantity:Number(e.target.value)}))} required/></div>
       <div className="field"><label htmlFor="p-unit">Unidade</label><input id="p-unit" list="purchase-units" maxLength={32} value={draft.unit??'un.'} onChange={e=>setDraft(p=>({...p,unit:e.target.value}))}/><datalist id="purchase-units">{PURCHASE_UNITS.map(unit=><option value={unit} key={unit}/>)}</datalist></div>
-      <div className="field"><label htmlFor="p-price">Preço unitário estimado (R$)</label><input id="p-price" type="number" step=".01" min="0" value={draft.unitPrice} onChange={e=>setDraft(p=>({...p,unitPrice:Number(e.target.value)}))}/></div>
+      <div className="field"><label htmlFor="p-price">Preço unitário (R$)</label><input id="p-price" type="number" step=".01" min="0" value={draft.unitPrice} onChange={e=>setDraft(p=>({...p,unitPrice:Number(e.target.value)}))}/></div>
     </div>
     <div className="form-row">
       <div className="field"><label htmlFor="p-project">Projeto (opcional)</label><select id="p-project" value={activeProjectId} disabled={Boolean(lockedProjectId)} onChange={e=>setDraft(p=>({...p,projectId:e.target.value||undefined,taskId:undefined,roomId:''}))}>
