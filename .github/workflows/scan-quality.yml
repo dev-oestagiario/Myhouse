@@ -2,7 +2,7 @@ name: Verificar My House (PR)
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
         run: npm run build
 
   android:
-    # Durante F5, PR valida web/testes; APK somente no workflow da main ao concluir as três etapas.
+    # PRs para develop validam React e E2E, sem publicar APK Android.
     # Um build Android de verificação continua disponível sob execução manual explícita.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
