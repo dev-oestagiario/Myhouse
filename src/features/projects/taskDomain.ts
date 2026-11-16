@@ -1,4 +1,4 @@
-import type { HomeData, ProjectTask, ProjectTaskChecklistItem, ProjectTaskKind, ProjectTaskStatus, Priority } from '../../types';
+import type { HomeData, ProjectTask, ProjectTaskKind, ProjectTaskStatus, Priority } from '../../types';
 import { validateHome } from '../../data';
 
 export const TASK_KIND_LABELS: Record<ProjectTaskKind,string> = {
