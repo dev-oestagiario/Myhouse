@@ -110,10 +110,44 @@ export interface Project {
   archivedAt?: string;
 }
 
+export type ProjectTaskKind = 'tarefa' | 'servico';
+export type ProjectTaskStatus = 'nao-iniciado' | 'em-andamento' | 'concluido';
+
+export interface ProjectTaskChecklistItem {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface ProjectTaskEvent {
+  id: string;
+  occurredAt: string;
+  description: string;
+}
+
+/** Serviço ou tarefa de projeto; independente das etapas de pintura legadas. */
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  spaceId: string | null;
+  kind: ProjectTaskKind;
+  title: string;
+  description: string;
+  status: ProjectTaskStatus;
+  priority: Priority;
+  dueDate: string | null; // data local YYYY-MM-DD, sem converter para UTC
+  checklist: ProjectTaskChecklistItem[];
+  dependsOn: string[]; // IDs de tarefas do MESMO projeto
+  history: ProjectTaskEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** V2 preserva os campos legados para não interromper os fluxos atuais. */
 export interface HomeData extends Omit<HomeDataV1, 'version'> {
   version: 2;
   residences: Residence[];
   spaces: Space[];
   projects: Project[];
+  workTasks: ProjectTask[];
 }
