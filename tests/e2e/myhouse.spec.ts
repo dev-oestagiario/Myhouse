@@ -2,6 +2,45 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { navigate, setupMockSession } from './fixtures';
 
+test('F6.8 — importar V1 realista, salvar V2 e exportar backup sem perder dados',async ({page})=>{
+  const legacy={
+    version:1 as const,
+    rooms:[{id:'legacy-sala',name:'Sala antiga',width:4,length:3,height:2.7,x:0,z:0,
+      footprint:[{x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3}],
+      openings:[{id:'legacy-porta',type:'door' as const,edge:0,offset:.3,width:.8,height:2,sill:0}]}],
+    purchases:[{id:'legacy-compra',name:'Tinta antiga',category:'Reforma',roomId:'legacy-sala',
+      priority:'alta' as const,quantity:1,unitPrice:19.9,purchased:false,
+      notes:'Preservar',url:'',createdAt:'2026-01-01T12:00:00Z'}],
+    wallStages:{'legacy-sala:leste':{Pintura:'concluido' as const}},
+    logs:[{id:'legacy-event',roomId:'legacy-sala',direction:'leste' as const,stage:'Pintura' as const,
+      status:'concluido' as const,note:'Etapa antiga',createdAt:'2026-01-02T12:00:00Z'}],
+  };
+  const state=await setupMockSession(page,legacy as unknown as import('../../src/types').HomeData);
+  await navigate(page,'Projetos');
+  await expect(page.locator('canvas')).toHaveCount(0); // consultar projetos não precisa inicializar WebGL
+  await page.getByRole('button',{name:'Novo projeto'}).click();
+  const editor=page.getByRole('dialog',{name:'Novo projeto'});
+  await editor.getByLabel('Nome do projeto *').fill('Reforma após migração');
+  await editor.getByRole('button',{name:'Salvar projeto'}).click();
+  await expect.poll(()=>state.data.version).toBe(2);
+  expect(state.data.rooms).toEqual(legacy.rooms);
+  expect(state.data.purchases).toEqual(legacy.purchases);
+  expect(state.data.wallStages).toEqual(legacy.wallStages);
+  expect(state.data.logs).toEqual(legacy.logs);
+  expect(state.data.projects).toHaveLength(1);
+  await expect(page.locator('canvas')).toHaveCount(0);
+  const downloadPromise=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Exportar backup'}).click();
+  const download=await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/backup.*\.json$/);
+  const text=(await import('node:fs/promises')).readFile;
+  const exported=JSON.parse(await text(await download.path(),'utf8'));
+  expect(exported.version).toBe(2);
+  expect(exported.rooms).toEqual(legacy.rooms);
+  expect(exported.wallStages).toEqual(legacy.wallStages);
+  expect(exported.projects).toHaveLength(1);
+});
+
 test('cadastrar e editar um cômodo, registrar obra e ver histórico', async ({ page }) => {
   const state = await setupMockSession(page);
   await navigate(page, 'Obras');
