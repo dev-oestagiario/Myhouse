@@ -1,19 +1,27 @@
 -- My House - executar exclusivamente em um projeto Supabase novo do My House.
 -- Cada usuário possui um documento JSON versionado. A RLS isola por auth.uid().
--- Reexecutável; não altera outras tabelas do projeto.
+-- Reexecutável para instalação nova; para uma tabela já existente, aplicar database/migrations/20261116_f6_home_v2.sql.
 
 create table if not exists public.user_homes (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  data jsonb not null default '{"version":1,"rooms":[],"purchases":[],"wallStages":{},"logs":[]}'::jsonb,
+  data jsonb not null default '{"version":2,"rooms":[],"purchases":[],"wallStages":{},"logs":[],"residences":[{"id":"residence-primary","name":"Minha casa","type":"atual"}],"spaces":[],"projects":[]}'::jsonb,
   revision integer not null default 1 check (revision > 0),
   updated_at timestamptz not null default now(),
-  constraint user_homes_data_version check (
-    jsonb_typeof(data) = 'object' and data->>'version' = '1'
+  constraint user_homes_data_version check (coalesce(
+    jsonb_typeof(data) = 'object' and data->>'version' in ('1','2')
     and jsonb_typeof(data->'rooms') = 'array'
     and jsonb_typeof(data->'purchases') = 'array'
     and jsonb_typeof(data->'wallStages') = 'object'
     and jsonb_typeof(data->'logs') = 'array'
-  )
+    and (
+      data->>'version' = '1'
+      or (
+        jsonb_typeof(data->'residences') = 'array'
+        and jsonb_typeof(data->'spaces') = 'array'
+        and jsonb_typeof(data->'projects') = 'array'
+      )
+    )
+  , false))
 );
 
 alter table public.user_homes enable row level security;

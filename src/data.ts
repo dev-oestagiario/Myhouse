@@ -1,14 +1,17 @@
 import type { HomeData, Priority, Room, Direction, Stage, TaskStatus } from './types';
+import { makeDefaultResidence, migrateHome } from './domain/homeMigration';
 import { STAGES } from './types';
-import { validateRoomGeometry } from './plan/geometry';
 
 export const STORAGE_KEY = 'casa-em-ordem-v1';
 export const initialHome: HomeData = {
-  version: 1,
+  version: 2,
   rooms: [],
   purchases: [],
   wallStages: {},
   logs: [],
+  residences: [makeDefaultResidence()],
+  spaces: [],
+  projects: [],
 };
 
 export const priorityNames: Record<Priority, string> = {
@@ -32,29 +35,14 @@ export function nextStage(stages: Partial<Record<Stage, TaskStatus>> = {}): Stag
 export const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 export function loadHome(): HomeData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(initialHome);
-    return validateHome(JSON.parse(raw));
-  } catch {
-    return structuredClone(initialHome);
-  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return structuredClone(initialHome);
+  // Dados inválidos não devem ser silenciosamente substituídos por uma casa vazia.
+  return validateHome(JSON.parse(raw));
 }
+
 export function validateHome(data: unknown): HomeData {
-  if (!data || typeof data !== 'object') throw new Error('Arquivo inválido');
-  const obj = data as Partial<HomeData>;
-  if (obj.version !== 1 || !Array.isArray(obj.rooms) || !Array.isArray(obj.purchases) || !Array.isArray(obj.logs) || !obj.wallStages || typeof obj.wallStages !== 'object') {
-    throw new Error('Formato do backup incompatível');
-  }
-  for (const room of obj.rooms) {
-    if (typeof room.id !== 'string' || typeof room.name !== 'string' || ![room.width, room.length, room.height, room.x, room.z].every(n => typeof n === 'number' && Number.isFinite(n))) throw new Error('Cômodos inválidos');
-    if (room.width <= 0 || room.length <= 0 || room.height <= 0) throw new Error('Medidas inválidas');
-    validateRoomGeometry(room);
-  }
-  for (const item of obj.purchases) {
-    if (typeof item.id !== 'string' || typeof item.name !== 'string' || !Number.isFinite(item.quantity) || !Number.isFinite(item.unitPrice)) throw new Error('Compras inválidas');
-  }
-  return obj as HomeData;
+  return migrateHome(data);
 }
 
 export function nextRoomPosition(rooms: Room[]): { x: number, z: number } {
