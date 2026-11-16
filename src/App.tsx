@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import HouseModel from './plan/HouseModel';
 import PlanEditor from './plan/PlanEditor';
+import ProjectWorkspace from './features/projects/ProjectWorkspace';
 import { getWallSegments, scaleRoomGeometry, validateRoomGeometry } from './plan/geometry';
 import GuidedRoomScan from './scan/GuidedRoomScan';
 import Modal from './shared/Modal';
 import { reconcileSpaces } from './domain/homeMigration';
 import {
   ArrowDownToLine, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
-  ClipboardList, Clock3, Download, Edit3, FileClock, Filter, Hammer, Home,
+  ClipboardList, Clock3, Download, Edit3, FileClock, Filter, FolderKanban, Hammer, Home,
   Layers3, Menu, Package, Paintbrush, Plus, RotateCcw, Save, Search,
   ShoppingBasket, Trash2, Upload, Wallet, X, Cloud, CloudOff, LogOut, RefreshCw, ScanLine,
 } from 'lucide-react';
@@ -20,7 +21,7 @@ import {
   statusNames, validateHome, wallId,
 } from './data';
 
-type Page = 'overview' | 'shopping' | 'floorplan' | 'plan-editor' | 'works' | 'scan' | 'history';
+type Page = 'overview' | 'projects' | 'shopping' | 'floorplan' | 'plan-editor' | 'works' | 'scan' | 'history';
 type PurchaseDraft = Omit<Purchase, 'id' | 'createdAt'>;
 const emptyPurchase = (): PurchaseDraft => ({
   name: '', category: 'Outros', roomId: '', priority: 'media',
@@ -292,12 +293,13 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     finally { if (fileInput.current) fileInput.current.value = ''; }
   }
   function clearAll() {
-    if (!window.confirm('Apagar todos os cômodos, compras e registros desta conta no Supabase? Exporte um backup antes, se necessário.')) return;
+    if (!window.confirm('Apagar todos os cômodos, projetos, compras e registros desta conta no Supabase? Exporte um backup antes, se necessário.')) return;
     setHome({ ...structuredClone(initialHome), rooms: [] }); setSelectedRoomId(''); setNotice('Projeto zerado.');
   }
 
   const navItems: { id: Page; name: string; Icon: typeof Home }[] = [
     { id: 'overview', name: 'Visão geral', Icon: Home },
+    { id: 'projects', name: 'Projetos', Icon: FolderKanban },
     { id: 'shopping', name: 'Lista de compras', Icon: ShoppingBasket },
     { id: 'floorplan', name: 'Planta 3D', Icon: Layers3 },
     { id: 'plan-editor', name: 'Editar planta 2D', Icon: Edit3 },
@@ -333,7 +335,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       <div className="brand"><span className="brand-mark"><Home size={22} strokeWidth={2.4} /></span><div><strong>My House</strong><small>Meu espaço, meus planos</small></div></div>
       <div className="sidebar-section-label">MENU PRINCIPAL</div>
       <nav aria-label="Navegação principal">{navItems.map(({ id, name, Icon }) => <button type="button" key={id} aria-current={page === id ? 'page' : undefined} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => changePage(id)}><Icon size={19} /><span>{name}</span>{page === id && <ChevronRight className="nav-chevron" size={17} />}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="save-info"><CheckCircle2 size={18} /><div><strong>{syncStatus === 'saved' ? 'Salvo na nuvem' : syncStatus === 'saving' ? 'Salvando na nuvem…' : syncStatus === 'pending' ? 'Aguardando sincronização' : 'Não foi possível sincronizar'}</strong><span>Dados individuais vinculados à sua conta</span></div></div><div className="sidebar-account-actions"><span className="sidebar-account-label">MINHA CONTA</span><button className="sidebar-signout" type="button" onClick={() => void signOut()} aria-label="Sair da conta"><LogOut size={17}/><span>Sair da conta</span></button></div><span className="version">My House · F5</span></div>
+      <div className="sidebar-bottom"><div className="save-info"><CheckCircle2 size={18} /><div><strong>{syncStatus === 'saved' ? 'Salvo na nuvem' : syncStatus === 'saving' ? 'Salvando na nuvem…' : syncStatus === 'pending' ? 'Aguardando sincronização' : 'Não foi possível sincronizar'}</strong><span>Dados individuais vinculados à sua conta</span></div></div><div className="sidebar-account-actions"><span className="sidebar-account-label">MINHA CONTA</span><button className="sidebar-signout" type="button" onClick={() => void signOut()} aria-label="Sair da conta"><LogOut size={17}/><span>Sair da conta</span></button></div><span className="version">My House · F6</span></div>
     </aside>
     {mobileNav && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobileNav(false)} />}
     <main className="main">
@@ -346,7 +348,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         {(syncStatus === 'error' || syncStatus === 'conflict') && <div className="sync-alert" role="alert"><CloudOff size={18}/><span>{syncError} Seus dados continuam disponíveis nesta tela. Exporte um backup antes de fechar.</span>{syncStatus === 'error' && <button type="button" className="btn btn-outline compact" onClick={() => void persistHome()}>Tentar salvar</button>}<button className="btn btn-outline compact" onClick={exportBackup}>Exportar backup</button></div>}
         {localDraft && <div className="sync-alert"><span>Há alterações deste dispositivo ainda não sincronizadas com a sua conta. Deseja recuperá-las?</span><button className="btn btn-primary compact" onClick={restoreLocalDraft}>Recuperar rascunho</button><button className="btn btn-outline compact" onClick={dismissLocalDraft}>Descartar</button></div>}
         {page === 'overview' && <>
-          <section className="welcome-banner"><div className="welcome-copy"><div className="eyebrow">PAINEL DA SUA CASA</div><h1>Uma casa organizada,<br /><em>um passo de cada vez.</em></h1><p>Compras, melhorias e reformas reunidas em um só lugar. Planeje hoje e acompanhe cada conquista.</p><div className="welcome-actions"><button className="btn btn-primary" onClick={() => openPurchase()}><Plus size={18}/>Adicionar item</button><button className="btn btn-white" onClick={() => changePage('floorplan')}><Box size={18}/>Explorar planta 3D</button></div></div><div className="hero-illustration" aria-hidden="true"><div className="illustration-circle"><Home size={116} strokeWidth={1.25} /><span className="illus-dot illus-dot-a"/><span className="illus-dot illus-dot-b"/></div></div></section>
+          <section className="welcome-banner"><div className="welcome-copy"><div className="eyebrow">PAINEL DA SUA CASA</div><h1>Uma casa organizada,<br /><em>um passo de cada vez.</em></h1><p>Compras, melhorias e reformas reunidas em um só lugar. Planeje hoje e acompanhe cada conquista.</p><div className="welcome-actions"><button className="btn btn-primary" onClick={() => changePage('projects')}><FolderKanban size={18}/>Meus projetos</button><button className="btn btn-white" onClick={() => openPurchase()}><Plus size={18}/>Adicionar compra</button></div></div><div className="hero-illustration" aria-hidden="true"><div className="illustration-circle"><Home size={116} strokeWidth={1.25} /><span className="illus-dot illus-dot-a"/><span className="illus-dot illus-dot-b"/></div></div></section>
           <div className="section-heading"><div><h2>Seu resumo</h2><p>O que está planejado e o que já foi resolvido.</p></div></div>
           <div className="stats-grid">
             <div className="stat-card"><span className="stat-icon orange"><ShoppingBasket size={22}/></span><span className="stat-label">Itens para comprar</span><strong>{pendingCount}</strong><small>{home.purchases.length} cadastrados no total</small></div>
@@ -371,6 +373,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
               : <div className="purchase-list">{purchases.map(p => <div key={p.id} className={`purchase-item ${p.purchased ? 'done' : ''}`}><button className={`purchase-check ${p.purchased ? 'checked' : ''}`} onClick={() => togglePurchase(p.id)} title={p.purchased ? 'Marcar como pendente' : 'Marcar como comprado'} aria-label={`Alterar status de ${p.name}`}>{p.purchased && <Check size={16}/>}</button><div className="purchase-info"><strong>{p.name}</strong><div className="purchase-meta"><span>{p.category}</span><span className="dot-separator"/><span>{home.rooms.find(r => r.id === p.roomId)?.name ?? 'Sem cômodo'}</span><span className="dot-separator"/><span>{p.quantity} un.</span></div>{p.notes && <small className="purchase-note">{p.notes}</small>}{p.url && <a className="item-link" href={p.url} target="_blank" rel="noopener noreferrer">Abrir link de referência</a>}</div><span className={`priority-pill ${p.priority}`}>{priorityNames[p.priority]}</span><div className="purchase-cost"><strong>{money(p.quantity * p.unitPrice)}</strong><small>{p.purchased ? 'Comprado' : 'Pendente'}</small></div><div className="row-actions"><button className="icon-button" aria-label={`Editar ${p.name}`} onClick={() => openPurchase(p)}><Edit3 size={17}/></button><button className="icon-button danger-hover" aria-label={`Excluir ${p.name}`} onClick={() => deletePurchase(p)}><Trash2 size={17}/></button></div></div>)}</div>}
           </section>
         </>}
+        {page === 'projects' && <ProjectWorkspace home={home} onChange={setHome} onOpenRoom={roomId => { setSelectedRoomId(roomId); changePage('floorplan'); }}/>} 
         {page === 'floorplan' && <>
           <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos, incluindo portas e janelas. O desenho é editado em outra tela.</p></div><div className="scan-entry-actions"><button className="btn btn-outline" onClick={() => changePage('plan-editor')}><Edit3 size={17}/>Editar planta 2D</button><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div></div>
           <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
