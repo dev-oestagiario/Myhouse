@@ -159,7 +159,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
                 <div className="task-board-items">{filtered.filter(item=>item.status===status).map(renderTask)}</div>
               </section>)}
           </div>}
-    </>}}
+    </>}
     {editingId!==null&&<Modal title={editingId==='new'?'Nova tarefa':'Editar tarefa'} onClose={()=>setEditingId(null)}>
       <form className="modal-form task-editor" onSubmit={commit}>
         <div className="field"><label htmlFor="task-name">Nome da tarefa *</label><input id="task-name" required minLength={2} maxLength={160}
