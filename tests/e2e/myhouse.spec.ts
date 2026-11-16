@@ -238,7 +238,7 @@ test('F6.2 — criar serviço com checklist, acompanhar progresso, arquivar e re
   await expect(page.getByRole('button',{name:'Nova tarefa'})).toBeEnabled();
   await expect.poll(()=>state.data.workTasks[0]?.status).toBe('concluido');
   await navigate(page,'Obras');
-  await expect(page.getByText('Sala de teste',{exact:true}).first()).toBeVisible();
+  await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue('room-sala');
 });
 
 test('F6.2 — dependências e integridade na exclusão',async ({page})=>{
