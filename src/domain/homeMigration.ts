@@ -140,7 +140,8 @@ function checkV2(home: HomeData): HomeData {
       || new Set(project.spaceIds).size !== project.spaceIds.length
       || (project.budgetTargetCents !== null && (!Number.isSafeInteger(project.budgetTargetCents) || project.budgetTargetCents < 0))
       || typeof project.createdAt !== 'string' || !Number.isFinite(Date.parse(project.createdAt))
-      || typeof project.updatedAt !== 'string' || !Number.isFinite(Date.parse(project.updatedAt))) {
+      || typeof project.updatedAt !== 'string' || !Number.isFinite(Date.parse(project.updatedAt))
+      || (project.archivedAt !== undefined && (typeof project.archivedAt !== 'string' || !Number.isFinite(Date.parse(project.archivedAt))))) {
       throw new Error('Projeto inválido ou com referências inexistentes.');
     }
     if (project.spaceIds.some(id => home.spaces.find(space=>space.id===id)?.residenceId !== project.residenceId)) {
