@@ -33,7 +33,11 @@ export function validateProjectTasks(home: Pick<HomeData,'projects'|'spaces'|'wo
       || !Array.isArray(task.checklist) || task.checklist.length>100
       || !Array.isArray(task.dependsOn) || task.dependsOn.length>100
       || !Array.isArray(task.history) || task.history.length>1000
-      || !validMoment(task.createdAt) || !validMoment(task.updatedAt)) {
+      || !validMoment(task.createdAt) || !validMoment(task.updatedAt)
+      || (task.estimatedCostCents !== undefined && task.estimatedCostCents !== null
+          && (!Number.isSafeInteger(task.estimatedCostCents) || task.estimatedCostCents<0))
+      || (task.actualCostCents !== undefined && task.actualCostCents !== null
+          && (!Number.isSafeInteger(task.actualCostCents) || task.actualCostCents<0))) {
       throw new Error('Tarefa inválida: confira título, prazo, situação e checklist.');
     }
     const project=home.projects.find(p=>p.id===task.projectId);

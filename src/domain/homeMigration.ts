@@ -150,6 +150,48 @@ function checkV2(home: HomeData): HomeData {
     }
   }
   uniqueIds(home.projects, 'Projetos');
+  for (const project of home.projects) {
+    if (project.contingencyPercent !== undefined
+      && (!Number.isInteger(project.contingencyPercent)
+        || project.contingencyPercent < 0 || project.contingencyPercent > 50)) {
+      throw new Error('Percentual de contingência inválido.');
+    }
+  }
+  const projectById = new Map(home.projects.map(item=>[item.id,item]));
+  const taskById = new Map(home.workTasks.map(item=>[item.id,item]));
+  const PURCHASE_STATES = new Set(['preciso','pesquisando','orcado','comprado','recebido','instalado','cancelado']);
+  for (const item of home.purchases) {
+    if (item.projectId !== undefined) {
+      if (!hasId(item.projectId) || !projectById.has(item.projectId)) throw new Error('Compra vinculada a projeto inexistente.');
+    }
+    if (item.taskId !== undefined) {
+      if (!hasId(item.taskId) || !item.projectId || taskById.get(item.taskId)?.projectId !== item.projectId) {
+        throw new Error('Compra vinculada a tarefa de outro projeto ou inexistente.');
+      }
+    }
+    if (item.unit !== undefined && (typeof item.unit !== 'string' || !item.unit.trim() || item.unit.length>32)) throw new Error('Unidade de compra inválida.');
+    if (item.supplier !== undefined && (typeof item.supplier !== 'string' || item.supplier.length>180)) throw new Error('Fornecedor inválido.');
+    if (item.status !== undefined && (!PURCHASE_STATES.has(item.status)
+      || item.purchased !== ['comprado','recebido','instalado'].includes(item.status))) {
+      throw new Error('Situação da compra inconsistente.');
+    }
+    if (item.actualUnitPriceCents !== undefined && item.actualUnitPriceCents !== null
+      && (!Number.isSafeInteger(item.actualUnitPriceCents) || item.actualUnitPriceCents < 0)) {
+      throw new Error('Gasto real inválido.');
+    }
+    if (item.quotes !== undefined) {
+      if (!Array.isArray(item.quotes) || item.quotes.length>30
+        || new Set(item.quotes.map(q=>q.id)).size !== item.quotes.length) throw new Error('Cotações inválidas.');
+      for (const quote of item.quotes) {
+        if (!quote || !hasId(quote.id) || !hasName(quote.supplier) || quote.supplier.length>180
+          || !Number.isSafeInteger(quote.unitPriceCents) || quote.unitPriceCents<0
+          || typeof quote.url !== 'string' || (quote.url!=='' && !/^https?:\/\//i.test(quote.url))
+          || typeof quote.createdAt !== 'string' || !Number.isFinite(Date.parse(quote.createdAt))) {
+          throw new Error('Cotação inválida.');
+        }
+      }
+    }
+  }
   validateProjectTasks(home);
   return home;
 }

@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import HouseModel from './plan/HouseModel';
 import PlanEditor from './plan/PlanEditor';
 import ProjectWorkspace from './features/projects/ProjectWorkspace';
+import PurchaseEditor from './features/projects/PurchaseEditor';
+import {
+  changePurchaseStatus, currentStatus, deletePurchase as removePurchase,
+  savePurchase as upsertPurchase, PURCHASE_STATUS_NAMES,
+} from './features/projects/budgetDomain';
 import { getWallSegments, scaleRoomGeometry, validateRoomGeometry } from './plan/geometry';
 import GuidedRoomScan from './scan/GuidedRoomScan';
 import Modal from './shared/Modal';
@@ -12,7 +17,7 @@ import {
   Layers3, Menu, Package, Paintbrush, Plus, RotateCcw, Save, Search,
   ShoppingBasket, Trash2, Upload, Wallet, X, Cloud, CloudOff, LogOut, RefreshCw, ScanLine,
 } from 'lucide-react';
-import type { Direction, HomeData, Priority, Purchase, Room, Stage, TaskStatus } from './types';
+import type { Direction, HomeData, Purchase, Room, Stage, TaskStatus } from './types';
 import { DIRECTIONS, STAGES } from './types';
 import { supabase } from './supabase';
 import {
@@ -28,7 +33,6 @@ const emptyPurchase = (): PurchaseDraft => ({
   quantity: 1, unitPrice: 0, purchased: false, notes: '', url: '',
 });
 const localDate = (date: string) => new Date(date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-const moneyInput = (n: number) => (Number.isFinite(n) ? String(n) : '0');
 
 
 type SyncStatus = 'saved' | 'pending' | 'saving' | 'error' | 'conflict';
@@ -55,6 +59,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft>(emptyPurchase);
   const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchaseError,setPurchaseError]=useState('');
   const [roomOpen, setRoomOpen] = useState(false);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [roomDraft, setRoomDraft] = useState<Omit<Room, 'id'>>({ name: '', width: 3, length: 3, height: 2.7, x: 0, z: 0 });
@@ -174,30 +179,37 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   }))).filter(item => percentDone(item.stages) < 100);
 
   function openPurchase(p?: Purchase) {
+    setPurchaseError('');
     setEditingPurchaseId(p?.id ?? null);
     setPurchaseDraft(p ? {
       name: p.name, category: p.category, roomId: p.roomId, priority: p.priority,
       quantity: p.quantity, unitPrice: p.unitPrice, purchased: p.purchased, notes: p.notes, url: p.url,
+      projectId:p.projectId,taskId:p.taskId,unit:p.unit,status:p.status,
+      actualUnitPriceCents:p.actualUnitPriceCents,supplier:p.supplier,quotes:p.quotes,
     } : emptyPurchase());
     setPurchaseOpen(true);
   }
   function savePurchase(e: FormEvent) {
     e.preventDefault();
-    if (!purchaseDraft.name.trim() || !purchaseDraft.category.trim() || purchaseDraft.quantity <= 0 || !Number.isFinite(purchaseDraft.unitPrice) || purchaseDraft.unitPrice < 0) return;
-    if (purchaseDraft.url && !/^https?:\/\//i.test(purchaseDraft.url)) { setNotice('Use um link começando com https:// ou http://'); return; }
-    setHome(prev => ({ ...prev, purchases: editingPurchaseId
-      ? prev.purchases.map(p => p.id === editingPurchaseId ? { ...p, ...purchaseDraft, name: purchaseDraft.name.trim(), category: purchaseDraft.category.trim() } : p)
-      : [{ ...purchaseDraft, id: newId(), createdAt: new Date().toISOString(), name: purchaseDraft.name.trim(), category: purchaseDraft.category.trim() }, ...prev.purchases],
-    }));
-    setPurchaseOpen(false);
-    setNotice(editingPurchaseId ? 'Item atualizado.' : 'Item cadastrado.');
+    try {
+      if (purchaseDraft.url && !/^https?:\/\//i.test(purchaseDraft.url)) throw new Error('Use um link começando com https:// ou http://');
+      const next=upsertPurchase(home,purchaseDraft,editingPurchaseId,new Date().toISOString(),newId());
+      setHome(next);
+      setPurchaseOpen(false);
+      setPurchaseError('');
+      setNotice(editingPurchaseId ? 'Item atualizado. Aguarde a sincronização.' : 'Item cadastrado. Aguarde a sincronização.');
+    } catch(error) { setPurchaseError(error instanceof Error ? error.message : 'Não foi possível salvar este item.'); }
   }
   function deletePurchase(p: Purchase) {
     if (!window.confirm(`Excluir ${p.name} da lista?`)) return;
-    setHome(prev => ({ ...prev, purchases: prev.purchases.filter(item => item.id !== p.id) }));
+    try { setHome(removePurchase(home,p.id)); }
+    catch(error) { setNotice(error instanceof Error ? error.message : 'Não foi possível excluir este item.'); }
   }
   function togglePurchase(id: string) {
-    setHome(prev => ({ ...prev, purchases: prev.purchases.map(p => p.id === id ? { ...p, purchased: !p.purchased } : p) }));
+    const item=home.purchases.find(p=>p.id===id);
+    if(!item)return;
+    try{setHome(changePurchaseStatus(home,id,item.purchased?'preciso':'comprado'));}
+    catch(error){setNotice(error instanceof Error?error.message:'Não foi possível alterar a compra.');}
   }
   function openRoom(r?: Room) {
     setEditingRoomId(r?.id ?? null);
@@ -370,7 +382,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           <div className="shopping-summary"><div><span>Para comprar</span><strong>{pendingCount} itens</strong></div><div><span>Estimativa pendente</span><strong>{money(totalPending)}</strong></div><div><span>Total já comprado</span><strong>{money(totalBought)}</strong></div></div>
           <section className="panel shopping-panel"><div className="filters"><div className="search-box"><Search size={18}/><input aria-label="Pesquisar itens" placeholder="Buscar utensílio, material, ferramenta..." value={search} onChange={e => setSearch(e.target.value)}/></div><div className="filter-input"><Filter size={17}/><select value={categoryFilter} aria-label="Filtrar categoria" onChange={e => setCategoryFilter(e.target.value)}><option value="todas">Todas as categorias</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div><select className="status-select" aria-label="Filtrar situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="todos">Todos os status</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></div>
             {purchases.length === 0 ? <div className="empty"><ShoppingBasket size={38}/><strong>Nenhum item encontrado</strong><span>Adicione sua primeira compra ou altere os filtros.</span><button className="btn btn-primary" onClick={() => openPurchase()}><Plus size={17}/>Adicionar item</button></div>
-              : <div className="purchase-list">{purchases.map(p => <div key={p.id} className={`purchase-item ${p.purchased ? 'done' : ''}`}><button className={`purchase-check ${p.purchased ? 'checked' : ''}`} onClick={() => togglePurchase(p.id)} title={p.purchased ? 'Marcar como pendente' : 'Marcar como comprado'} aria-label={`Alterar status de ${p.name}`}>{p.purchased && <Check size={16}/>}</button><div className="purchase-info"><strong>{p.name}</strong><div className="purchase-meta"><span>{p.category}</span><span className="dot-separator"/><span>{home.rooms.find(r => r.id === p.roomId)?.name ?? 'Sem cômodo'}</span><span className="dot-separator"/><span>{p.quantity} un.</span></div>{p.notes && <small className="purchase-note">{p.notes}</small>}{p.url && <a className="item-link" href={p.url} target="_blank" rel="noopener noreferrer">Abrir link de referência</a>}</div><span className={`priority-pill ${p.priority}`}>{priorityNames[p.priority]}</span><div className="purchase-cost"><strong>{money(p.quantity * p.unitPrice)}</strong><small>{p.purchased ? 'Comprado' : 'Pendente'}</small></div><div className="row-actions"><button className="icon-button" aria-label={`Editar ${p.name}`} onClick={() => openPurchase(p)}><Edit3 size={17}/></button><button className="icon-button danger-hover" aria-label={`Excluir ${p.name}`} onClick={() => deletePurchase(p)}><Trash2 size={17}/></button></div></div>)}</div>}
+              : <div className="purchase-list">{purchases.map(p => <div key={p.id} className={`purchase-item ${p.purchased ? 'done' : ''}`}><button className={`purchase-check ${p.purchased ? 'checked' : ''}`} onClick={() => togglePurchase(p.id)} title={p.purchased ? 'Marcar como pendente' : 'Marcar como comprado'} aria-label={`Alterar status de ${p.name}`}>{p.purchased && <Check size={16}/>}</button><div className="purchase-info"><strong>{p.name}</strong><div className="purchase-meta"><span>{p.category}</span><span className="dot-separator"/><span>{home.rooms.find(r => r.id === p.roomId)?.name ?? 'Sem cômodo'}</span><span className="dot-separator"/><span>{p.quantity} {p.unit??'un.'}</span>{p.projectId&&<><span className="dot-separator"/><span>Projeto: {home.projects.find(pr=>pr.id===p.projectId)?.name??'—'}</span></>}</div>{p.notes && <small className="purchase-note">{p.notes}</small>}{p.url && <a className="item-link" href={p.url} target="_blank" rel="noopener noreferrer">Abrir link de referência</a>}</div><span className={`priority-pill ${p.priority}`}>{priorityNames[p.priority]}</span><div className="purchase-cost"><strong>{money(p.quantity * p.unitPrice)}</strong><small>{PURCHASE_STATUS_NAMES[currentStatus(p)]}</small>{p.purchased&&p.actualUnitPriceCents!=null&&<small>Pago: {money(p.actualUnitPriceCents*p.quantity/100)}</small>}</div><div className="row-actions"><button className="icon-button" aria-label={`Editar ${p.name}`} onClick={() => openPurchase(p)}><Edit3 size={17}/></button><button className="icon-button danger-hover" aria-label={`Excluir ${p.name}`} onClick={() => deletePurchase(p)}><Trash2 size={17}/></button></div></div>)}</div>}
           </section>
         </>}
         {page === 'projects' && <ProjectWorkspace home={home} onChange={setHome} onOpenRoom={roomId => { setSelectedRoomId(roomId); changePage('floorplan'); }}/>} 
@@ -421,18 +433,10 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         </>}
       </div>
     </main>
-    {purchaseOpen && <Modal title={editingPurchaseId ? 'Editar item de compra' : 'Adicionar à lista de compras'} onClose={() => setPurchaseOpen(false)}><form onSubmit={savePurchase} className="modal-form">
-      <div className="field"><label htmlFor="p-name">Nome do item *</label><input id="p-name" required placeholder="Ex.: Jogo de panelas, tinta, geladeira..." value={purchaseDraft.name} onChange={e => setPurchaseDraft(p => ({...p, name: e.target.value}))}/></div>
-      <div className="form-row"><div className="field"><label htmlFor="p-category">Categoria (livre) *</label><input id="p-category" required list="category-suggestions" value={purchaseDraft.category} onChange={e => setPurchaseDraft(p => ({...p, category: e.target.value}))}/><datalist id="category-suggestions">{['Eletrodomésticos','Cozinha','Utensílios','Móveis','Pintura','Ferramentas','Elétrica','Hidráulica','Limpeza','Decoração','Outros',...categories].map((c,i) => <option key={`${i}-${c}`} value={c}/>)}</datalist></div>
-        <div className="field"><label htmlFor="p-room">Cômodo</label><select id="p-room" value={purchaseDraft.roomId} onChange={e => setPurchaseDraft(p => ({...p, roomId: e.target.value}))}><option value="">Não vinculado</option>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select></div></div>
-      <div className="form-row three"><div className="field"><label htmlFor="p-priority">Prioridade</label><select id="p-priority" value={purchaseDraft.priority} onChange={e => setPurchaseDraft(p => ({...p, priority: e.target.value as Priority}))}>{Object.entries(priorityNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div>
-        <div className="field"><label htmlFor="p-qty">Quantidade</label><input id="p-qty" type="number" min="0.01" step="any" required value={moneyInput(purchaseDraft.quantity)} onChange={e => setPurchaseDraft(p => ({...p, quantity: Number(e.target.value)}))}/></div>
-        <div className="field"><label htmlFor="p-price">Preço unitário (R$)</label><input id="p-price" type="number" min="0" step="0.01" value={moneyInput(purchaseDraft.unitPrice)} onChange={e => setPurchaseDraft(p => ({...p, unitPrice: Number(e.target.value)}))}/></div></div>
-      <div className="field"><label htmlFor="p-url">Link de referência (opcional)</label><input id="p-url" type="url" placeholder="https://..." value={purchaseDraft.url} onChange={e => setPurchaseDraft(p => ({...p, url: e.target.value}))}/></div>
-      <div className="field"><label htmlFor="p-notes">Observações</label><textarea id="p-notes" rows={3} placeholder="Marca, cor, tamanho ou informações importantes" value={purchaseDraft.notes} onChange={e => setPurchaseDraft(p => ({...p, notes: e.target.value}))}/></div>
-      <label className="checkbox-line"><input type="checkbox" checked={purchaseDraft.purchased} onChange={e => setPurchaseDraft(p => ({...p, purchased: e.target.checked}))}/>Item já comprado</label>
-      <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setPurchaseOpen(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar item</button></div>
-    </form></Modal>}
+    {purchaseOpen && <Modal title={editingPurchaseId ? 'Editar item de compra' : 'Adicionar à lista de compras'} onClose={() => setPurchaseOpen(false)}>
+      <PurchaseEditor home={home} draft={purchaseDraft} setDraft={setPurchaseDraft} onSubmit={savePurchase} onCancel={()=>setPurchaseOpen(false)}/>
+      {purchaseError&&<p className="budget-error" role="alert">{purchaseError}</p>}
+    </Modal>}
     {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
       <p className="form-hint">Informe as medidas em metros. A posição X/Z determina onde o cômodo aparece no modelo da casa.</p>
       <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="0.1" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
