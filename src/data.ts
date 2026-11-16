@@ -14,6 +14,7 @@ export const initialHome: HomeData = {
   projects: [],
   workTasks: [],
   scenarios: [],
+  projectFiles: [],
 };
 
 export const priorityNames: Record<Priority, string> = {
