@@ -431,7 +431,7 @@ test('F6.4 — cenário vazio permite planejar espaço futuro sem criar cômodo 
   await room.getByLabel('Largura (m)').fill('5');
   await room.getByLabel('Comprimento (m)').fill('4');
   await room.getByRole('button',{name:'Salvar espaço'}).click();
-  await expect.poll(()=>state.data.scenarios[0].rooms[0].name).toBe('Área de estar planejada');
+  await expect.poll(()=>state.data.scenarios?.[0]?.rooms?.[0]?.name).toBe('Área de estar planejada');
   await expect(page.getByRole('button',{name:'Editar medidas de Área de estar planejada'})).toBeVisible();
   expect(state.data.rooms).toHaveLength(1);
   await page.getByRole('tab',{name:'Antes e depois'}).click();
