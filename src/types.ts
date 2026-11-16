@@ -167,6 +167,26 @@ export interface ProjectTask {
   actualCostCents?: number | null;
 }
 
+/** Histórico reversível do desenho; snapshot isolado dos cômodos reais. */
+export interface ScenarioRevision {
+  id: string;
+  savedAt: string;
+  label: string;
+  rooms: Room[];
+}
+
+/** Alternativa espacial de um projeto: nunca modifica HomeData.rooms. */
+export interface ProjectScenario {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string;
+  rooms: Room[];
+  revisions: ScenarioRevision[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** V2 preserva os campos legados para não interromper os fluxos atuais. */
 export interface HomeData extends Omit<HomeDataV1, 'version'> {
   version: 2;
@@ -174,4 +194,6 @@ export interface HomeData extends Omit<HomeDataV1, 'version'> {
   spaces: Space[];
   projects: Project[];
   workTasks: ProjectTask[];
+  /** Opcional no backup V2 legado; migrado para [] ao importar. */
+  scenarios: ProjectScenario[];
 }
