@@ -481,6 +481,7 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   expect(state.data.rooms[0]).toMatchObject({name:'Sala de teste',width:4.5,length:3.2});
   await page.locator('.interior-editor').getByRole('button',{name:'Duplicar',exact:true}).click();
   await expect.poll(()=>state.data.scenarios[0].furniture.length).toBe(2);
+  expect(state.data.scenarios[0].furniture[1]).toMatchObject({width:1.8,rotation:90,color:'madeira'});
   await page.getByRole('tab',{name:'Antes e depois'}).click();
   await expect(page.getByRole('img',{name:'Planta 2D de Interiores opção A'})).toBeVisible();
   expect(state.data.rooms[0].width).toBe(4.5);
