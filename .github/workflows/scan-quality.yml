@@ -110,4 +110,6 @@ jobs:
       - name: Simular a migração V1 para V2 e rejeição de documentos inválidos
         run: psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-v2-migration.sql
       - name: Testar isolamento Storage com duas identidades sintéticas
-        run: psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-storage-rls.sql
+        run: |
+          createdb myhouse_storage_ci
+          PGDATABASE=myhouse_storage_ci psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-storage-rls.sql
