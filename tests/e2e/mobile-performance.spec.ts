@@ -24,6 +24,7 @@ test('F7.5 — listas e medição manual não solicitam visualizadores 3D',async
   await expect(page.getByRole('heading',{name:'Medidas do cômodo'})).toBeVisible();
   expect(loaded.filter(path=>/\/(?:HouseModel|OutdoorModel|RoomScanPreview|LiveCameraPreview)\.tsx$/.test(path))).toEqual([]);
   await expect(page.locator('canvas')).toHaveCount(0);
+  await page.getByLabel('Nome do cômodo',{exact:true}).fill('Cômodo QA');
   await page.getByRole('button',{name:'Visualizar em 3D'}).click();
   await expect(page.locator('.scan-3d canvas')).toBeVisible();
   expect(loaded.some(path=>path.endsWith('/RoomScanPreview.tsx'))).toBe(true);
