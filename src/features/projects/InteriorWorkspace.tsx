@@ -1,3 +1,4 @@
+import {Feedback} from '../../shared/UiState';
 import { useEffect, useMemo, useState, type FormEvent, type PointerEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Copy, Grid2X2, Move, Plus, RotateCw, Trash2 } from 'lucide-react';
 import type { HomeData, ProjectScenario, ScenarioFurniture, FurnitureColor, FurnitureKind } from '../../types';
@@ -132,8 +133,8 @@ export default function InteriorWorkspace({home,scenario,archived,onChange}:Prop
         </select>
       </label>
     </header>
-    {error&&<p className="interior-error" role="alert">{error}</p>}
-    {feedback&&<p className="interior-feedback" role="status">{feedback}</p>}
+    {error&&<Feedback tone="error">{error}</Feedback>}
+    {feedback&&<Feedback tone="info">{feedback}</Feedback>}
     {!room?<p className="interior-empty">Adicione um cômodo ao cenário para começar a distribuir móveis.</p>:<>
       <div className="interior-views">
         <section className="interior-canvas-panel"><h5>Visão 3D interativa</h5>

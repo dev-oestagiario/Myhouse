@@ -1015,3 +1015,51 @@ test('F7.3 — cadastros enxutos, vínculos opcionais e filtros reversíveis',as
   await buy.getByRole('button',{name:'Salvar item'}).click();
   await expect.poll(()=>state.data.purchases[0]?.projectId).toBe(state.data.projects[0].id);
 });
+
+
+test('F7.4 — carregamento e recuperação de falha na leitura',async({page})=>{
+  let release!:()=>void;
+  let failRead=true;
+  const gate=new Promise<void>(resolve=>{release=resolve;});
+  await setupMockSession(page,undefined,{waitForHome:false,readError:()=>failRead,beforeRead:()=>gate});
+  try{
+    await expect(page.getByRole('status').getByText('Carregando sua casa…')).toBeVisible();
+    await expect(page.locator('#myhouse-page-content')).toHaveCount(0);
+  }finally{release();}
+  await expect(page.getByRole('alert')).toContainText('Conexão de teste indisponível');
+  failRead=false;
+  await page.getByRole('button',{name:'Tentar novamente'}).click();
+  await expect(page.locator('#myhouse-page-content')).toBeVisible();
+  await expect(page.getByText('Carregando sua casa…')).toHaveCount(0);
+});
+
+test('F7.4 — falha de sincronização mantém compra e permite tentar novamente',async({page})=>{
+  const state=await setupMockSession(page,undefined,{failWrites:1});
+  await navigate(page,'Lista de compras');
+  await expect(page.getByText('Sua lista de compras está vazia')).toBeVisible();
+  await createAction(page,'Adicionar item');
+  await page.getByLabel('Nome do item *').fill('Compra pendente de sincronização');
+  await page.getByRole('button',{name:'Salvar item'}).click();
+  const alert=page.getByRole('alert').filter({hasText:'Não foi possível sincronizar'});
+  await expect(alert).toContainText('Falha de sincronização simulada');
+  await expect(page.getByText('Compra pendente de sincronização',{exact:true})).toBeVisible();
+  expect(state.data.purchases).toHaveLength(0);
+  await alert.getByRole('button',{name:'Tentar salvar'}).click();
+  await expect.poll(()=>state.data.purchases.length).toBe(1);
+  await expect(alert).toHaveCount(0);
+  await expect(page.getByText(/Conectado como|Salvo na nuvem/)).toHaveCount(0);
+});
+
+test('F7.4 — vazio filtrado tem recuperação sem alterar dados',async({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Lista de compras');
+  await createAction(page,'Adicionar item');
+  await page.getByLabel('Nome do item *').fill('Item de teste');
+  await page.getByRole('button',{name:'Salvar item'}).click();
+  await expect.poll(()=>state.data.purchases.length).toBe(1);
+  await page.getByLabel('Pesquisar itens').fill('nenhum resultado');
+  await expect(page.getByText('Nenhum item encontrado')).toBeVisible();
+  await page.getByRole('button',{name:'Limpar pesquisa e filtros'}).click();
+  await expect(page.getByText('Item de teste',{exact:true})).toBeVisible();
+  expect(state.data.purchases).toHaveLength(1);
+});

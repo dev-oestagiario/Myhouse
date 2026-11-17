@@ -16,7 +16,8 @@ export const initialFixture: HomeData = {
 type Snapshot = HomeData;
 export type MockHome = { data: Snapshot; revision: number };
 
-export async function setupMockSession(page: Page, seed: Snapshot = structuredClone(initialFixture)) {
+export async function setupMockSession(page: Page, seed: Snapshot = structuredClone(initialFixture), options:{failReads?:number;failWrites?:number;waitForHome?:boolean;beforeRead?:()=>Promise<void>;readError?:()=>boolean}={}) {
+  let failReads=options.failReads??0,failWrites=options.failWrites??0;
   const state: MockHome = { data: structuredClone(seed), revision: 1 };
   const session = {
     access_token: 'test-access',
@@ -56,10 +57,13 @@ export async function setupMockSession(page: Page, seed: Snapshot = structuredCl
     }
     if (url.pathname === '/rest/v1/user_homes') {
       if (method === 'GET') {
+        if(options.beforeRead)await options.beforeRead();
+        if(options.readError?.()||failReads>0){if(failReads>0)failReads--;await respond(400,{message:'Conexão de teste indisponível',code:'TEST_READ'});return;}
         await respond(200, { data: state.data, revision: state.revision });
         return;
       }
       if (method === 'PATCH' || method === 'POST') {
+        if(failWrites>0){failWrites--;await respond(400,{message:'Falha de sincronização simulada',code:'TEST_WRITE'});return;}
         const payload = route.request().postDataJSON() as Partial<MockHome>;
         if (payload.data) state.data = payload.data;
         state.revision = Number(payload.revision || state.revision + 1);
@@ -69,7 +73,7 @@ export async function setupMockSession(page: Page, seed: Snapshot = structuredCl
     await respond(404, { message: 'Mock endpoint não configurado: ' + url.pathname });
   });
   await page.goto('/');
-  await expect(page.locator('#myhouse-page-content')).toBeVisible();
+  if(options.waitForHome!==false)await expect(page.locator('#myhouse-page-content')).toBeVisible();
   return state;
 }
 

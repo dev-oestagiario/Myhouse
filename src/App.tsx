@@ -1,3 +1,5 @@
+import {Feedback,EmptyState,LoadingState} from './shared/UiState';
+import {useNotice} from './shared/useNotice';
 import ContextActions from './shared/ContextActions';
 import Disclosure from './shared/Disclosure';
 import FloatingActions from './shared/FloatingActions';
@@ -21,7 +23,7 @@ import {
   ArrowLeft, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
   ClipboardList, Clock3, Download, Edit3, FileClock, Filter, FolderKanban, Hammer, Home,
   Layers3, Menu, Package, Paintbrush, RotateCcw, Save, Search,
-  ShoppingBasket, Trash2, Upload, Wallet, X, CloudOff, LogOut, ScanLine,
+  ShoppingBasket, Trash2, Upload, Wallet, X, LogOut, ScanLine,
 } from 'lucide-react';
 import type { Direction, HomeData, Purchase, Room, Stage, TaskStatus } from './types';
 import { DIRECTIONS, STAGES } from './types';
@@ -87,7 +89,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   const [workNote, setWorkNote] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [historySearch,setHistorySearch]=useState('');
-  const [notice, setNotice] = useState('');
+  const {notice,show:setNotice,clear:clearNotice}=useNotice();
   const [roomError,setRoomError]=useState('');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -167,12 +169,11 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     if (!supabase) return;
     if (latestHome.current !== lastSaved.current && !window.confirm('Existem alterações ainda não salvas na nuvem. Exporte um backup antes de sair. Sair mesmo assim?')) return;
     const { error } = await supabase.auth.signOut();
-    if (error) setNotice(`Não foi possível sair: ${error.message}`);
+    if (error) setNotice(`Não foi possível sair: ${error.message}`,'error');
   }
   useEffect(() => {
     if (!home.rooms.some(room => room.id === selectedRoomId)) setSelectedRoomId(home.rooms[0]?.id ?? '');
   }, [home.rooms, selectedRoomId]);
-  useEffect(() => { const timeout = window.setTimeout(() => setNotice(''), 5000); return () => clearTimeout(timeout); }, [notice]);
 
   const totalPending = home.purchases.filter(p => !p.purchased).reduce((acc, p) => acc + p.unitPrice * p.quantity, 0);
   const totalBought = home.purchases.filter(p => p.purchased).reduce((acc, p) => acc + p.unitPrice * p.quantity, 0);
@@ -224,13 +225,13 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   function deletePurchase(p: Purchase) {
     if (!window.confirm(`Excluir ${p.name} da lista?`)) return;
     try { setHome(removePurchase(home,p.id)); if(route.itemId===p.id)changePage('shopping'); }
-    catch(error) { setNotice(error instanceof Error ? error.message : 'Não foi possível excluir este item.'); }
+    catch(error) { setNotice(error instanceof Error ? error.message : 'Não foi possível excluir este item.','error'); }
   }
   function togglePurchase(id: string) {
     const item=home.purchases.find(p=>p.id===id);
     if(!item)return;
     try{setHome(changePurchaseStatus(home,id,item.purchased?'preciso':'comprado'));}
-    catch(error){setNotice(error instanceof Error?error.message:'Não foi possível alterar a compra.');}
+    catch(error){setNotice(error instanceof Error?error.message:'Não foi possível alterar a compra.','error');}
   }
   function openRoom(r?: Room) {
     setRoomError('');
@@ -284,7 +285,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   function deleteRoom(r: Room) {
     const affectedSpaceIds = home.spaces.filter(space => space.roomId === r.id).map(space => space.id);
     if (home.projects.some(project => project.spaceIds.some(id => affectedSpaceIds.includes(id)))) {
-      setNotice('Este cômodo está vinculado a um projeto. Desvincule-o do projeto antes de excluir.');
+      setNotice('Este cômodo está vinculado a um projeto. Desvincule-o do projeto antes de excluir.','error');
       return;
     }
     if (!window.confirm(`Excluir ${r.name} e todos os registros de trabalho associados?`)) return;
@@ -325,7 +326,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       if (!window.confirm('O backup substituirá os dados desta conta no Supabase. Continuar?')) return;
       setHome(imported); setSelectedRoomId(imported.rooms[0]?.id ?? ''); setPage('overview');
       setNotice('Backup importado com sucesso.');
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Falha ao importar backup.'); }
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Falha ao importar backup.','error'); }
     finally { if (fileInput.current) fileInput.current.value = ''; }
   }
   function clearAll() {
@@ -439,8 +440,11 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         <div className="topbar-actions"><input className="visually-hidden" ref={fileInput} type="file" tabIndex={-1} aria-label="Selecionar backup JSON" accept=".json,application/json" onChange={e => void importBackup(e.target.files?.[0])} /><button type="button" aria-label="Importar backup" className="btn btn-ghost compact" onClick={() => fileInput.current?.click()}><Upload size={17} /><span>Importar</span></button><button type="button" aria-label="Exportar backup" className="btn btn-outline compact" onClick={exportBackup}><Download size={17} /><span>Exportar backup</span></button></div>
       </header>
       <div className="page-content" id="myhouse-page-content" tabIndex={-1}>
-        {notice && <div className="notice" role="status"><CheckCircle2 size={17} />{notice}<button onClick={() => setNotice('')} aria-label="Fechar aviso"><X size={16}/></button></div>}
-        {(syncStatus === 'error' || syncStatus === 'conflict') && <div className="sync-alert" role="alert"><CloudOff size={18}/><span>{syncError} Seus dados continuam disponíveis nesta tela. Exporte um backup antes de fechar.</span>{syncStatus === 'error' && <button type="button" className="btn btn-outline compact" onClick={() => void persistHome()}>Tentar salvar</button>}<button className="btn btn-outline compact" onClick={exportBackup}>Exportar backup</button></div>}
+        {notice&&<Feedback tone={notice.tone} onDismiss={clearNotice}>{notice.message}</Feedback>}
+        {(syncStatus==='error'||syncStatus==='conflict')&&<Feedback tone="error" actions={<>
+          {syncStatus==='error'&&<button type="button" className="btn btn-outline" onClick={()=>void persistHome()}>Tentar salvar</button>}
+          <button type="button" className="btn btn-outline" onClick={exportBackup}>Exportar backup</button>
+        </>}><strong>{syncStatus==='conflict'?'Conflito de sincronização':'Não foi possível sincronizar'}</strong><p>{syncError} Seus dados continuam nesta tela. Exporte um backup antes de fechar.</p></Feedback>}
         {localDraft && <div className="sync-alert"><span>Há alterações deste dispositivo ainda não sincronizadas com a sua conta. Deseja recuperá-las?</span><button className="btn btn-primary compact" onClick={restoreLocalDraft}>Recuperar rascunho</button><button className="btn btn-outline compact" onClick={dismissLocalDraft}>Descartar</button></div>}
         {page === 'overview' && <>
           <FloatingActions actions={[
@@ -460,10 +464,10 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             <div className="stat-card"><span className="stat-icon purple"><Paintbrush size={22}/></span><span className="stat-label">Paredes finalizadas</span><strong>{completeWalls}<span className="subcount"> / {totalWalls}</span></strong><small>{home.logs.length} atualizações de trabalho</small></div>
           </div>
           <div className="two-column"><section className="panel"><div className="panel-heading"><div><h3>Próximas compras</h3><p>Organizadas por prioridade</p></div><button className="link-button" onClick={() => changePage('shopping')}>Ver todas <ArrowRight size={15}/></button></div>
-            {home.purchases.filter(p => !p.purchased).length === 0 ? <div className="empty compact-empty"><Package size={28}/><strong>Nenhuma compra pendente</strong><span>Adicione utensílios, ferramentas ou qualquer item necessário.</span></div>
+            {home.purchases.filter(p => !p.purchased).length === 0 ? <EmptyState icon={Package} title="Nenhuma compra pendente" description="As próximas compras aparecem aqui." compact/>
               : home.purchases.filter(p => !p.purchased).sort((a,b) => priorityOrder[a.priority] - priorityOrder[b.priority]).slice(0, 4).map(p => <button type="button" className="simple-row home-purchase-row" key={p.id} onClick={()=>openPurchaseDetail(p.id)}><div className={`priority-dot ${p.priority}`}/><div className="simple-row-main"><strong>{p.name}</strong><small>{p.category} · {p.quantity} un.</small></div><span>{money(p.quantity * p.unitPrice)}</span></button>)}
           </section><section className="panel"><div className="panel-heading"><div><h3>Próximos trabalhos</h3><p>Etapas por parede</p></div><button className="link-button" onClick={() => changePage('works')}>Ver obras <ArrowRight size={15}/></button></div>
-            {todoWalls.length === 0 ? <div className="empty compact-empty"><Hammer size={28}/><strong>Nenhum trabalho pendente</strong><span>Cadastre cômodos para acompanhar as paredes.</span></div>
+            {todoWalls.length === 0 ? <EmptyState icon={Hammer} title="Nenhum trabalho pendente" description="Cadastre cômodos para acompanhar as paredes." compact/>
               : todoWalls.slice(0, 4).map(({room,direction,stages}) => <button className="work-row" key={`${room.id}:${direction}`} onClick={() => openRoomDetail(room.id,direction)}><div className="work-row-icon"><Paintbrush size={19}/></div><div className="work-row-main"><strong>{room.name} · {directionNames[direction]}</strong><small>Próxima etapa: {nextStage(stages) ?? 'Finalizado'}</small></div><div className="mini-progress"><div style={{width: `${percentDone(stages)}%`}}/></div><span>{percentDone(stages)}%</span></button>)}
           </section></div>
           {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="example-tip">A planta começa com cômodos de exemplo. Ajuste as medidas ou exclua esses cômodos na aba “Obras”.</p>}
@@ -473,7 +477,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           <FloatingActions actions={[{label:'Adicionar item',onClick:()=>openPurchase()}]}/>
           <div className="shopping-summary"><div><span>Para comprar</span><strong>{pendingCount} itens</strong></div><div><span>Estimativa pendente</span><strong>{money(totalPending)}</strong></div><div><span>Total já comprado</span><strong>{money(totalBought)}</strong></div></div>
           <section className="panel shopping-panel"><div className="filters"><div className="search-box"><Search size={18}/><input aria-label="Pesquisar itens" placeholder="Buscar utensílio, material, ferramenta..." value={search} onChange={e => setSearch(e.target.value)}/></div><Disclosure title="Filtros" filter activeCount={Number(categoryFilter!=='todas')+Number(statusFilter!=='todos')} onReset={()=>{setCategoryFilter('todas');setStatusFilter('todos');}}><div className="filter-input"><Filter size={17}/><select value={categoryFilter} aria-label="Filtrar categoria" onChange={e => setCategoryFilter(e.target.value)}><option value="todas">Todas as categorias</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div><select className="status-select" aria-label="Filtrar situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="todos">Todos os status</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></Disclosure></div>
-            {purchases.length === 0 ? <div className="empty"><ShoppingBasket size={38}/><strong>Nenhum item encontrado</strong><span>Adicione sua primeira compra ou altere os filtros.</span></div>
+            {purchases.length === 0 ? <EmptyState icon={ShoppingBasket} title={home.purchases.length?'Nenhum item encontrado':'Sua lista de compras está vazia'} description={home.purchases.length?'Altere a busca ou os filtros.':'Adicione um item pelo botão Novo.'} action={home.purchases.length?<button type="button" className="btn btn-outline" onClick={()=>{setSearch('');setCategoryFilter('todas');setStatusFilter('todos');}}>Limpar pesquisa e filtros</button>:undefined}/>
               : <div className="purchase-list">{purchases.map(p => <div key={p.id} className={`purchase-item ${p.purchased ? 'done' : ''}`}><button className={`purchase-check ${p.purchased ? 'checked' : ''}`} onClick={() => togglePurchase(p.id)} title={p.purchased ? 'Marcar como pendente' : 'Marcar como comprado'} aria-label={`Alterar status de ${p.name}`}>{p.purchased && <Check size={16}/>}</button><div className="purchase-info"><button type="button" className="purchase-open-title" onClick={()=>openPurchaseDetail(p.id)}><strong>{p.name}</strong></button><div className="purchase-meta"><span>{p.category}</span><span className="dot-separator"/><span>{home.rooms.find(r => r.id === p.roomId)?.name ?? 'Sem cômodo'}</span><span className="dot-separator"/><span>{p.quantity} {p.unit??'un.'}</span>{p.projectId&&<><span className="dot-separator"/><span>Projeto: {home.projects.find(pr=>pr.id===p.projectId)?.name??'—'}</span></>}</div></div><span className={`priority-pill ${p.priority}`}>{priorityNames[p.priority]}</span><div className="purchase-cost"><strong>{money(p.quantity * p.unitPrice)}</strong><small>{PURCHASE_STATUS_NAMES[currentStatus(p)]}</small>{p.purchased&&p.actualUnitPriceCents!=null&&<small>Pago: {money(p.actualUnitPriceCents*p.quantity/100)}</small>}</div><button type="button" className="icon-button purchase-open-arrow" aria-label={`Ver compra ${p.name}`} onClick={()=>openPurchaseDetail(p.id)}><ChevronRight size={20}/></button></div>)}</div>}
           </section>
         </>}
@@ -510,7 +514,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             {label:'Abrir Obras',icon:<Hammer size={18}/>,onClick:()=>changePage('works')}
           ]}/>
           <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
-            <div className="scene">{home.rooms.length ? <Suspense fallback={<div role="status" className="empty">Carregando a visualização 3D… Use o editor 2D se preferir.</div>}><HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/></Suspense> : <div className="empty"><Layers3 size={38}/><strong>Planta vazia</strong><span>Cadastre ou escaneie um cômodo para começar.</span></div>}</div>
+            <div className="scene">{home.rooms.length ? <Suspense fallback={<LoadingState title="Carregando a visualização 3D…" description="Você também pode consultar a planta em 2D." action={<button type="button" className="btn btn-outline" onClick={()=>changePage('plan-editor')}>Abrir editor 2D</button>}/>}><HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/></Suspense> : <EmptyState icon={Layers3} title="Planta vazia" description="Use Novo para cadastrar ou escanear um cômodo."/>}</div>
             <div className="room-list-header"><strong>Cômodos</strong><span>{home.rooms.length} cômodo(s)</span></div>
             <div className="room-chips">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button type="button" className="chip-main" aria-pressed={selectedRoomId === r.id} onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button></div>)}</div>
             {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. Confira a distribuição real e ajuste portas e janelas no editor 2D.</p>}
@@ -552,7 +556,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           </section>}
           {!roomDetail&&<section className="panel rooms-manager"><div className="panel-heading"><div><h3>Gerenciar cômodos</h3><p>Cadastre, ajuste medidas ou exclua cômodos da planta.</p></div></div>
             <div className="rooms-manager-list">{home.rooms.map(r => <button type="button" key={r.id} className="room-list-entry" onClick={()=>openRoomDetail(r.id)}><Home size={21}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span><ChevronRight size={19}/></button>)}</div>
-            {home.rooms.length === 0 && <p className="rooms-empty">Nenhum cômodo cadastrado.</p>}
+            {home.rooms.length === 0 && <EmptyState icon={Home} title="Nenhum cômodo cadastrado" description="Use Novo para adicionar o primeiro ambiente."/>}
             <div className="rooms-manager-footer"><button className="link-button" onClick={() => changePage('plan-editor')}><Edit3 size={16}/>Editar formato, portas e janelas <ArrowRight size={15}/></button><button className="link-button" onClick={() => changePage('floorplan')}><Box size={16}/>Visualizar Planta 3D <ArrowRight size={15}/></button></div>
           </section>}
           </div>
@@ -563,7 +567,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         </>}
         {page === 'history' && <><div className="page-title-row"><div><span className="eyebrow dark-eyebrow">RASTREABILIDADE</span><h1>Histórico de atividades</h1><p>O que foi feito, onde foi feito e quando aconteceu.</p></div></div>
           <div className="history-search search-box"><Search size={18}/><input aria-label="Pesquisar atividades" placeholder="Buscar cômodo, etapa, observação" value={historySearch} onChange={e=>setHistorySearch(e.target.value)}/></div>
-          <section className="panel history-panel">{filteredLogs.length === 0 ? <div className="empty"><ClipboardList size={38}/><strong>{home.logs.length?'Nenhum resultado':'O histórico ainda está vazio'}</strong><span>{home.logs.length?'Altere a pesquisa.':'Abra Obras, escolha um cômodo e registre uma atualização.'}</span><button className="btn btn-primary" onClick={() => changePage('works')}><Hammer size={17}/>Registrar obra</button></div> : <div className="timeline">{filteredLogs.map(log => <article className="timeline-row" key={log.id}><span className="timeline-icon"><Hammer size={17}/></span><div><span className="timeline-date">{localDate(log.createdAt)}</span><h3>{log.stage} · {statusNames[log.status]}</h3><p><strong>{home.rooms.find(r => r.id === log.roomId)?.name ?? 'Cômodo excluído'}</strong> — Parede {directionNames[log.direction].toLowerCase()}</p>{log.note && <div className="timeline-note">{log.note}</div>}</div></article>)}</div>}</section>
+          <section className="panel history-panel">{filteredLogs.length === 0 ? <EmptyState icon={ClipboardList} title={home.logs.length?'Nenhum resultado':'O histórico ainda está vazio'} description={home.logs.length?'Altere a pesquisa.':'Escolha um cômodo em Obras para registrar uma atualização.'} action={home.logs.length?<button type="button" className="btn btn-outline" onClick={()=>setHistorySearch('')}>Limpar pesquisa</button>:<button type="button" className="btn btn-outline" onClick={()=>changePage('works')}>Registrar obra</button>}/> : <div className="timeline">{filteredLogs.map(log => <article className="timeline-row" key={log.id}><span className="timeline-icon"><Hammer size={17}/></span><div><span className="timeline-date">{localDate(log.createdAt)}</span><h3>{log.stage} · {statusNames[log.status]}</h3><p><strong>{home.rooms.find(r => r.id === log.roomId)?.name ?? 'Cômodo excluído'}</strong> — Parede {directionNames[log.direction].toLowerCase()}</p>{log.note && <div className="timeline-note">{log.note}</div>}</div></article>)}</div>}</section>
           <details className="history-footer account-maintenance"><summary>Gerenciar dados</summary><button type="button" className="btn btn-outline" onClick={exportBackup}><Download size={16}/>Exportar dados</button><button className="link-button danger-link" onClick={clearAll}><RotateCcw size={16}/>Zerar dados</button></details>
         </>}
       </div>
@@ -576,14 +580,13 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       <form onSubmit={saveWork} className="modal-form"><div className="form-row"><div className="field"><label htmlFor="stage">Etapa</label><select id="stage" value={stage} onChange={e => { const s = e.target.value as Stage; setStage(s); setStatus(selectedStages[s] ?? 'em-andamento'); }}>{STAGES.map(s => <option key={s}>{s}</option>)}</select></div><div className="field"><label htmlFor="step-status">Situação</label><select id="step-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{Object.entries(statusNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div></div><div className="field"><label htmlFor="work-note">O que você fez? (opcional)</label><textarea id="work-note" rows={3} value={workNote} onChange={e => setWorkNote(e.target.value)} placeholder="Ex.: Removi a tinta descascada da metade superior da parede." /></div><button className="btn btn-primary full" type="submit"><Save size={17}/>Salvar atualização</button></form>
     </Modal>}
     {purchaseOpen && <Modal title={editingPurchaseId ? 'Editar item de compra' : 'Adicionar à lista de compras'} onClose={() => setPurchaseOpen(false)}>
-      <PurchaseEditor home={home} draft={purchaseDraft} setDraft={setPurchaseDraft} onSubmit={savePurchase} onCancel={()=>setPurchaseOpen(false)}/>
-      {purchaseError&&<p className="budget-error" role="alert">{purchaseError}</p>}
+      <PurchaseEditor home={home} draft={purchaseDraft} setDraft={setPurchaseDraft} onSubmit={savePurchase} onCancel={()=>setPurchaseOpen(false)} error={purchaseError}/>
     </Modal>}
     {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
       <p className="form-hint">Informe as medidas em metros.</p>
       <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="0.1" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
       <Disclosure title="Posição na planta" summary="Opcional"><p className="form-hint">Mantenha a posição sugerida ou ajuste X/Z.</p><div className="form-row">{([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="-100" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div></Disclosure>
-      {roomError&&<p className="auth-alert" role="alert">{roomError}</p>}<div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setRoomOpen(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar cômodo</button></div>
+      {roomError&&<Feedback tone="error">{roomError}</Feedback>}<div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setRoomOpen(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar cômodo</button></div>
     </form></Modal>}
   </div>;
 }

@@ -1,3 +1,4 @@
+import {Feedback} from '../shared/UiState';
 import { useBackLayer } from '../shared/useBackLayer';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
@@ -241,7 +242,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
       <label className="scan-confirm"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/><span>Conferi as medidas de largura, comprimento, altura, posição e formato do cômodo. Sei que a planta é ilustrativa e que posso ajustar a geometria depois.</span></label>
       <div className="scan-footer"><button type="button" className="btn btn-ghost" onClick={() => { setConfirmed(false); setMessage(''); setScreen('measures'); }}><ArrowLeft size={16}/>Corrigir medidas</button><button type="button" disabled={!confirmed} className="btn btn-primary" onClick={save}><CheckCircle2 size={17}/>Criar cômodo na Planta 3D</button></div>
     </div>}
-    {message && <p role="alert" className="scan-error">{message}</p>}
+    {message && <Feedback tone="error">{message}</Feedback>}
     <p className="scan-bottom-note"><Layers3 size={16}/> A transmissão da câmera não é salva; apenas o cômodo confirmado será sincronizado.</p>
   </section>;
 }

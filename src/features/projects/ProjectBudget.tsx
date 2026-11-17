@@ -1,3 +1,4 @@
+import {Feedback,EmptyState} from '../../shared/UiState';
 import ContextActions from '../../shared/ContextActions';
 import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
@@ -96,8 +97,8 @@ export default function ProjectBudget({home,project,onChange}:Props){
       <p>Itens vinculados à lista geral. Materiais, serviços e gastos confirmados aparecem separadamente.</p></div>
       <FloatingActions actions={[{label:'Adicionar compra',disabled:archived,onClick:()=>openPurchase()}]}/>
     </header>
-    {notice&&<div role="status" className="budget-feedback">{notice}<button type="button" aria-label="Fechar mensagem" onClick={()=>setNotice('')}>×</button></div>}
-    {error&&!editId&&!costId&&!quoteId&&<p className="budget-error" role="alert">{error}</p>}
+    {notice&&<Feedback tone="success" onDismiss={()=>setNotice('')}>{notice}</Feedback>}
+    {error&&!editId&&!costId&&!quoteId&&<Feedback tone="error">{error}</Feedback>}
     <div className="budget-overview">
       <div><span>Materiais previstos</span><strong>{brl(figures.materialsCents)}</strong></div>
       <div><span>Serviços previstos</span><strong>{brl(figures.servicesCents)}</strong></div>
@@ -118,7 +119,7 @@ export default function ProjectBudget({home,project,onChange}:Props){
       <small>Percentual sobre materiais e serviços previstos. Não representa um gasto realizado.</small></div></Disclosure>
     <div className="budget-section-title"><div><ShoppingBasket size={19}/><h4>Materiais e compras</h4><span>{figures.purchases.length} itens · {figures.pendingCount} pendentes</span></div>
       <label>Visualizar<select aria-label="Filtrar compras do projeto" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as typeof statusFilter)}><option value="todos">Todos</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></label></div>
-    {!visiblePurchases.length?<div className="budget-empty"><ShoppingBasket size={27}/><p>{figures.purchases.length?'Nenhuma compra corresponde a este filtro.':'Ainda não há compras vinculadas ao projeto. Você pode cadastrar materiais, móveis e equipamentos aqui.'}</p></div>:
+    {!visiblePurchases.length?<EmptyState icon={ShoppingBasket} title={figures.purchases.length?'Nenhuma compra encontrada':'Nenhuma compra vinculada'} description={figures.purchases.length?'Altere o filtro de situação.':'Use Novo para inserir materiais, móveis ou equipamentos.'} action={figures.purchases.length?<button type="button" className="btn btn-outline" onClick={()=>setStatusFilter('todos')}>Mostrar todas</button>:undefined} compact/>:
       <div className="budget-item-list">{visiblePurchases.map(item=><article key={item.id} className="budget-item">
         <div className="budget-item-header"><div><h5>{item.name}</h5><span>{item.category} · {item.quantity} {item.unit??'un.'} · {item.supplier||'Fornecedor não definido'}</span></div>
           <select disabled={archived} aria-label={`Situação de compra de ${item.name}`} value={currentStatus(item)}
@@ -145,14 +146,14 @@ export default function ProjectBudget({home,project,onChange}:Props){
     <p className="budget-footnote">O orçamento é uma estimativa informada por você. Não inclui cálculo estrutural, preços atualizados automaticamente ou impostos não cadastrados.</p>
     {editId!==null&&<Modal title={editId==='new'?'Adicionar compra ao projeto':'Editar compra do projeto'} onClose={()=>setEditId(null)}>
       <PurchaseEditor home={home} draft={draft} setDraft={setDraft} lockedProjectId={project.id} onSubmit={commitPurchase} onCancel={()=>setEditId(null)}/>
-      {error&&<p className="budget-error" role="alert">{error}</p>}
+      {error&&<Feedback tone="error">{error}</Feedback>}
     </Modal>}
     {selectedCostTask&&<Modal title={`Custos do serviço: ${selectedCostTask.title}`} onClose={()=>setCostId(null)}>
       <form className="modal-form budget-cost-form" onSubmit={commitCost}>
         <p className="form-hint">Preencha somente mão de obra e serviços. Os materiais são cadastrados como compras, sem duplicar valores.</p>
         <div className="field"><label htmlFor="service-forecast">Custo previsto (R$)</label><input id="service-forecast" inputMode="decimal" value={estimateInput} onChange={e=>setEstimateInput(e.target.value)} placeholder="Ex.: 1500,00"/></div>
         <div className="field"><label htmlFor="service-real">Custo efetivamente pago (R$)</label><input id="service-real" inputMode="decimal" value={actualInput} onChange={e=>setActualInput(e.target.value)} placeholder="Ex.: 1350,00"/></div>
-        {error&&<p className="budget-error" role="alert">{error}</p>}
+        {error&&<Feedback tone="error">{error}</Feedback>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setCostId(null)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={16}/>Salvar custos</button></div>
       </form>
     </Modal>}
@@ -169,7 +170,7 @@ export default function ProjectBudget({home,project,onChange}:Props){
         <div className="field"><label htmlFor="quote-supplier">Fornecedor *</label><input id="quote-supplier" required maxLength={180} value={supplier} onChange={e=>setSupplier(e.target.value)}/></div>
         <div className="field"><label htmlFor="quote-price">Preço unitário cotado (R$) *</label><input id="quote-price" required inputMode="decimal" value={quotedPrice} onChange={e=>setQuotedPrice(e.target.value)} placeholder="Ex.: 84,90"/></div>
         <div className="field"><label htmlFor="quote-url">Link da cotação (opcional)</label><input id="quote-url" type="url" value={quoteUrl} onChange={e=>setQuoteUrl(e.target.value)} placeholder="https://..."/></div>
-        {error&&<p className="budget-error" role="alert">{error}</p>}
+        {error&&<Feedback tone="error">{error}</Feedback>}
         <button type="submit" className="btn btn-primary"><FilePlus2 size={16}/>Adicionar cotação</button>
       </form>}
     </Modal>}
