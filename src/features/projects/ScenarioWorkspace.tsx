@@ -1,3 +1,4 @@
+import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
@@ -258,8 +259,8 @@ export default function ScenarioWorkspace({home,project,selectedId,onSelectScena
         <div className="field"><label htmlFor="scene-room-name">Nome do espaço *</label><input id="scene-room-name" required maxLength={180} value={roomFields.name} onChange={e=>setRoomFields(p=>({...p,name:e.target.value}))}/></div>
         <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label])=><div className="field" key={key}>
           <label htmlFor={`scene-room-${key}`}>{label}</label><input id={`scene-room-${key}`} type="number" required min=".1" max="100" step=".01" value={roomFields[key]} onChange={e=>setRoomFields(p=>({...p,[key]:Number(e.target.value)}))}/></div>)}</div>
-        <div className="form-row">{(['x','z'] as const).map(key=><div className="field" key={key}><label htmlFor={`scene-room-${key}`}>Posição {key.toUpperCase()} (m)</label>
-          <input id={`scene-room-${key}`} type="number" required min="-100" max="100" step=".01" value={roomFields[key]} onChange={e=>setRoomFields(p=>({...p,[key]:Number(e.target.value)}))}/></div>)}</div>
+        <Disclosure title="Posição na planta" summary="Opcional"><div className="form-row">{(['x','z'] as const).map(key=><div className="field" key={key}><label htmlFor={`scene-room-${key}`}>Posição {key.toUpperCase()} (m)</label>
+          <input id={`scene-room-${key}`} type="number" required min="-100" max="100" step=".01" value={roomFields[key]} onChange={e=>setRoomFields(p=>({...p,[key]:Number(e.target.value)}))}/></div>)}</div></Disclosure>
         {error&&<p className="scenario-error" role="alert">{error}</p>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={16}/>Salvar espaço</button></div>
       </form>

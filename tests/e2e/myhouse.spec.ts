@@ -2,6 +2,16 @@ import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { navigate, setupMockSession } from './fixtures';
 
+async function expandSection(page:Page,title:string) {
+  const disclosure=page.locator('details.compact-disclosure').filter({has:page.locator('summary').filter({hasText:new RegExp('^'+title)})});
+  const visible=disclosure.filter({visible:true}).first();
+  if(await visible.count()&&!(await visible.getAttribute('open')!==null))await visible.locator('summary').click();
+}
+async function showContext(page:Page,label:string) {
+  const button=page.getByRole('button',{name:label,exact:true});
+  if(await button.getAttribute('aria-expanded')!=='true')await button.click();
+}
+
 async function openActions(page:Page) {
   await page.getByRole('button',{name:'Ações de cadastro',exact:true}).click();
 }
@@ -183,8 +193,10 @@ test('F6.1 — cria projeto de deck sem cômodo e edita com orçamento e ambient
   await createAction(page,'Novo projeto');
   const dialog = page.getByRole('dialog', { name: 'Novo projeto' });
   await dialog.getByLabel('Nome do projeto *').fill('Deck no quintal');
+  await expandSection(page,'Planejamento e orçamento');
   await dialog.getByLabel('O que pretende mudar?').fill('Planejar uma plataforma externa.');
   await dialog.getByLabel('Tipo de projeto').selectOption('ampliacao');
+  await expandSection(page,'Planejamento e orçamento');
   await dialog.getByLabel('Orçamento previsto (R$)').fill('2500,50');
   await dialog.getByRole('button', { name: 'Salvar projeto' }).click();
   await expect(page.getByRole('heading', { name: 'Deck no quintal' })).toBeVisible();
@@ -192,10 +204,13 @@ test('F6.1 — cria projeto de deck sem cômodo e edita com orçamento e ambient
   await page.locator('.project-overview-disclosure summary').click();
   await expect(page.getByText('Ainda não há ambientes vinculados.')).toBeVisible();
   await expect(page.locator('.projects-summary').getByText('R$ 2.500,50')).toBeVisible();
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button', { name: 'Editar projeto' }).click();
   const edit = page.getByRole('dialog', { name: 'Editar projeto' });
   await edit.getByLabel('Situação').selectOption('planejando');
+  await expandSection(page,'Planejamento e orçamento');
   await edit.getByLabel('Prioridade').selectOption('alta');
+  await expandSection(page,'Ambientes envolvidos');
   await edit.getByRole('checkbox', { name: 'Sala de teste' }).check();
   await edit.getByRole('button', { name: 'Salvar projeto' }).click();
   await expect(page.locator('.projects-summary').getByText('Planejando', { exact: true })).toBeVisible();
@@ -206,6 +221,7 @@ test('F6.1 — cria projeto de deck sem cômodo e edita com orçamento e ambient
   expect(state.data.rooms[0].name).toBe('Sala de teste');
   await navigate(page,'Obras');
   await page.getByRole('button',{name:/Sala de teste/}).click();
+  await showContext(page,'Ações do cômodo');
   await page.getByRole('button', { name: 'Excluir Sala de teste' }).click();
   await expect(page.getByText('Este cômodo está vinculado a um projeto.')).toBeVisible();
   expect(state.data.rooms).toHaveLength(1);
@@ -217,18 +233,25 @@ test('F6.1 — arquiva, filtra, reativa e exclui projeto sem apagar cômodos', a
   await createAction(page,'Novo projeto');
   const dialog=page.getByRole('dialog',{name:'Novo projeto'});
   await dialog.getByLabel('Nome do projeto *').fill('Renovar sala');
+  await expandSection(page,'Ambientes envolvidos');
   await dialog.getByRole('checkbox',{name:'Sala de teste'}).check();
   await dialog.getByRole('button',{name:'Salvar projeto'}).click();
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Arquivar projeto'}).click();
+  await showContext(page,'Ações do projeto');
   await expect(page.getByRole('button',{name:'Reativar projeto'})).toBeVisible();
   await page.getByRole('button',{name:'Todos os projetos'}).click();
   await expect(page.getByRole('button',{name:/Ver projeto/})).toHaveCount(0);
+  await expandSection(page,'Filtros');
   await page.getByLabel('Exibição').selectOption('arquivados');
   await expect(page.getByRole('heading',{name:'Renovar sala'})).toBeVisible();
   await page.getByRole('button',{name:'Ver projeto'}).click();
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Reativar projeto'}).click();
+  await showContext(page,'Ações do projeto');
   await expect(page.getByRole('button',{name:'Editar projeto'})).toBeVisible();
   page.once('dialog', dialog=>void dialog.accept());
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Excluir projeto'}).click();
   await expect(page.getByRole('heading',{name:'Renovar sala'})).toHaveCount(0);
   await expect.poll(()=>state.data.projects.length).toBe(0);
@@ -248,8 +271,10 @@ test('F6.1 — filtra projetos por situação e pesquisa', async ({ page }) => {
   await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toHaveCount(0);
   await page.getByLabel('Pesquisar projetos').fill('pintura');
   await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toBeVisible();
+  await expandSection(page,'Filtros');
   await page.getByLabel('Situação').selectOption('concluido');
   await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toHaveCount(0);
+  await expandSection(page,'Filtros');
   await page.getByLabel('Situação').selectOption('em-execucao');
   await expect(page.getByRole('heading',{name:'Pintura da cozinha'})).toBeVisible();
 });
@@ -260,6 +285,7 @@ test('F6.2 — criar serviço com checklist, acompanhar progresso, arquivar e re
   await createAction(page,'Novo projeto');
   const projectModal=page.getByRole('dialog',{name:'Novo projeto'});
   await projectModal.getByLabel('Nome do projeto *').fill('Renovar a sala');
+  await expandSection(page,'Ambientes envolvidos');
   await projectModal.getByRole('checkbox',{name:'Sala de teste'}).check();
   await projectModal.getByRole('button',{name:'Salvar projeto'}).click();
   await expect(page.getByRole('heading',{name:'Tarefas e serviços'})).toBeVisible();
@@ -269,7 +295,9 @@ test('F6.2 — criar serviço com checklist, acompanhar progresso, arquivar e re
   await taskModal.getByLabel('Tipo').selectOption('servico');
   await taskModal.getByLabel('Prioridade').selectOption('alta');
   await taskModal.getByLabel('Prazo previsto (opcional)').fill('2026-12-20');
+  await expandSection(page,'Detalhes e ambiente');
   await taskModal.getByLabel('Ambiente (opcional)').selectOption({label:'Sala de teste'});
+  await expandSection(page,'Checklist');
   await taskModal.getByRole('button',{name:'Adicionar etapa'}).click();
   await taskModal.getByRole('textbox',{name:'Etapa 1'}).fill('Cobrir móveis');
   await taskModal.getByRole('button',{name:'Salvar tarefa'}).click();
@@ -284,9 +312,11 @@ test('F6.2 — criar serviço com checklist, acompanhar progresso, arquivar e re
   await expect(page.getByRole('progressbar',{name:'Tarefas concluídas'})).toHaveAttribute('aria-valuenow','100');
   await page.getByRole('button',{name:'Ver histórico'}).click();
   await expect(page.getByText('Concluiu: Cobrir móveis')).toBeVisible();
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Arquivar projeto'}).click();
   await openActions(page);
   await expect(page.getByRole('button',{name:'Nova tarefa'})).toBeDisabled();
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Reativar projeto'}).click();
   await openActions(page);
   await expect(page.getByRole('button',{name:'Nova tarefa'})).toBeEnabled();
@@ -308,7 +338,7 @@ test('F6.2 — dependências e integridade na exclusão',async ({page})=>{
     await createAction(page,'Nova tarefa');
     const dialog=page.getByRole('dialog',{name:'Nova tarefa'});
     await dialog.getByLabel('Nome da tarefa *').fill(title);
-    if(dependency) await dialog.getByRole('checkbox',{name:dependency}).check();
+    if(dependency) { await expandSection(page,'Dependências'); await dialog.getByRole('checkbox',{name:dependency}).check(); }
     await dialog.getByRole('button',{name:'Salvar tarefa'}).click();
   }
   await addTask('Preparar o espaço');
@@ -327,15 +357,19 @@ test('F6.2 — dependências e integridade na exclusão',async ({page})=>{
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
   await page.getByRole('button',{name:'Lista',exact:true}).click();
+  await showContext(page,'Ações da tarefa Preparar o espaço');
   await page.getByRole('button',{name:'Excluir tarefa Preparar o espaço'}).click();
   // Confirmação é necessária antes de tentar apagar trabalho vinculado.
   // Sem aceitar o confirm do browser, a tarefa permanece.
   await expect.poll(()=>state.data.workTasks.length).toBe(2);
   page.once('dialog',dialog=>void dialog.accept());
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Excluir projeto'}).click();
   await expect(page.getByText(/Este projeto possui tarefas/)).toBeVisible();
   expect(state.data.projects).toHaveLength(1);
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Arquivar projeto'}).click();
+  await showContext(page,'Ações do projeto');
   await expect(page.getByRole('button',{name:'Reativar projeto'})).toBeVisible();
 });
 
@@ -345,7 +379,9 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   await createAction(page,'Novo projeto');
   const modal=page.getByRole('dialog',{name:'Novo projeto'});
   await modal.getByLabel('Nome do projeto *').fill('Reforma com orçamento');
+  await expandSection(page,'Planejamento e orçamento');
   await modal.getByLabel('Orçamento previsto (R$)').fill('1000,00');
+  await expandSection(page,'Ambientes envolvidos');
   await modal.getByRole('checkbox',{name:'Sala de teste'}).check();
   await modal.getByRole('button',{name:'Salvar projeto'}).click();
   await createAction(page,'Nova tarefa');
@@ -359,6 +395,7 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   await buy.getByLabel('Nome do item *').fill('Tinta premium');
   await buy.getByLabel('Quantidade').fill('2');
   await buy.getByLabel('Preço unitário (R$)').fill('79.90');
+  await expandSection(page,'Vínculos');
   await buy.getByLabel('Tarefa relacionada (opcional)').selectOption({label:'Pintar a sala'});
   await buy.getByRole('button',{name:'Salvar item'}).click();
   await expect(page.getByRole('heading',{name:'Compras e orçamento'})).toBeVisible();
@@ -369,11 +406,14 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   expect(state.data.purchases[0].projectId).toBe(state.data.projects[0].id);
   await page.getByRole('combobox',{name:'Situação de compra de Tinta premium'}).selectOption('comprado');
   await expect(page.getByText('Nenhum gasto real informado.')).toBeVisible();
+  await showContext(page,'Ações da compra Tinta premium');
   await page.getByRole('button',{name:'Editar compra Tinta premium'}).click();
   const edit=page.getByRole('dialog',{name:'Editar compra do projeto'});
+  await expandSection(page,'Pagamento e fornecedor');
   await edit.getByLabel('Preço unitário pago (R$)').fill('75.50');
   await edit.getByRole('button',{name:'Salvar item'}).click();
   await expect(page.getByRole('region',{name:'Compras e orçamento do projeto'}).getByText('R$ 151,00').first()).toBeVisible();
+  await expandSection(page,'Configurar reserva');
   await page.getByLabel('Reserva para imprevistos (%)').fill('10');
   await page.getByRole('button',{name:'Aplicar reserva'}).click();
   await expect(page.getByText('R$ 15,98')).toBeVisible();
@@ -408,6 +448,7 @@ test('F6.3 — compra geral pode ser vinculada a projeto sem duplicar',async ({p
   const buy=page.getByRole('dialog',{name:'Adicionar à lista de compras'});
   await buy.getByLabel('Nome do item *').fill('Madeira tratada');
   await buy.getByLabel('Preço unitário (R$)').fill('30');
+  await expandSection(page,'Vínculos');
   await buy.getByLabel('Projeto (opcional)').selectOption({label:'Deck exterior'});
   await buy.getByRole('button',{name:'Salvar item'}).click();
   await expect.poll(()=>state.data.purchases.length).toBe(1);
@@ -421,6 +462,7 @@ test('F6.4 — criar cenário da sala, editar medidas, comparar e recuperar a ve
   await createAction(page,'Novo projeto');
   const project=page.getByRole('dialog',{name:'Novo projeto'});
   await project.getByLabel('Nome do projeto *').fill('Sala futura');
+  await expandSection(page,'Ambientes envolvidos');
   await project.getByRole('checkbox',{name:'Sala de teste'}).check();
   await project.getByRole('button',{name:'Salvar projeto'}).click();
   await page.getByRole('tab',{name:'Cenários 2D/3D'}).click();
@@ -542,6 +584,7 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   await createAction(page,'Novo projeto');
   const project=page.getByRole('dialog',{name:'Novo projeto'});
   await project.getByLabel('Nome do projeto *').fill('Sala mobiliada');
+  await expandSection(page,'Ambientes envolvidos');
   await project.getByRole('checkbox',{name:'Sala de teste'}).check();
   await project.getByRole('button',{name:'Salvar projeto'}).click();
   await page.getByRole('tab',{name:'Cenários 2D/3D'}).click();
@@ -608,6 +651,7 @@ test('F6.5 — objeto não cabe no cômodo e projeto arquivado preserva os móve
   await createAction(page,'Novo projeto');
   const p=page.getByRole('dialog',{name:'Novo projeto'});
   await p.getByLabel('Nome do projeto *').fill('Quarto planejado');
+  await expandSection(page,'Ambientes envolvidos');
   await p.getByRole('checkbox',{name:'Sala de teste'}).check();
   await p.getByRole('button',{name:'Salvar projeto'}).click();
   await page.getByRole('tab',{name:'Cenários 2D/3D'}).click();
@@ -623,9 +667,11 @@ test('F6.5 — objeto não cabe no cômodo e projeto arquivado preserva os móve
   await page.getByLabel('Posição X (m)').fill('2');
   await page.getByRole('button',{name:'Salvar móvel'}).click();
   await expect.poll(()=>state.data.scenarios[0].furniture[0].x).toBe(2);
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Arquivar projeto'}).click();
   await expect(page.getByRole('button',{name:'Adicionar cadeira'})).toBeDisabled();
   await expect(page.getByRole('button',{name:'Salvar móvel'})).toBeDisabled();
+  await showContext(page,'Ações do projeto');
   await page.getByRole('button',{name:'Reativar projeto'}).click();
   await expect(page.getByRole('button',{name:'Adicionar cadeira'})).toBeEnabled();
   expect(state.data.rooms).toHaveLength(1);
@@ -641,6 +687,7 @@ test('F6.7 — agenda, fases e custos de projeto sem precisar abrir o 3D',async 
   await createAction(page,'Nova tarefa');
   const task=page.getByRole('dialog',{name:'Nova tarefa'});
   await task.getByLabel('Nome da tarefa *').fill('Preparar o acabamento');
+  await expandSection(page,'Detalhes e ambiente');
   await task.getByLabel('Etapa do projeto (opcional)').fill('Acabamento');
   await task.getByLabel('Prazo previsto (opcional)').fill('2026-11-22');
   await task.getByRole('button',{name:'Salvar tarefa'}).click();
@@ -651,6 +698,7 @@ test('F6.7 — agenda, fases e custos de projeto sem precisar abrir o 3D',async 
   await buy.getByLabel('Nome do item *').fill('Tinta para acabamento');
   await buy.getByLabel('Preço unitário (R$)').fill('80');
   await buy.getByLabel('Quantidade').fill('2');
+  await expandSection(page,'Vínculos');
   await buy.getByLabel('Tarefa relacionada (opcional)').selectOption({label:'Preparar o acabamento'});
   await buy.getByRole('button',{name:'Salvar item'}).click();
   await page.getByRole('tab',{name:'Acompanhamento'}).click();
@@ -797,6 +845,7 @@ test('F7.1 — compras e cômodos em páginas próprias, com retorno e ações',
   await expect(crumbs).toContainText('Compras');
   await expect(crumbs.locator('[aria-current="page"]')).toHaveText('Mesa de teste');
   await expect(page.getByLabel('Pesquisar itens')).toHaveCount(0);
+  await showContext(page,'Ações do item');
   await page.getByRole('button',{name:'Editar item',exact:true}).click();
   await page.getByLabel('Nome do item *').fill('Mesa revisada');
   await page.getByRole('button',{name:'Salvar item'}).click();
@@ -917,4 +966,52 @@ test('F7.2 — formulário em viewport reduzido continua rolável',async({page,i
   expect(rect!.height).toBeLessThanOrEqual(380);
   await dialog.getByRole('button',{name:'Salvar item'}).click();
   await expect(dialog).toHaveCount(0);
+});
+
+
+test('F7.3 — cadastros enxutos, vínculos opcionais e filtros reversíveis',async({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await createAction(page,'Novo projeto');
+  const project=page.getByRole('dialog',{name:'Novo projeto'});
+  await expect(project.getByLabel('Nome do projeto *')).toBeVisible();
+  await expect(project.getByLabel('Orçamento previsto (R$)')).not.toBeVisible();
+  await expect(project.getByRole('checkbox',{name:'Sala de teste'})).not.toBeVisible();
+  await project.getByLabel('Nome do projeto *').fill('Projeto compacto');
+  await expandSection(page,'Planejamento e orçamento');
+  await project.getByLabel('Orçamento previsto (R$)').fill('1200');
+  await expandSection(page,'Ambientes envolvidos');
+  await project.getByRole('checkbox',{name:'Sala de teste'}).check();
+  await project.getByRole('button',{name:'Salvar projeto'}).click();
+  await expect.poll(()=>state.data.projects[0]?.budgetTargetCents).toBe(120000);
+  await expect.poll(()=>state.data.projects[0]?.spaceIds.length).toBe(1);
+  await expect(page.getByRole('button',{name:'Excluir projeto',exact:true})).toHaveCount(0);
+  await showContext(page,'Ações do projeto');
+  await expect(page.getByRole('button',{name:'Excluir projeto',exact:true})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await createAction(page,'Nova tarefa');
+  const task=page.getByRole('dialog',{name:'Nova tarefa'});
+  await task.getByLabel('Nome da tarefa *').fill('Organizar');
+  await expect(task.getByRole('button',{name:'Adicionar etapa'})).not.toBeVisible();
+  await expandSection(page,'Checklist');
+  await task.getByRole('button',{name:'Adicionar etapa'}).click();
+  await task.getByRole('textbox',{name:'Etapa 1'}).fill('Separar materiais');
+  await task.getByRole('button',{name:'Salvar tarefa'}).click();
+  await expect.poll(()=>state.data.workTasks[0]?.checklist.length).toBe(1);
+  await page.getByRole('button',{name:'Todos os projetos'}).click();
+  await expect(page.getByLabel('Exibição')).not.toBeVisible();
+  await expandSection(page,'Filtros');
+  await page.getByLabel('Exibição').selectOption('arquivados');
+  await expect(page.getByText('1',{exact:true}).filter({visible:true}).first()).toBeVisible();
+  await page.getByRole('button',{name:'Limpar filtros'}).click();
+  await expect(page.getByRole('heading',{name:'Projeto compacto'})).toBeVisible();
+  await navigate(page,'Lista de compras');
+  await createAction(page,'Adicionar item');
+  const buy=page.getByRole('dialog');
+  await buy.getByLabel('Nome do item *').fill('Item compacto');
+  await expect(buy.getByLabel('Fornecedor (opcional)')).not.toBeVisible();
+  await expandSection(page,'Vínculos');
+  await buy.getByLabel('Projeto (opcional)').selectOption({label:'Projeto compacto'});
+  await buy.getByRole('button',{name:'Salvar item'}).click();
+  await expect.poll(()=>state.data.purchases[0]?.projectId).toBe(state.data.projects[0].id);
 });

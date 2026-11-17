@@ -1,3 +1,5 @@
+import ContextActions from '../../shared/ContextActions';
+import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
 import type { ProjectSection } from '../../navigation';
 import './projects.css';
@@ -156,15 +158,12 @@ export default function ProjectWorkspace({ home, userId, selectedId, projectTab,
       <button type="button" className="projects-return" onClick={()=>{setSelectedId(null);setFeedback('');}}><ArrowLeft size={16}/>Todos os projetos</button>
       <div className="projects-detail-head">
         <div><span className="projects-kicker">{PROJECT_TYPE_LABELS[selectedProject.type]}</span><h1>{selectedProject.name}</h1><p>{selectedProject.archivedAt?'Arquivado':PROJECT_STATUS_LABELS[selectedProject.status]} · {projectMoney(selectedProject.budgetTargetCents)}</p></div>
-        <div className="projects-detail-actions">
-          {selectedProject.archivedAt
-            ? <button type="button" className="btn btn-outline" onClick={()=>toggleArchive(selectedProject)}><RotateCcw size={16}/>Reativar projeto</button>
-            : <>
-              <button type="button" className="btn btn-outline" onClick={()=>openEditor(selectedProject)}><Edit3 size={16}/>Editar projeto</button>
-              <button type="button" className="btn btn-outline" onClick={()=>toggleArchive(selectedProject)}><Archive size={16}/>Arquivar projeto</button>
-            </>}
-          <button type="button" className="btn btn-outline projects-danger" onClick={()=>removeProject(selectedProject)}><Trash2 size={16}/>Excluir projeto</button>
-        </div>
+        <ContextActions label="Ações do projeto" actions={[
+          ...(selectedProject.archivedAt?[{label:'Reativar projeto',icon:<RotateCcw size={17}/>,onClick:()=>toggleArchive(selectedProject)}]:[
+            {label:'Editar projeto',icon:<Edit3 size={17}/>,onClick:()=>openEditor(selectedProject)},
+            {label:'Arquivar projeto',icon:<Archive size={17}/>,onClick:()=>toggleArchive(selectedProject)}]),
+          {label:'Excluir projeto',icon:<Trash2 size={17}/>,danger:true,onClick:()=>removeProject(selectedProject)}
+        ]}/>
       </div>
       <details className="project-overview-disclosure">
       <summary>Resumo e ambientes <ChevronRight size={17}/></summary>
@@ -221,31 +220,35 @@ export default function ProjectWorkspace({ home, userId, selectedId, projectTab,
       </div>
       <div className="projects-filters" role="group" aria-label="Filtrar projetos">
         <label className="projects-search"><Search size={17}/><span className="visually-hidden">Pesquisar projetos</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Pesquisar projetos" aria-label="Pesquisar projetos"/></label>
+        <Disclosure title="Filtros" filter activeCount={Number(archiveFilter!=='ativos')+Number(statusFilter!=='todos')+Number(typeFilter!=='todos')} onReset={()=>{setArchiveFilter('ativos');setStatusFilter('todos');setTypeFilter('todos');}}>
         <label><span>Exibição</span><select value={archiveFilter} onChange={e=>setArchiveFilter(e.target.value as typeof archiveFilter)}><option value="ativos">Ativos</option><option value="arquivados">Arquivados</option><option value="todos">Todos</option></select></label>
         <label><span>Situação</span><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value as typeof statusFilter)}><option value="todos">Todas</option>{Object.entries(PROJECT_STATUS_LABELS).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
         <label><span>Tipo</span><select value={typeFilter} onChange={e=>setTypeFilter(e.target.value as typeof typeFilter)}><option value="todos">Todos</option>{Object.entries(PROJECT_TYPE_LABELS).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
+        </Disclosure>
       </div>
       {projects.length ? <div className="projects-grid">{projects.map(project=><article key={project.id} className="projects-card">
         <div className="projects-card-head"><span className="projects-kind">{PROJECT_TYPE_LABELS[project.type]}</span><span className={'projects-status '+(project.archivedAt?'archived':project.status)}>{project.archivedAt?'Arquivado':PROJECT_STATUS_LABELS[project.status]}</span></div>
         <h2>{project.name}</h2>
-        <p>{project.description || 'Projeto sem descrição. Abra para planejar os próximos passos.'}</p>
+        {project.description&&<p className="project-card-description">{project.description}</p>}
         <div className="projects-card-meta"><span><Layers3 size={15}/>{areaNames(project)}</span><span><Wallet size={15}/>{projectMoney(project.budgetTargetCents)}</span><span><ClipboardList size={15}/>{projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===project.id)).percent}% das tarefas</span></div>
         <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline projects-open" onClick={()=>{setSelectedId(project.id);setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
       </article>)}</div> : <div className="projects-empty panel"><FolderKanban size={35}/><h2>{home.projects.some(p=>p.residenceId===residence.id) ? 'Nenhum projeto encontrado' : 'Comece com uma ideia para sua casa'}</h2><p>{home.projects.some(p=>p.residenceId===residence.id) ? 'Experimente alterar os filtros ou procurar nos projetos arquivados.' : 'Planeje uma reforma, uma mudança ou um espaço novo, como um deck. Não é necessário ter a planta 3D pronta.'}</p></div>}
     </>}
     {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={closeEditor}>
       <form className="modal-form projects-form" onSubmit={commit}>
-        <p className="form-hint">Cadastre sua ideia e organize tarefas, compras, serviços e orçamento no projeto. Na aba Cenários 2D/3D, você poderá visualizar alternativas para a planta.</p>
         <div className="field"><label htmlFor="project-name">Nome do projeto *</label><input id="project-name" required minLength={2} maxLength={120} value={editor.name} onChange={e=>setEditor(p=>({...p,name:e.target.value}))} placeholder="Ex.: Reformar a sala, Deck no quintal"/></div>
-        <div className="field"><label htmlFor="project-description">O que pretende mudar?</label><textarea id="project-description" rows={3} maxLength={4000} value={editor.description} onChange={e=>setEditor(p=>({...p,description:e.target.value}))} placeholder="Descreva o resultado que deseja alcançar."/></div>
         <div className="form-row">
           <div className="field"><label htmlFor="project-type">Tipo de projeto</label><select id="project-type" value={editor.type} onChange={e=>setEditor(p=>({...p,type:e.target.value as ProjectType}))}>{Object.entries(PROJECT_TYPE_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
           <div className="field"><label htmlFor="project-status">Situação</label><select id="project-status" value={editor.status} onChange={e=>setEditor(p=>({...p,status:e.target.value as ProjectStatus}))}>{Object.entries(PROJECT_STATUS_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
         </div>
+        <Disclosure title="Planejamento e orçamento" summary={editor.budgetText?'Meta informada':'Opcional'}>
+        <div className="field"><label htmlFor="project-description">O que pretende mudar?</label><textarea id="project-description" rows={3} maxLength={4000} value={editor.description} onChange={e=>setEditor(p=>({...p,description:e.target.value}))} placeholder="Descreva o resultado que deseja alcançar."/></div>
         <div className="form-row">
           <div className="field"><label htmlFor="project-priority">Prioridade</label><select id="project-priority" value={editor.priority} onChange={e=>setEditor(p=>({...p,priority:e.target.value as Priority}))}>{Object.entries(PROJECT_PRIORITY_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
           <div className="field"><label htmlFor="project-budget">Orçamento previsto (R$)</label><input id="project-budget" inputMode="decimal" value={editor.budgetText} onChange={e=>setEditor(p=>({...p,budgetText:e.target.value}))} placeholder="Ex.: 2500,00"/><small>Opcional, apenas uma meta inicial. Adicione materiais e serviços em Compras e orçamento.</small></div>
         </div>
+        </Disclosure>
+        <Disclosure title="Ambientes envolvidos" summary={editor.spaceIds.length?editor.spaceIds.length+' selecionado(s)':'Opcional'}>
         <fieldset className="projects-space-picker"><legend>Ambientes envolvidos (opcional)</legend>
           {spaces.length ? <div className="projects-space-options">{spaces.map((space:Space)=><label key={space.id}><input type="checkbox" checked={editor.spaceIds.includes(space.id)} onChange={e=>setEditor(p=>({
             ...p, spaceIds:e.target.checked?[...p.spaceIds,space.id]:p.spaceIds.filter(id=>id!==space.id),
@@ -253,6 +256,7 @@ export default function ProjectWorkspace({ home, userId, selectedId, projectTab,
             : <p>Não há cômodos cadastrados. Você pode criar o projeto mesmo assim.</p>}
           <small>Um projeto pode envolver vários ambientes ou nenhum, como um deck planejado.</small>
         </fieldset>
+        </Disclosure>
         {editorError&&<p className="auth-alert" role="alert">{editorError}</p>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={closeEditor}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar projeto</button></div>
       </form>

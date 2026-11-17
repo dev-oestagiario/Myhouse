@@ -1,3 +1,5 @@
+import ContextActions from '../../shared/ContextActions';
+import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
 import { useState, type FormEvent } from 'react';
 import {
@@ -111,9 +113,9 @@ export default function ProjectBudget({home,project,onChange}:Props){
       {figures.targetCents!==null&&<div className="budget-target"><span>Meta do projeto: {brl(figures.targetCents)}</span>
         <strong className={figures.balanceCents!<0?'budget-over':''}>{figures.balanceCents!<0?'Projeção acima da meta: ':'Margem da meta: '}{brl(Math.abs(figures.balanceCents!))}</strong></div>}
     </div>
-    <div className="budget-reserve"><label htmlFor="budget-contingency">Reserva para imprevistos (%)</label><div><input id="budget-contingency" type="number" min="0" max="50" step="1" value={reserve} disabled={archived}
+    <Disclosure title="Configurar reserva" summary={(project.contingencyPercent??0)+'%'}><div className="budget-reserve"><label htmlFor="budget-contingency">Reserva para imprevistos (%)</label><div><input id="budget-contingency" type="number" min="0" max="50" step="1" value={reserve} disabled={archived}
       onChange={e=>setReserve(e.target.value)}/><button type="button" className="btn btn-outline" disabled={archived} onClick={()=>apply(()=>setProjectContingency(home,project.id,Number(reserve),new Date().toISOString()),'Reserva atualizada.')}>Aplicar reserva</button></div>
-      <small>Percentual sobre materiais e serviços previstos. Não representa um gasto realizado.</small></div>
+      <small>Percentual sobre materiais e serviços previstos. Não representa um gasto realizado.</small></div></Disclosure>
     <div className="budget-section-title"><div><ShoppingBasket size={19}/><h4>Materiais e compras</h4><span>{figures.purchases.length} itens · {figures.pendingCount} pendentes</span></div>
       <label>Visualizar<select aria-label="Filtrar compras do projeto" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as typeof statusFilter)}><option value="todos">Todos</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></label></div>
     {!visiblePurchases.length?<div className="budget-empty"><ShoppingBasket size={27}/><p>{figures.purchases.length?'Nenhuma compra corresponde a este filtro.':'Ainda não há compras vinculadas ao projeto. Você pode cadastrar materiais, móveis e equipamentos aqui.'}</p></div>:
@@ -129,8 +131,10 @@ export default function ProjectBudget({home,project,onChange}:Props){
           {item.taskId&&<small>Tarefa: {home.workTasks.find(t=>t.id===item.taskId)?.title||'—'}</small>}</div>
           <div className="budget-item-actions">
             <button type="button" className="btn btn-outline" onClick={()=>openQuotes(item)}><Receipt size={14}/>Cotações ({item.quotes?.length??0})</button>
-            <button type="button" className="icon-button" aria-label={`Editar compra ${item.name}`} disabled={archived} onClick={()=>openPurchase(item)}><Edit3 size={16}/></button>
-            <button type="button" className="icon-button danger-hover" aria-label={`Excluir compra ${item.name}`} disabled={archived} onClick={()=>removeItem(item)}><Trash2 size={16}/></button>
+            <ContextActions label={`Ações da compra ${item.name}`} actions={[
+              {label:`Editar compra ${item.name}`,icon:<Edit3 size={17}/>,disabled:archived,onClick:()=>openPurchase(item)},
+              {label:`Excluir compra ${item.name}`,icon:<Trash2 size={17}/>,danger:true,disabled:archived,onClick:()=>removeItem(item)}
+            ]}/>
           </div></div>
       </article>)}</div>}
     <div className="budget-section-title"><div><Wrench size={19}/><h4>Custos de serviços</h4><span>Não inclua materiais aqui para evitar somar duas vezes.</span></div></div>
