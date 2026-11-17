@@ -1,0 +1,3 @@
+# Plano
+
+1. Diagnóstico: importação estática de GuidedRoomScan trazia Canvas, Three e Drei ao shell apesar do lazy de HouseModel. Separar fluxo de scanner da prévia e câmera; lazy tools e viewers com Suspense e boundary. 2. Renderização demand, resolução limitada, cálculos de paredes memoizados e índice de cômodos para móveis. 3. Gate build: computar bytes e gzip do grafo inicial e rejeitar dependências pesadas; orçamento inicial conservador de 350 KiB. 4. Corrigir restrições de layout pequeno, rolagem e controles. 5. Teste de requests do Vite em fluxo manual e matriz de viewports, testes de domínio e build Android. Medir tempo e FPS em aparelho real separadamente. Base encadeada com F7.4 até aprovação; não publicar APK/release nesta fase.
