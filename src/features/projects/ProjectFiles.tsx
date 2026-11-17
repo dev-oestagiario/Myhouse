@@ -85,7 +85,7 @@ export default function ProjectFiles({home,project,userId,onChange}:Props){
     {notice&&<Feedback tone="success" onDismiss={()=>setNotice('')}>{notice}</Feedback>}
     {busy&&!uploadOpen&&<LoadingState compact title={busy==='download'?'Baixando arquivo…':busy==='remove'?'Removendo arquivo…':'Enviando arquivo…'}/>}
     {error&&!uploadOpen&&<Feedback tone="error">{error}</Feedback>}
-    {!project.archivedAt&&<FloatingActions actions={[{label:'Adicionar arquivo',icon:<Upload size={18}/>,disabled:busy||files.length>=MAX_FILES_PER_PROJECT,onClick:()=>{setError('');setTaskId('');setUploadOpen(true);}}]}/>}
+    {!project.archivedAt&&<FloatingActions actions={[{label:'Adicionar arquivo',icon:<Upload size={18}/>,disabled:Boolean(busy)||files.length>=MAX_FILES_PER_PROJECT,onClick:()=>{setError('');setTaskId('');setUploadOpen(true);}}]}/>}
     {uploadOpen&&<Modal title="Adicionar arquivo" onClose={()=>{if(!busy)setUploadOpen(false);}}>
     <div className="project-files-upload modal-form">
       {tasks.length>0&&<label htmlFor="files-task">Vincular à tarefa (opcional)
