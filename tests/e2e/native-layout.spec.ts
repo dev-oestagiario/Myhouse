@@ -42,7 +42,7 @@ test('F7.7 — Android mantém navegação inferior mesmo em WebView larga',asyn
   await expect(page.getByRole('heading',{name:'Lista de compras',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Ações de cadastro'}).click();
   await page.getByRole('button',{name:'Adicionar item',exact:true}).click();
-  const dialog=page.getByRole('dialog',{name:'Adicionar item'});
+  const dialog=page.getByRole('dialog',{name:'Adicionar à lista de compras',exact:true});
   await expect(dialog).toBeVisible();
   const bounds=await dialog.boundingBox();
   expect(bounds!.width).toBeGreaterThanOrEqual(1240);
