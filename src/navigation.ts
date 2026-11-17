@@ -47,3 +47,17 @@ export function routeHash(route: AppRoute): string {
   }
   return (route.page==='shopping'||route.page==='works')&&route.itemId?base+'/'+encodeURIComponent(route.itemId):base;
 }
+
+/** Physical back follows the internal hierarchy, even when the app was opened by a deep link. */
+export function parentRoute(route: AppRoute): AppRoute | null {
+  if(route.page==='projects'){
+    if(route.create)return {page:'projects',projectId:null};
+    if(route.projectId&&route.detailId)return {page:'projects',projectId:route.projectId,section:route.section};
+    if(route.projectId&&route.section&&route.section!=='tarefas')return {page:'projects',projectId:route.projectId};
+    if(route.projectId)return {page:'projects',projectId:null};
+  }
+  if((route.page==='shopping'||route.page==='works')&&route.itemId)return {page:route.page,projectId:null};
+  if(route.page==='plan-editor')return {page:'floorplan',projectId:null};
+  if(route.page==='scan')return {page:'works',projectId:null};
+  return route.page==='overview'?null:{page:'overview',projectId:null};
+}

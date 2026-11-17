@@ -1,5 +1,7 @@
 import FloatingActions from './shared/FloatingActions';
-import { parseRoute, routeHash, projectSectionLabels, type Page, type AppRoute } from './navigation';
+import { parseRoute, routeHash, parentRoute, projectSectionLabels, type Page, type AppRoute } from './navigation';
+import { useAndroidNavigation } from './shared/useAndroidNavigation';
+import { useBackLayer } from './shared/useBackLayer';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 const HouseModel = lazy(() => import('./plan/HouseModel'));
 import PlanEditor from './plan/PlanEditor';
@@ -386,6 +388,15 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   useEffect(()=>{
     if(selectedProject&&route.detailId&&!projectChild)navigateRoute({page:'projects',projectId:selectedProject.id,section:activeSection},true);
   },[selectedProject,route.detailId,projectChild,activeSection]);
+  useAndroidNavigation(()=>{
+    // Recovery must be resolved explicitly; native Back may not discard the pending draft.
+    if(localDraft)return true;
+    const parent=parentRoute(route);
+    if(!parent)return false;
+    navigateRoute(parent,true);
+    return true;
+  });
+  useBackLayer(mobileNav,80,()=>setMobileNav(false));
   useEffect(() => {
     if (!mobileNav) return;
     const handleEscape = (event: KeyboardEvent) => {

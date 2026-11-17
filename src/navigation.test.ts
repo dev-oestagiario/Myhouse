@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseRoute, routeHash } from './navigation';
+import { parseRoute, routeHash, parentRoute } from './navigation';
 
 describe('mobile navigation',()=>{
   it('resolves list and details independently',()=>{
@@ -25,5 +25,25 @@ describe('F7.1 detail and section routes',()=>{
     expect(routeHash({page:'projects',projectId:'proj-a',section:'cenarios',detailId:'scenario-a'})).toBe('#/projects/proj-a/cenarios/scenario-a');
     expect(routeHash({page:'projects',projectId:'proj-a',section:'tarefas'})).toBe('#/projects/proj-a');
     expect(parseRoute('#/projects/new')).toEqual({page:'projects',projectId:null,create:true});
+  });
+});
+
+describe('F7.2 physical back hierarchy',()=>{
+  it('returns nested screens to their logical parent, including direct links',()=>{
+    for(const [child,parent] of [
+      ['#/projects/a/cenarios/b','#/projects/a/cenarios'],
+      ['#/projects/a/tarefas/c','#/projects/a'],
+      ['#/projects/a/orcamento','#/projects/a'],
+      ['#/projects/a','#/projects'],
+      ['#/projects/new','#/projects'],
+      ['#/shopping/a','#/shopping'],
+      ['#/works/a','#/works'],
+      ['#/scan','#/works'],
+      ['#/plan-editor','#/floorplan'],
+      ['#/history','#/overview'],
+    ]){
+      expect(routeHash(parentRoute(parseRoute(child))!)).toBe(parent);
+    }
+    expect(parentRoute(parseRoute('#/overview'))).toBeNull();
   });
 });

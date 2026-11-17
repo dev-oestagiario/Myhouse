@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
+import { useBackLayer } from './useBackLayer';
 
 export type FloatingAction = { label: string; onClick: () => void; disabled?: boolean; icon?: ReactNode };
 
@@ -9,6 +10,7 @@ export default function FloatingActions({actions}: {actions: FloatingAction[]}) 
   const root=useRef<HTMLDivElement>(null);
   const trigger=useRef<HTMLButtonElement>(null);
   const menu=useRef<HTMLDivElement>(null);
+  useBackLayer(open,60,()=>{setOpen(false);trigger.current?.focus({preventScroll:true});});
   useEffect(()=>{
     if(!open)return;
     const frame=window.requestAnimationFrame(()=>menu.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus());
