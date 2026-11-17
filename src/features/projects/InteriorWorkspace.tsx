@@ -1,10 +1,12 @@
+import {DeferredView} from '../../shared/DeferredView';
 import {Feedback} from '../../shared/UiState';
 import { useEffect, useMemo, useState, type FormEvent, type PointerEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Copy, Grid2X2, Move, Plus, RotateCw, Trash2 } from 'lucide-react';
 import type { HomeData, ProjectScenario, ScenarioFurniture, FurnitureColor, FurnitureKind } from '../../types';
 import { newId,number } from '../../data';
 import { getFootprint, getWallSegments } from '../../plan/geometry';
-import HouseModel from '../../plan/HouseModel';
+import {lazy} from 'react';
+const HouseModel=lazy(()=>import('../../plan/HouseModel'));
 import {
   FURNITURE_CATALOG,FURNITURE_COLORS,alignFurnitureToWall,furnitureCollisions,
   furnitureCorners,placeFurniture,duplicateFurniture,
@@ -138,13 +140,13 @@ export default function InteriorWorkspace({home,scenario,archived,onChange}:Prop
     {!room?<p className="interior-empty">Adicione um cômodo ao cenário para começar a distribuir móveis.</p>:<>
       <div className="interior-views">
         <section className="interior-canvas-panel"><h5>Visão 3D interativa</h5>
-          <div className="interior-model"><HouseModel rooms={scenario.rooms}
+          <div className="interior-model"><DeferredView title="Carregando modelo 3D…"><HouseModel rooms={scenario.rooms}
             selectedRoomId={room.id} selectedWall="leste"
             onSelect={id=>setRoomId(id)}
             furniture={previewFurniture.concat(scenario.furniture.filter(item=>item.roomId!==room.id))}
             selectedFurnitureId={selectedId??''} onSelectFurniture={id=>{
               const found=scenario.furniture.find(item=>item.id===id);if(found)selectItem(found);
-            }}/></div>
+            }}/></DeferredView></div>
         </section>
         <section className="interior-canvas-panel"><h5>Planta 2D · arraste os móveis para mover</h5>
           {map&&<svg className="interior-floor-map"

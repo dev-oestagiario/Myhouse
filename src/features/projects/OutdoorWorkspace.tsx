@@ -1,3 +1,4 @@
+import {DeferredView} from '../../shared/DeferredView';
 import {Feedback} from '../../shared/UiState';
 import FloatingActions from '../../shared/FloatingActions';
 import Modal from '../../shared/Modal';
@@ -5,7 +6,8 @@ import {useState,type FormEvent} from 'react';
 import {Check,Edit3,Plus,Trash2} from 'lucide-react';
 import type {HomeData,ProjectScenario,ScenarioOutdoorArea,PlanPoint} from '../../types';
 import {newId} from '../../data';
-import OutdoorModel from '../../plan/OutdoorModel';
+import {lazy} from 'react';
+const OutdoorModel=lazy(()=>import('../../plan/OutdoorModel'));
 import {addScenarioOutdoorArea,removeScenarioOutdoorArea,updateScenarioOutdoorArea} from './scenarioDomain';
 import {newOutdoorArea,outlinePreset,outdoorAreaSquareMeters,outdoorPerimeter,
   outdoorEdges,OUTDOOR_FINISHES} from './outdoorGeometry';
@@ -156,7 +158,7 @@ export default function OutdoorWorkspace({home,scenario,archived,onCreateScenari
           Perímetro: {format(outdoorPerimeter(selected.outline))} m</p>
       </div>
       <div className="outdoor-preview"><h5>Visão 3D ilustrativa</h5>
-        <div className="outdoor-model"><OutdoorModel area={selected}/></div>
+        <div className="outdoor-model"><DeferredView title="Carregando modelo 3D…"><OutdoorModel area={selected}/></DeferredView></div>
         <p>Nível: {format(selected.level)} m · {OUTDOOR_FINISHES[selected.finish].label}</p>
       </div>
     </div>}
