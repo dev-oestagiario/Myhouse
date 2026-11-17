@@ -1,4 +1,5 @@
 import FloatingActions from '../../shared/FloatingActions';
+import type { ProjectSection } from '../../navigation';
 import './projects.css';
 import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
@@ -25,7 +26,11 @@ type Props = {
   home: HomeData;
   userId:string;
   selectedId:string|null;
-  onSelectProject:(id:string|null)=>void;
+  projectTab:ProjectSection;
+  detailId:string|null;
+  createRequested:boolean;
+  onSelectProject:(id:string|null,section?:ProjectSection,detailId?:string)=>void;
+  onCloseCreate:()=>void;
   onChange: (next: HomeData) => void;
   onOpenRoom: (roomId: string) => void;
 };
@@ -47,10 +52,12 @@ function formatDate(value: string): string {
 
 const projectMoney = (cents: number | null) => cents === null ? 'Não informado' : money(cents / 100);
 
-export default function ProjectWorkspace({ home, userId, selectedId, onSelectProject:setSelectedId, onChange, onOpenRoom }: Props) {
+export default function ProjectWorkspace({ home, userId, selectedId, projectTab, detailId, createRequested, onSelectProject, onCloseCreate, onChange, onOpenRoom }: Props) {
   const residence = home.residences.find(item => item.type === 'atual') ?? home.residences[0];
   const spaces = home.spaces.filter(item => item.residenceId === residence.id);
-  const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'|'cenarios'|'acompanhamento'|'arquivos'>('tarefas');
+  const setSelectedId=(id:string|null)=>onSelectProject(id);
+  const setProjectTab=(section:ProjectSection)=>onSelectProject(selectedId,section);
+  const openChild=(id:string|null)=>onSelectProject(selectedId,projectTab,id??undefined);
   const [editId, setEditId] = useState<string | 'new' | null>(null);
   const [editor, setEditor] = useState<EditorDraft>(() => getEditorDraft(null, residence.id));
   const [editorError, setEditorError] = useState('');
@@ -75,10 +82,14 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
   const plannedCount = home.projects.filter(item=>item.residenceId===residence.id && !item.archivedAt && item.status==='planejando').length;
   const executingCount = home.projects.filter(item=>item.residenceId===residence.id && !item.archivedAt && item.status==='em-execucao').length;
 
+  useEffect(()=>{setEditId(null);},[selectedId]);
   useEffect(()=>{
-    setProjectTab('tarefas');
+    if(createRequested){openEditor();}else if(editId==='new')setEditId(null);
+  },[createRequested]);
+  function closeEditor(){
     setEditId(null);
-  },[selectedId]);
+    if(createRequested)onCloseCreate();
+  }
 
   function openEditor(project?: Project) {
     if(project?.archivedAt) { setFeedback('Reative o projeto para editar suas informações.'); return; }
@@ -103,8 +114,7 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
         ? createProject(home,draft,projectId,timestamp)
         : updateProject(home,projectId,draft,timestamp);
       onChange(updated);
-      setSelectedId(projectId);
-      setProjectTab('tarefas');
+      onSelectProject(projectId,editId==='new'?'tarefas':projectTab);
       setEditId(null);
       setFeedback(editId === 'new' ? 'Projeto cadastrado. Aguarde a sincronização na nuvem.' : 'Projeto atualizado. Aguarde a sincronização na nuvem.');
     } catch(problem) {
@@ -145,7 +155,7 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
     {selectedProject ? <div className="projects-detail">
       <button type="button" className="projects-return" onClick={()=>{setSelectedId(null);setFeedback('');}}><ArrowLeft size={16}/>Todos os projetos</button>
       <div className="projects-detail-head">
-        <div><span className="projects-kicker">{PROJECT_TYPE_LABELS[selectedProject.type]}</span><h1>{selectedProject.name}</h1><p>{selectedProject.description || 'Este projeto ainda não tem descrição. Adicione as mudanças que pretende realizar.'}</p></div>
+        <div><span className="projects-kicker">{PROJECT_TYPE_LABELS[selectedProject.type]}</span><h1>{selectedProject.name}</h1><p>{selectedProject.archivedAt?'Arquivado':PROJECT_STATUS_LABELS[selectedProject.status]} · {projectMoney(selectedProject.budgetTargetCents)}</p></div>
         <div className="projects-detail-actions">
           {selectedProject.archivedAt
             ? <button type="button" className="btn btn-outline" onClick={()=>toggleArchive(selectedProject)}><RotateCcw size={16}/>Reativar projeto</button>
@@ -156,6 +166,9 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
           <button type="button" className="btn btn-outline projects-danger" onClick={()=>removeProject(selectedProject)}><Trash2 size={16}/>Excluir projeto</button>
         </div>
       </div>
+      <details className="project-overview-disclosure">
+      <summary>Resumo e ambientes <ChevronRight size={17}/></summary>
+      {selectedProject.description&&<p className="project-description">{selectedProject.description}</p>}
       <div className="projects-summary">
         <div><span>Situação</span><strong>{selectedProject.archivedAt ? 'Arquivado' : PROJECT_STATUS_LABELS[selectedProject.status]}</strong></div>
         <div><span>Prioridade</span><strong>{PROJECT_PRIORITY_LABELS[selectedProject.priority]}</strong></div>
@@ -180,6 +193,7 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
           <p>Compras, materiais, fornecedores e orçamento já podem ser associados a este projeto. Crie versões futuras da planta na aba Cenários 2D/3D, sem modificar os cômodos da casa atual.</p>
         </section>
       </div>
+      </details>
       <div className="projects-section-tabs" role="tablist" aria-label="Planejamento do projeto">
         <button type="button" role="tab" aria-selected={projectTab==='tarefas'} onClick={()=>setProjectTab('tarefas')}>Tarefas e serviços</button>
         <button type="button" role="tab" aria-selected={projectTab==='orcamento'} onClick={()=>setProjectTab('orcamento')}>Compras e orçamento</button>
@@ -189,11 +203,11 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
       </div>
       <div role="tabpanel" aria-label={projectTab==='tarefas'?'Tarefas e serviços':projectTab==='orcamento'?'Compras e orçamento':projectTab==='cenarios'?'Cenários 2D/3D':projectTab==='acompanhamento'?'Acompanhamento':'Arquivos'}>
         {projectTab==='tarefas'
-          ?<ProjectTasks key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
+          ?<ProjectTasks key={selectedProject.id} home={home} project={selectedProject} detailId={detailId} onOpenDetail={openChild} onChange={onChange}/>
           :projectTab==='orcamento'
             ?<ProjectBudget key={selectedProject.id} home={home} project={selectedProject} onChange={onChange}/>
             :projectTab==='cenarios'
-              ?<Suspense fallback={<p role="status" className="projects-panel-empty">Carregando o editor espacial… Tarefas e orçamento continuam disponíveis.</p>}><ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/></Suspense>
+              ?<Suspense fallback={<p role="status" className="projects-panel-empty">Carregando o editor espacial… Tarefas e orçamento continuam disponíveis.</p>}><ScenarioWorkspace key={selectedProject.id} home={home} project={selectedProject} selectedId={detailId} onSelectScenario={openChild} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')}/></Suspense>
               :projectTab==='acompanhamento'
                 ?<ProjectTracking key={selectedProject.id} home={home} project={selectedProject} onChange={onChange} onOpenTasks={()=>setProjectTab('tarefas')} onOpenBudget={()=>setProjectTab('orcamento')} onOpenFiles={()=>setProjectTab('arquivos')}/>
                 :<ProjectFiles key={selectedProject.id} home={home} project={selectedProject} userId={userId} onChange={onChange}/>}
@@ -216,10 +230,10 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
         <h2>{project.name}</h2>
         <p>{project.description || 'Projeto sem descrição. Abra para planejar os próximos passos.'}</p>
         <div className="projects-card-meta"><span><Layers3 size={15}/>{areaNames(project)}</span><span><Wallet size={15}/>{projectMoney(project.budgetTargetCents)}</span><span><ClipboardList size={15}/>{projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===project.id)).percent}% das tarefas</span></div>
-        <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline projects-open" onClick={()=>{setSelectedId(project.id);setProjectTab('tarefas');setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
+        <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline projects-open" onClick={()=>{setSelectedId(project.id);setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
       </article>)}</div> : <div className="projects-empty panel"><FolderKanban size={35}/><h2>{home.projects.some(p=>p.residenceId===residence.id) ? 'Nenhum projeto encontrado' : 'Comece com uma ideia para sua casa'}</h2><p>{home.projects.some(p=>p.residenceId===residence.id) ? 'Experimente alterar os filtros ou procurar nos projetos arquivados.' : 'Planeje uma reforma, uma mudança ou um espaço novo, como um deck. Não é necessário ter a planta 3D pronta.'}</p></div>}
     </>}
-    {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={()=>setEditId(null)}>
+    {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={closeEditor}>
       <form className="modal-form projects-form" onSubmit={commit}>
         <p className="form-hint">Cadastre sua ideia e organize tarefas, compras, serviços e orçamento no projeto. Na aba Cenários 2D/3D, você poderá visualizar alternativas para a planta.</p>
         <div className="field"><label htmlFor="project-name">Nome do projeto *</label><input id="project-name" required minLength={2} maxLength={120} value={editor.name} onChange={e=>setEditor(p=>({...p,name:e.target.value}))} placeholder="Ex.: Reformar a sala, Deck no quintal"/></div>
@@ -240,7 +254,7 @@ export default function ProjectWorkspace({ home, userId, selectedId, onSelectPro
           <small>Um projeto pode envolver vários ambientes ou nenhum, como um deck planejado.</small>
         </fieldset>
         {editorError&&<p className="auth-alert" role="alert">{editorError}</p>}
-        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setEditId(null)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar projeto</button></div>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={closeEditor}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar projeto</button></div>
       </form>
     </Modal>}
   </section>;

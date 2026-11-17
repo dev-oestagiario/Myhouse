@@ -188,21 +188,23 @@ test('F6.1 — cria projeto de deck sem cômodo e edita com orçamento e ambient
   await dialog.getByRole('button', { name: 'Salvar projeto' }).click();
   await expect(page.getByRole('heading', { name: 'Deck no quintal' })).toBeVisible();
   await expect(page.getByText('Sem ambiente vinculado.')).toHaveCount(0);
+  await page.locator('.project-overview-disclosure summary').click();
   await expect(page.getByText('Ainda não há ambientes vinculados.')).toBeVisible();
-  await expect(page.getByText('R$ 2.500,50')).toBeVisible();
+  await expect(page.locator('.projects-summary').getByText('R$ 2.500,50')).toBeVisible();
   await page.getByRole('button', { name: 'Editar projeto' }).click();
   const edit = page.getByRole('dialog', { name: 'Editar projeto' });
   await edit.getByLabel('Situação').selectOption('planejando');
   await edit.getByLabel('Prioridade').selectOption('alta');
   await edit.getByRole('checkbox', { name: 'Sala de teste' }).check();
   await edit.getByRole('button', { name: 'Salvar projeto' }).click();
-  await expect(page.getByText('Planejando', { exact: true })).toBeVisible();
+  await expect(page.locator('.projects-summary').getByText('Planejando', { exact: true })).toBeVisible();
   await expect(page.getByText('Sala de teste')).toBeVisible();
   await expect.poll(() => state.data.projects[0]?.spaceIds.length).toBe(1);
   expect(state.data.projects[0].budgetTargetCents).toBe(250050);
   expect(state.data.projects[0].status).toBe('planejando');
   expect(state.data.rooms[0].name).toBe('Sala de teste');
   await navigate(page,'Obras');
+  await page.getByRole('button',{name:/Sala de teste/}).click();
   await page.getByRole('button', { name: 'Excluir Sala de teste' }).click();
   await expect(page.getByText('Este cômodo está vinculado a um projeto.')).toBeVisible();
   expect(state.data.rooms).toHaveLength(1);
@@ -290,6 +292,7 @@ test('F6.2 — criar serviço com checklist, acompanhar progresso, arquivar e re
   await page.keyboard.press('Escape');
   await expect.poll(()=>state.data.workTasks[0]?.status).toBe('concluido');
   await navigate(page,'Obras');
+  await page.getByRole('button',{name:/Sala de teste/}).click();
   await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue('room-sala');
 });
 
@@ -460,6 +463,7 @@ test('F6.4 — criar cenário da sala, editar medidas, comparar e recuperar a ve
   await expect.poll(()=>state.data.scenarios?.length).toBe(2);
   expect(state.data.scenarios[1].rooms[0].width).toBe(6);
   await navigate(page,'Obras');
+  await page.getByRole('button',{name:/Sala de teste/}).click();
   await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue('room-sala');
 });
 
@@ -593,6 +597,7 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   await expect(page.getByRole('heading',{name:'Histórico de versões'})).toBeVisible();
   expect(state.data.scenarios[0].revisions.length).toBeGreaterThanOrEqual(3);
   await navigate(page,'Obras');
+  await page.getByRole('button',{name:/Sala de teste/}).click();
   await expect(page.getByRole('combobox',{name:'Cômodo',exact:true})).toHaveValue('room-sala');
 });
 
@@ -775,4 +780,78 @@ test('F7 — lista, cadastro em tela separada e rota de projeto com breadcrumb e
   await expect(page.getByRole('heading',{name:'Projetos da casa'})).toBeVisible();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+
+test('F7.1 — compras e cômodos em páginas próprias, com retorno e ações',async({page})=>{
+  const state=await setupMockSession(page);
+  await navigate(page,'Lista de compras');
+  await createAction(page,'Adicionar item');
+  await page.getByLabel('Nome do item *').fill('Mesa de teste');
+  await page.getByRole('button',{name:'Salvar item'}).click();
+  await expect.poll(()=>state.data.purchases.length).toBe(1);
+  await page.getByRole('button',{name:'Mesa de teste',exact:true}).click();
+  await expect(page).toHaveURL(/#\/shopping\/[^/]+$/);
+  const crumbs=page.getByRole('navigation',{name:'Caminho de navegação'});
+  await expect(crumbs).toContainText('Compras');
+  await expect(crumbs.locator('[aria-current="page"]')).toHaveText('Mesa de teste');
+  await expect(page.getByLabel('Pesquisar itens')).toHaveCount(0);
+  await page.getByRole('button',{name:'Editar item',exact:true}).click();
+  await page.getByLabel('Nome do item *').fill('Mesa revisada');
+  await page.getByRole('button',{name:'Salvar item'}).click();
+  await expect(page.getByRole('heading',{name:'Mesa revisada'})).toBeVisible();
+  await page.getByRole('button',{name:'Todas as compras'}).click();
+  await expect(page).toHaveURL(/#\/shopping$/);
+  await navigate(page,'Obras');
+  await expect(page.getByLabel('Cômodo',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:/Sala de teste/}).click();
+  await expect(page).toHaveURL(/#\/works\/room-sala$/);
+  await expect(crumbs.locator('[aria-current="page"]')).toHaveText('Sala de teste');
+  await createAction(page,'Registrar atualização');
+  await expect(page.getByRole('dialog',{name:'Registrar atualização'})).toBeVisible();
+  await page.getByRole('button',{name:'Fechar janela'}).click();
+  await page.getByRole('button',{name:'Todos os cômodos'}).click();
+  await expect(page).toHaveURL(/#\/works$/);
+});
+
+test('F7.1 — navegação inferior, ações e rotas internas nas telas pequenas',async({page,isMobile})=>{
+  await setupMockSession(page);
+  if(isMobile){
+    const bottom=page.getByRole('navigation',{name:'Navegação rápida'});
+    await expect(bottom).toBeVisible();
+    await bottom.getByRole('button',{name:'Projetos'}).click();
+    await expect(page).toHaveURL(/#\/projects$/);
+    const fab=await page.getByRole('button',{name:'Ações de cadastro'}).boundingBox();
+    const bar=await bottom.boundingBox();
+    expect(fab!.y+fab!.height).toBeLessThanOrEqual(bar!.y);
+    await bottom.getByRole('button',{name:'Mais'}).click();
+    await expect(page.getByRole('navigation',{name:'Navegação principal'})).toBeVisible();
+    await page.getByRole('navigation',{name:'Navegação principal'}).getByRole('button',{name:'Visão geral'}).click();
+  }else await navigate(page,'Visão geral');
+  await createAction(page,'Novo projeto');
+  await page.getByLabel('Nome do projeto *').fill('Projeto mobile');
+  await page.getByRole('button',{name:'Salvar projeto'}).click();
+  await createAction(page,'Nova tarefa');
+  await page.getByLabel('Nome da tarefa *').fill('Tarefa mobile');
+  await page.getByRole('button',{name:'Salvar tarefa'}).click();
+  await page.getByRole('button',{name:'Tarefa mobile',exact:true}).click();
+  await expect(page).toHaveURL(/#\/projects\/[^/]+\/tarefas\/[^/]+$/);
+  const crumb=page.getByRole('navigation',{name:'Caminho de navegação'});
+  await expect(crumb.locator('[aria-current="page"]')).toHaveText('Tarefa mobile');
+  await page.getByRole('button',{name:'Todas as tarefas'}).click();
+  await page.getByRole('tab',{name:'Compras e orçamento'}).click();
+  await expect(page).toHaveURL(/\/orcamento$/);
+  await page.goBack();
+  await expect(page.getByRole('tab',{name:'Tarefas e serviços'})).toHaveAttribute('aria-selected','true');
+  await page.getByRole('tab',{name:'Cenários 2D/3D'}).click();
+  await createAction(page,'Criar cenário');
+  await page.getByLabel('Nome da proposta *').fill('Cenário mobile');
+  await page.getByRole('dialog',{name:'Criar cenário'}).getByRole('button',{name:'Criar proposta'}).click();
+  await expect(page).toHaveURL(/\/cenarios\/[^/]+$/);
+  await expect(crumb.locator('[aria-current="page"]')).toHaveText('Cenário mobile');
+  for(const width of [320,390,768]){
+    await page.setViewportSize({width,height:844});
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+  }
 });

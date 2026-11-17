@@ -13,6 +13,17 @@ describe('mobile navigation',()=>{
     expect(parseRoute('#/projects/%xx')).toEqual({page:'projects',projectId:null});
     expect(parseRoute('#/unknown')).toEqual({page:'overview',projectId:null});
     expect(parseRoute('#/projects/abc/extra')).toEqual({page:'projects',projectId:null});
-    expect(parseRoute('#/shopping/abc')).toEqual({page:'shopping',projectId:null});
+    expect(parseRoute('#/shopping/abc')).toEqual({page:'shopping',projectId:null,itemId:'abc'});
+  });
+});
+
+describe('F7.1 detail and section routes',()=>{
+  it('opens purchase, room, task and scenario independently',()=>{
+    expect(parseRoute('#/shopping/item-a')).toEqual({page:'shopping',projectId:null,itemId:'item-a'});
+    expect(parseRoute('#/works/room-a')).toEqual({page:'works',projectId:null,itemId:'room-a'});
+    expect(parseRoute('#/projects/proj-a/tarefas/job-a')).toEqual({page:'projects',projectId:'proj-a',section:'tarefas',detailId:'job-a'});
+    expect(routeHash({page:'projects',projectId:'proj-a',section:'cenarios',detailId:'scenario-a'})).toBe('#/projects/proj-a/cenarios/scenario-a');
+    expect(routeHash({page:'projects',projectId:'proj-a',section:'tarefas'})).toBe('#/projects/proj-a');
+    expect(parseRoute('#/projects/new')).toEqual({page:'projects',projectId:null,create:true});
   });
 });
