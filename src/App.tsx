@@ -1,3 +1,5 @@
+import FloatingActions from './shared/FloatingActions';
+import { parseRoute, routeHash, type Page, type AppRoute } from './navigation';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 const HouseModel = lazy(() => import('./plan/HouseModel'));
 import PlanEditor from './plan/PlanEditor';
@@ -15,7 +17,7 @@ import {
   ArrowDownToLine, ArrowRight, Box, Check, CheckCircle2, ChevronRight,
   ClipboardList, Clock3, Download, Edit3, FileClock, Filter, FolderKanban, Hammer, Home,
   Layers3, Menu, Package, Paintbrush, Plus, RotateCcw, Save, Search,
-  ShoppingBasket, Trash2, Upload, Wallet, X, Cloud, CloudOff, LogOut, RefreshCw, ScanLine,
+  ShoppingBasket, Trash2, Upload, Wallet, X, CloudOff, LogOut, ScanLine,
 } from 'lucide-react';
 import type { Direction, HomeData, Purchase, Room, Stage, TaskStatus } from './types';
 import { DIRECTIONS, STAGES } from './types';
@@ -26,7 +28,6 @@ import {
   statusNames, validateHome, wallId,
 } from './data';
 
-type Page = 'overview' | 'projects' | 'shopping' | 'floorplan' | 'plan-editor' | 'works' | 'scan' | 'history';
 type PurchaseDraft = Omit<Purchase, 'id' | 'createdAt'>;
 const emptyPurchase = (): PurchaseDraft => ({
   name: '', category: 'Outros', roomId: '', priority: 'media',
@@ -53,7 +54,10 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     try { const raw = localStorage.getItem(`myhouse-unsynced:${userId}`); return raw ? validateHome(JSON.parse(raw)) : null; }
     catch { return null; }
   });
-  const [page, setPage] = useState<Page>('overview');
+  const [route, setRoute] = useState<AppRoute>(()=>parseRoute(window.location.hash));
+  const page=route.page;
+  const selectedProject=page==='projects'?home.projects.find(project=>project.id===route.projectId)??null:null;
+  const setPage=(next:Page)=>navigateRoute({page:next,projectId:null});
   const [selectedRoomId, setSelectedRoomId] = useState<string>(() => initialData.rooms[0]?.id ?? '');
   const [selectedWall, setSelectedWall] = useState<Direction>('leste');
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft>(emptyPurchase);
@@ -61,6 +65,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [purchaseError,setPurchaseError]=useState('');
   const [roomOpen, setRoomOpen] = useState(false);
+  const [workOpen, setWorkOpen] = useState(false);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [roomDraft, setRoomDraft] = useState<Omit<Room, 'id'>>({ name: '', width: 3, length: 3, height: 2.7, x: 0, z: 0 });
   const [search, setSearch] = useState('');
@@ -281,6 +286,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       wallStages: { ...prev.wallStages, [currentWallId]: { ...prev.wallStages[currentWallId], [stage]: status } },
     }));
     setWorkNote('');
+    setWorkOpen(false);
     setNotice(`Atualização registrada para ${selectedRoom.name}, parede ${directionNames[selectedWall].toLowerCase()}.`);
   }
   function selectWall(roomId: string, direction: Direction) {
@@ -319,12 +325,40 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     { id: 'scan', name: 'Escanear cômodo', Icon: ScanLine },
     { id: 'history', name: 'Histórico de atividades', Icon: FileClock },
   ];
-  const changePage = (newPage: Page) => {
-    setPage(newPage);
+  function focusPage() {
+    window.scrollTo({top:0});
+    window.requestAnimationFrame(()=>document.getElementById('myhouse-page-content')?.focus({preventScroll:true}));
+  }
+  function navigateRoute(next:AppRoute,replace=false) {
+    const hash=routeHash(next);
+    if(window.location.hash!==hash){
+      if(replace)window.history.replaceState(null,'',hash);
+      else window.history.pushState(null,'',hash);
+    }
+    setRoute(next);
     setMobileNav(false);
-    window.scrollTo({ top: 0 });
-    window.requestAnimationFrame(() => document.getElementById('myhouse-page-content')?.focus({ preventScroll: true }));
-  };
+    focusPage();
+  }
+  const changePage=(next:Page)=>navigateRoute({page:next,projectId:null});
+  useEffect(()=>{
+    if(!window.location.hash)window.history.replaceState(null,'',routeHash({page:'overview',projectId:null}));
+    const onBack=()=>{
+      setRoute(parseRoute(window.location.hash));
+      setMobileNav(false);setPurchaseOpen(false);setRoomOpen(false);setWorkOpen(false);
+      focusPage();
+    };
+    window.addEventListener('popstate',onBack);
+    window.addEventListener('hashchange',onBack);
+    return ()=>{
+      window.removeEventListener('popstate',onBack);
+      window.removeEventListener('hashchange',onBack);
+    };
+  },[]);
+  useEffect(()=>{
+    if(page==='projects'&&route.projectId&&!selectedProject){
+      navigateRoute({page:'projects',projectId:null},true);
+    }
+  },[page,route.projectId,selectedProject]);
   useEffect(() => {
     if (!mobileNav) return;
     const handleEscape = (event: KeyboardEvent) => {
@@ -347,16 +381,18 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       <div className="brand"><span className="brand-mark"><Home size={22} strokeWidth={2.4} /></span><div><strong>My House</strong><small>Meu espaço, meus planos</small></div></div>
       <div className="sidebar-section-label">MENU PRINCIPAL</div>
       <nav aria-label="Navegação principal">{navItems.map(({ id, name, Icon }) => <button type="button" key={id} aria-current={page === id ? 'page' : undefined} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => changePage(id)}><Icon size={19} /><span>{name}</span>{page === id && <ChevronRight className="nav-chevron" size={17} />}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="save-info"><CheckCircle2 size={18} /><div><strong>{syncStatus === 'saved' ? 'Salvo na nuvem' : syncStatus === 'saving' ? 'Salvando na nuvem…' : syncStatus === 'pending' ? 'Aguardando sincronização' : 'Não foi possível sincronizar'}</strong><span>Dados individuais vinculados à sua conta</span></div></div><div className="sidebar-account-actions"><span className="sidebar-account-label">MINHA CONTA</span><button className="sidebar-signout" type="button" onClick={() => void signOut()} aria-label="Sair da conta"><LogOut size={17}/><span>Sair da conta</span></button></div><span className="version">My House · F6</span></div>
+      <div className="sidebar-bottom"><div className="sidebar-account-actions"><span className="sidebar-account-label">MINHA CONTA</span><button className="sidebar-signout" type="button" onClick={() => void signOut()} aria-label="Sair da conta"><LogOut size={17}/><span>Sair da conta</span></button></div><span className="version">My House · F6</span></div>
     </aside>
     {mobileNav && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobileNav(false)} />}
     <main className="main">
-      <header className="topbar"><div className="topbar-start"><button type="button" className="icon-button mobile-menu" aria-label="Abrir menu" aria-expanded={mobileNav} onClick={() => setMobileNav(true)}><Menu size={22} /></button><div className="breadcrumb">Minha casa <ChevronRight size={14}/><strong>{navItems.find(n => n.id === page)?.name}</strong></div></div>
+      <header className="topbar"><div className="topbar-start"><button type="button" className="icon-button mobile-menu" aria-label="Abrir menu" aria-expanded={mobileNav} onClick={() => setMobileNav(true)}><Menu size={22} /></button><nav className="breadcrumb" aria-label="Caminho de navegação">
+          <button type="button" onClick={()=>changePage('overview')}>Myhouse</button><ChevronRight size={14} aria-hidden="true"/>
+          {selectedProject?<><button type="button" onClick={()=>changePage('projects')}>Projetos</button><ChevronRight size={14} aria-hidden="true"/><strong aria-current="page" title={selectedProject.name}>{selectedProject.name}</strong></>:<strong aria-current="page">{navItems.find(n=>n.id===page)?.name}</strong>}
+        </nav></div>
         <div className="topbar-actions"><input className="visually-hidden" ref={fileInput} type="file" tabIndex={-1} aria-label="Selecionar backup JSON" accept=".json,application/json" onChange={e => void importBackup(e.target.files?.[0])} /><button type="button" aria-label="Importar backup" className="btn btn-ghost compact" onClick={() => fileInput.current?.click()}><Upload size={17} /><span>Importar</span></button><button type="button" aria-label="Exportar backup" className="btn btn-outline compact" onClick={exportBackup}><Download size={17} /><span>Exportar backup</span></button></div>
       </header>
       <div className="page-content" id="myhouse-page-content" tabIndex={-1}>
         {notice && <div className="notice" role="status"><CheckCircle2 size={17} />{notice}<button onClick={() => setNotice('')} aria-label="Fechar aviso"><X size={16}/></button></div>}
-        <div className="account-line"><span>Conectado como <strong>{userEmail}</strong></span><span className={`sync-indicator ${syncStatus}`} role="status">{syncStatus === 'saved' ? <Cloud size={16}/> : syncStatus === 'saving' ? <RefreshCw size={16}/> : syncStatus === 'pending' ? <Cloud size={16}/> : <CloudOff size={16}/>} {syncStatus === 'saved' ? 'Salvo na nuvem' : syncStatus === 'saving' ? 'Sincronizando…' : syncStatus === 'pending' ? 'Alterações pendentes' : 'Falha na sincronização'}</span></div>
         {(syncStatus === 'error' || syncStatus === 'conflict') && <div className="sync-alert" role="alert"><CloudOff size={18}/><span>{syncError} Seus dados continuam disponíveis nesta tela. Exporte um backup antes de fechar.</span>{syncStatus === 'error' && <button type="button" className="btn btn-outline compact" onClick={() => void persistHome()}>Tentar salvar</button>}<button className="btn btn-outline compact" onClick={exportBackup}>Exportar backup</button></div>}
         {localDraft && <div className="sync-alert"><span>Há alterações deste dispositivo ainda não sincronizadas com a sua conta. Deseja recuperá-las?</span><button className="btn btn-primary compact" onClick={restoreLocalDraft}>Recuperar rascunho</button><button className="btn btn-outline compact" onClick={dismissLocalDraft}>Descartar</button></div>}
         {page === 'overview' && <>
@@ -378,14 +414,15 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="example-tip">A planta começa com cômodos de exemplo. Ajuste as medidas ou exclua esses cômodos na aba “Obras”.</p>}
         </>}
         {page === 'shopping' && <>
-          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ORGANIZAÇÃO</span><h1>Lista de compras</h1><p>De eletrodomésticos e panelas a tintas e ferramentas. Todas as categorias são permitidas.</p></div><button className="btn btn-primary" onClick={() => openPurchase()}><Plus size={18}/>Adicionar item</button></div>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ORGANIZAÇÃO</span><h1>Lista de compras</h1><p>De eletrodomésticos e panelas a tintas e ferramentas. Todas as categorias são permitidas.</p></div></div>
+          <FloatingActions actions={[{label:'Adicionar item',onClick:()=>openPurchase()}]}/>
           <div className="shopping-summary"><div><span>Para comprar</span><strong>{pendingCount} itens</strong></div><div><span>Estimativa pendente</span><strong>{money(totalPending)}</strong></div><div><span>Total já comprado</span><strong>{money(totalBought)}</strong></div></div>
           <section className="panel shopping-panel"><div className="filters"><div className="search-box"><Search size={18}/><input aria-label="Pesquisar itens" placeholder="Buscar utensílio, material, ferramenta..." value={search} onChange={e => setSearch(e.target.value)}/></div><div className="filter-input"><Filter size={17}/><select value={categoryFilter} aria-label="Filtrar categoria" onChange={e => setCategoryFilter(e.target.value)}><option value="todas">Todas as categorias</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div><select className="status-select" aria-label="Filtrar situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="todos">Todos os status</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></div>
-            {purchases.length === 0 ? <div className="empty"><ShoppingBasket size={38}/><strong>Nenhum item encontrado</strong><span>Adicione sua primeira compra ou altere os filtros.</span><button className="btn btn-primary" onClick={() => openPurchase()}><Plus size={17}/>Adicionar item</button></div>
+            {purchases.length === 0 ? <div className="empty"><ShoppingBasket size={38}/><strong>Nenhum item encontrado</strong><span>Adicione sua primeira compra ou altere os filtros.</span></div>
               : <div className="purchase-list">{purchases.map(p => <div key={p.id} className={`purchase-item ${p.purchased ? 'done' : ''}`}><button className={`purchase-check ${p.purchased ? 'checked' : ''}`} onClick={() => togglePurchase(p.id)} title={p.purchased ? 'Marcar como pendente' : 'Marcar como comprado'} aria-label={`Alterar status de ${p.name}`}>{p.purchased && <Check size={16}/>}</button><div className="purchase-info"><strong>{p.name}</strong><div className="purchase-meta"><span>{p.category}</span><span className="dot-separator"/><span>{home.rooms.find(r => r.id === p.roomId)?.name ?? 'Sem cômodo'}</span><span className="dot-separator"/><span>{p.quantity} {p.unit??'un.'}</span>{p.projectId&&<><span className="dot-separator"/><span>Projeto: {home.projects.find(pr=>pr.id===p.projectId)?.name??'—'}</span></>}</div>{p.notes && <small className="purchase-note">{p.notes}</small>}{p.url && <a className="item-link" href={p.url} target="_blank" rel="noopener noreferrer">Abrir link de referência</a>}</div><span className={`priority-pill ${p.priority}`}>{priorityNames[p.priority]}</span><div className="purchase-cost"><strong>{money(p.quantity * p.unitPrice)}</strong><small>{PURCHASE_STATUS_NAMES[currentStatus(p)]}</small>{p.purchased&&p.actualUnitPriceCents!=null&&<small>Pago: {money(p.actualUnitPriceCents*p.quantity/100)}</small>}</div><div className="row-actions"><button className="icon-button" aria-label={`Editar ${p.name}`} onClick={() => openPurchase(p)}><Edit3 size={17}/></button><button className="icon-button danger-hover" aria-label={`Excluir ${p.name}`} onClick={() => deletePurchase(p)}><Trash2 size={17}/></button></div></div>)}</div>}
           </section>
         </>}
-        {page === 'projects' && <ProjectWorkspace home={home} userId={userId} onChange={setHome} onOpenRoom={roomId => { setSelectedRoomId(roomId); changePage('floorplan'); }}/>} 
+        {page === 'projects' && <ProjectWorkspace home={home} userId={userId} selectedId={selectedProject?.id??null} onSelectProject={id=>navigateRoute({page:'projects',projectId:id})} onChange={setHome} onOpenRoom={roomId => { setSelectedRoomId(roomId); changePage('floorplan'); }}/>} 
         {page === 'floorplan' && <>
           <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos, incluindo portas e janelas. O desenho é editado em outra tela.</p></div><div className="scan-entry-actions"><button className="btn btn-outline" onClick={() => changePage('plan-editor')}><Edit3 size={17}/>Editar planta 2D</button><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => changePage('works')}><Hammer size={17}/>Abrir Obras</button></div></div>
           <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
@@ -407,21 +444,26 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           onBack={() => changePage('floorplan')}
         />}
         {page === 'works' && <>
-          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>Obras</h1><p>Registre o andamento de cada parede, sem precisar passar pela planta.</p></div><div className="scan-entry-actions"><button className="btn btn-primary" onClick={() => changePage('scan')}><ScanLine size={17}/>Escanear cômodo</button><button className="btn btn-outline" onClick={() => openRoom()}><Plus size={17}/>Adicionar cômodo</button></div></div>
+          <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>Obras</h1><p>Registre o andamento de cada parede, sem precisar passar pela planta.</p></div></div>
+          <FloatingActions actions={[
+            {label:'Adicionar cômodo',onClick:()=>openRoom()},
+            {label:'Escanear cômodo',icon:<ScanLine size={18}/>,onClick:()=>changePage('scan')},
+            {label:'Registrar atualização',icon:<Save size={18}/>,disabled:!selectedRoom,onClick:()=>setWorkOpen(true)}
+          ]}/>
           <div className="works-layout">
           <section className="panel inspector-panel"><div className="panel-heading inspector-heading"><div><h3>Acompanhamento da parede</h3><p>Registre o andamento e mantenha um histórico.</p></div><Hammer size={20} className="subtle-icon"/></div>
             {selectedRoom ? <><label className="field-label" htmlFor="work-room">Cômodo</label><select id="work-room" className="field-input" value={selectedRoomId} onChange={e => selectWall(e.target.value, selectedWall)}>{home.rooms.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select>
               <span className="field-label wall-label" id="work-wall-label">Parede</span><div className="wall-tabs" role="group" aria-labelledby="work-wall-label">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div>
               <div className="wall-metrics"><div><span>Área estimada</span><strong>{number(selectedWallArea)} m²</strong></div><div><span>Etapas concluídas</span><strong>{percentDone(selectedStages)}%</strong></div></div>
               <div className="progress-track"><span style={{width: `${percentDone(selectedStages)}%`}}/></div>
-              <form onSubmit={saveWork} className="work-form"><h4>Registrar atualização</h4><div className="form-row"><div className="field"><label htmlFor="stage">Etapa</label><select id="stage" value={stage} onChange={e => { const s = e.target.value as Stage; setStage(s); setStatus(selectedStages[s] ?? 'em-andamento'); }}>{STAGES.map(s => <option key={s}>{s}</option>)}</select></div><div className="field"><label htmlFor="step-status">Situação</label><select id="step-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{Object.entries(statusNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div></div><div className="field"><label htmlFor="work-note">O que você fez? (opcional)</label><textarea id="work-note" rows={3} value={workNote} onChange={e => setWorkNote(e.target.value)} placeholder="Ex.: Removi a tinta descascada da metade superior da parede." /></div><button className="btn btn-primary full" type="submit"><Save size={17}/>Salvar atualização</button></form>
+              
               <div className="stages-heading"><strong>Etapas da parede</strong><span>{STAGES.filter(s => selectedStages[s] === 'concluido').length} de {STAGES.length}</span></div>
               <div className="stage-list">{STAGES.map((item, i) => <button type="button" aria-pressed={stage === item} key={item} className={`stage-row ${stage === item ? 'selected-stage' : ''}`} onClick={() => { setStage(item); setStatus(selectedStages[item] ?? 'em-andamento'); }}><span className={`stage-indicator ${selectedStages[item] ?? 'nao-iniciado'}`}>{selectedStages[item] === 'concluido' ? <Check size={14}/> : i + 1}</span><span><strong>{item}</strong><small>{statusNames[selectedStages[item] ?? 'nao-iniciado']}</small></span>{stage === item && <ChevronRight size={16}/>}</button>)}</div>
               <div className="next-step"><Clock3 size={18}/><div><strong>Próxima etapa sugerida</strong><p>{next ? `${next} — ${statusNames[selectedStages[next] ?? 'nao-iniciado'].toLowerCase()}` : 'Todas as etapas foram concluídas.'}</p></div></div>
               {selectedWallLogs.length > 0 && <div className="wall-log"><strong>Últimas atualizações</strong>{selectedWallLogs.slice(0, 3).map(log => <div className="tiny-log" key={log.id}><span>{localDate(log.createdAt)}</span><strong>{log.stage} · {statusNames[log.status]}</strong>{log.note && <p>{log.note}</p>}</div>)}</div>}
             </> : <div className="empty"><Home size={30}/><strong>Selecione um cômodo</strong><span>Cadastre seu primeiro cômodo para acompanhar a reforma.</span></div>}
           </section>
-          <section className="panel rooms-manager"><div className="panel-heading"><div><h3>Gerenciar cômodos</h3><p>Cadastre, ajuste medidas ou exclua cômodos da planta.</p></div><button className="btn btn-outline compact" onClick={() => openRoom()}><Plus size={17}/>Novo</button></div>
+          <section className="panel rooms-manager"><div className="panel-heading"><div><h3>Gerenciar cômodos</h3><p>Cadastre, ajuste medidas ou exclua cômodos da planta.</p></div></div>
             <div className="rooms-manager-list">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button className="chip-main" onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button><button className="icon-button" title={`Editar ${r.name}`} aria-label={`Editar ${r.name}`} onClick={() => openRoom(r)}><Edit3 size={15}/></button><button className="icon-button danger-hover" title={`Excluir ${r.name}`} aria-label={`Excluir ${r.name}`} onClick={() => deleteRoom(r)}><Trash2 size={15}/></button></div>)}</div>
             {home.rooms.length === 0 && <p className="rooms-empty">Nenhum cômodo cadastrado.</p>}
             <div className="rooms-manager-footer"><button className="link-button" onClick={() => changePage('plan-editor')}><Edit3 size={16}/>Editar formato, portas e janelas <ArrowRight size={15}/></button><button className="link-button" onClick={() => changePage('floorplan')}><Box size={16}/>Visualizar Planta 3D <ArrowRight size={15}/></button></div>
@@ -433,6 +475,9 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         </>}
       </div>
     </main>
+    {workOpen&&selectedRoom&&<Modal title="Registrar atualização" onClose={()=>setWorkOpen(false)}>
+      <form onSubmit={saveWork} className="modal-form"><div className="form-row"><div className="field"><label htmlFor="stage">Etapa</label><select id="stage" value={stage} onChange={e => { const s = e.target.value as Stage; setStage(s); setStatus(selectedStages[s] ?? 'em-andamento'); }}>{STAGES.map(s => <option key={s}>{s}</option>)}</select></div><div className="field"><label htmlFor="step-status">Situação</label><select id="step-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{Object.entries(statusNames).map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></div></div><div className="field"><label htmlFor="work-note">O que você fez? (opcional)</label><textarea id="work-note" rows={3} value={workNote} onChange={e => setWorkNote(e.target.value)} placeholder="Ex.: Removi a tinta descascada da metade superior da parede." /></div><button className="btn btn-primary full" type="submit"><Save size={17}/>Salvar atualização</button></form>
+    </Modal>}
     {purchaseOpen && <Modal title={editingPurchaseId ? 'Editar item de compra' : 'Adicionar à lista de compras'} onClose={() => setPurchaseOpen(false)}>
       <PurchaseEditor home={home} draft={purchaseDraft} setDraft={setPurchaseDraft} onSubmit={savePurchase} onCancel={()=>setPurchaseOpen(false)}/>
       {purchaseError&&<p className="budget-error" role="alert">{purchaseError}</p>}

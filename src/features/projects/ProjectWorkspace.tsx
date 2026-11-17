@@ -1,8 +1,9 @@
+import FloatingActions from '../../shared/FloatingActions';
 import './projects.css';
 import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Archive, ArrowLeft, ArrowRight, CalendarDays, Check, ClipboardList, Edit3,
-  FolderKanban, Home, Layers3, Plus, RotateCcw, Search, Trash2, Wallet,
+  FolderKanban, Home, Layers3, RotateCcw, Search, Trash2, Wallet,
 } from 'lucide-react';
 import type { HomeData, Priority, Project, ProjectStatus, ProjectType, Space } from '../../types';
 import { money, newId, priorityOrder } from '../../data';
@@ -23,6 +24,8 @@ import {
 type Props = {
   home: HomeData;
   userId:string;
+  selectedId:string|null;
+  onSelectProject:(id:string|null)=>void;
   onChange: (next: HomeData) => void;
   onOpenRoom: (roomId: string) => void;
 };
@@ -44,10 +47,9 @@ function formatDate(value: string): string {
 
 const projectMoney = (cents: number | null) => cents === null ? 'Não informado' : money(cents / 100);
 
-export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }: Props) {
+export default function ProjectWorkspace({ home, userId, selectedId, onSelectProject:setSelectedId, onChange, onOpenRoom }: Props) {
   const residence = home.residences.find(item => item.type === 'atual') ?? home.residences[0];
   const spaces = home.spaces.filter(item => item.residenceId === residence.id);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [projectTab,setProjectTab]=useState<'tarefas'|'orcamento'|'cenarios'|'acompanhamento'|'arquivos'>('tarefas');
   const [editId, setEditId] = useState<string | 'new' | null>(null);
   const [editor, setEditor] = useState<EditorDraft>(() => getEditorDraft(null, residence.id));
@@ -73,9 +75,10 @@ export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }:
   const plannedCount = home.projects.filter(item=>item.residenceId===residence.id && !item.archivedAt && item.status==='planejando').length;
   const executingCount = home.projects.filter(item=>item.residenceId===residence.id && !item.archivedAt && item.status==='em-execucao').length;
 
-  useEffect(() => {
-    if (selectedId && !selectedProject) setSelectedId(null);
-  }, [selectedId,selectedProject]);
+  useEffect(()=>{
+    setProjectTab('tarefas');
+    setEditId(null);
+  },[selectedId]);
 
   function openEditor(project?: Project) {
     if(project?.archivedAt) { setFeedback('Reative o projeto para editar suas informações.'); return; }
@@ -135,15 +138,14 @@ export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }:
   const selectedBudget=selectedProject?projectBudget(home,selectedProject.id):null;
 
   return <section className="projects-workspace" aria-label="Gerenciamento de projetos">
-    <div className="page-title-row projects-title">
+    {!selectedProject&&<div className="page-title-row projects-title">
       <div><span className="eyebrow dark-eyebrow">MUDANÇAS E REFORMAS</span><h1>Projetos da casa</h1><p>Organize suas ideias, reformas e espaços futuros em um só lugar, sem alterar a planta atual.</p></div>
-      <button type="button" className="btn btn-primary" onClick={()=>openEditor()}><Plus size={17}/>Novo projeto</button>
-    </div>
+    </div>}
     {feedback && <div className="projects-feedback" role="status">{feedback}<button type="button" aria-label="Dispensar mensagem" onClick={()=>setFeedback('')}>×</button></div>}
     {selectedProject ? <div className="projects-detail">
       <button type="button" className="projects-return" onClick={()=>{setSelectedId(null);setFeedback('');}}><ArrowLeft size={16}/>Todos os projetos</button>
       <div className="projects-detail-head">
-        <div><span className="projects-kicker">{PROJECT_TYPE_LABELS[selectedProject.type]}</span><h2>{selectedProject.name}</h2><p>{selectedProject.description || 'Este projeto ainda não tem descrição. Adicione as mudanças que pretende realizar.'}</p></div>
+        <div><span className="projects-kicker">{PROJECT_TYPE_LABELS[selectedProject.type]}</span><h1>{selectedProject.name}</h1><p>{selectedProject.description || 'Este projeto ainda não tem descrição. Adicione as mudanças que pretende realizar.'}</p></div>
         <div className="projects-detail-actions">
           {selectedProject.archivedAt
             ? <button type="button" className="btn btn-outline" onClick={()=>toggleArchive(selectedProject)}><RotateCcw size={16}/>Reativar projeto</button>
@@ -197,6 +199,7 @@ export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }:
                 :<ProjectFiles key={selectedProject.id} home={home} project={selectedProject} userId={userId} onChange={onChange}/>}
       </div>
     </div> : <>
+      <FloatingActions actions={[{label:'Novo projeto',onClick:()=>openEditor()}]}/>
       <div className="projects-overview-stats" aria-label="Resumo dos projetos">
         <div><FolderKanban size={20}/><span>Projetos ativos</span><strong>{activeCount}</strong></div>
         <div><CalendarDays size={20}/><span>Em planejamento</span><strong>{plannedCount}</strong></div>
@@ -213,8 +216,8 @@ export default function ProjectWorkspace({ home, userId, onChange, onOpenRoom }:
         <h2>{project.name}</h2>
         <p>{project.description || 'Projeto sem descrição. Abra para planejar os próximos passos.'}</p>
         <div className="projects-card-meta"><span><Layers3 size={15}/>{areaNames(project)}</span><span><Wallet size={15}/>{projectMoney(project.budgetTargetCents)}</span><span><ClipboardList size={15}/>{projectTaskProgress((home.workTasks??[]).filter(task=>task.projectId===project.id)).percent}% das tarefas</span></div>
-        <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline" onClick={()=>{setSelectedId(project.id);setProjectTab('tarefas');setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
-      </article>)}</div> : <div className="projects-empty panel"><FolderKanban size={35}/><h2>{home.projects.some(p=>p.residenceId===residence.id) ? 'Nenhum projeto encontrado' : 'Comece com uma ideia para sua casa'}</h2><p>{home.projects.some(p=>p.residenceId===residence.id) ? 'Experimente alterar os filtros ou procurar nos projetos arquivados.' : 'Planeje uma reforma, uma mudança ou um espaço novo, como um deck. Não é necessário ter a planta 3D pronta.'}</p><button type="button" className="btn btn-primary" onClick={()=>openEditor()}><Plus size={17}/>Criar projeto</button></div>}
+        <div className="projects-card-foot"><span>{PROJECT_PRIORITY_LABELS[project.priority]} · {formatDate(project.updatedAt)}</span><button type="button" className="btn btn-outline projects-open" onClick={()=>{setSelectedId(project.id);setProjectTab('tarefas');setFeedback('');}}>Ver projeto<ArrowRight size={15}/></button></div>
+      </article>)}</div> : <div className="projects-empty panel"><FolderKanban size={35}/><h2>{home.projects.some(p=>p.residenceId===residence.id) ? 'Nenhum projeto encontrado' : 'Comece com uma ideia para sua casa'}</h2><p>{home.projects.some(p=>p.residenceId===residence.id) ? 'Experimente alterar os filtros ou procurar nos projetos arquivados.' : 'Planeje uma reforma, uma mudança ou um espaço novo, como um deck. Não é necessário ter a planta 3D pronta.'}</p></div>}
     </>}
     {editId!==null&&<Modal title={editId==='new'?'Novo projeto':'Editar projeto'} onClose={()=>setEditId(null)}>
       <form className="modal-form projects-form" onSubmit={commit}>

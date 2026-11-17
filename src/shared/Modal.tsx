@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function Modal({ title, onClose, children }: { title: string, onClose: () => void, children: ReactNode }) {
   const dialog = useRef<HTMLElement>(null);
@@ -42,7 +42,7 @@ export default function Modal({ title, onClose, children }: { title: string, onC
   }, []);
   return <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <section ref={dialog} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="modal-heading"><h2>{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label="Fechar janela"><X size={20} /></button></div>
+      <div className="modal-heading"><button type="button" className="icon-button modal-back-button" onClick={onClose} aria-label="Fechar janela"><ArrowLeft size={22}/></button><h2>{title}</h2></div>
       {children}
     </section>
   </div>;

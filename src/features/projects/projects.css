@@ -105,3 +105,9 @@
 .projects-section-tabs button:focus-visible{outline:3px solid #93b9f4;outline-offset:2px}
 .projects-summary small{display:block;font-size:11px;color:#526b87;line-height:1.45}
 @media(max-width:640px){.projects-section-tabs button{flex:1 1 130px;padding:12px 8px}}
+
+.projects-detail-head h1{color:#183c70;font:800 clamp(19px,2.3vw,27px) Manrope,sans-serif;margin:0 0 10px;overflow-wrap:anywhere}
+.projects-card{position:relative}
+.projects-open::after{content:"";position:absolute;inset:0;border-radius:14px}
+.projects-card:focus-within{outline:3px solid #93b9f4;outline-offset:2px}
+.projects-detail-actions{flex-wrap:wrap}

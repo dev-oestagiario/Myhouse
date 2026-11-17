@@ -1,3 +1,5 @@
+import FloatingActions from '../../shared/FloatingActions';
+import Modal from '../../shared/Modal';
 import {useState,type ChangeEvent} from 'react';
 import {Download,FileText,Trash2,Upload} from 'lucide-react';
 import type {HomeData,Project,ProjectFile} from '../../types';
@@ -22,6 +24,7 @@ export default function ProjectFiles({home,project,userId,onChange}:Props){
     .sort((a,b)=>b.uploadedAt.localeCompare(a.uploadedAt));
   const tasks=home.workTasks.filter(t=>t.projectId===project.id);
   const [taskId,setTaskId]=useState('');
+  const [uploadOpen,setUploadOpen]=useState(false);
   const [busy,setBusy]=useState(false);
   const [notice,setNotice]=useState('');
   const [error,setError]=useState('');
@@ -41,6 +44,7 @@ export default function ProjectFiles({home,project,userId,onChange}:Props){
       if(storageError)throw storageError;
       uploadedPath=metadata.path;
       onChange(updated);
+      setUploadOpen(false);
       setNotice('Arquivo enviado ao armazenamento privado; os metadados aguardam sincronização.');
     }catch(problem){
       setError(errorMessage(problem));
@@ -78,8 +82,10 @@ export default function ProjectFiles({home,project,userId,onChange}:Props){
       <h3>Arquivos privados</h3><p>Plantas, fotos e documentos do projeto ficam em armazenamento privado, com acesso pela conta autenticada.</p></div></header>
     <p className="tracking-hint">O backup JSON guarda apenas referências, não os arquivos. Para transferir uma casa, exporte os documentos separadamente. Até 30 anexos de 8 MB: PDF, JPG, PNG, WebP e TXT.</p>
     {notice&&<p role="status" className="tracking-notice">{notice}</p>}
-    {error&&<p role="alert" className="tracking-error">{error}</p>}
-    {!project.archivedAt&&<div className="project-files-upload">
+    {error&&!uploadOpen&&<p role="alert" className="tracking-error">{error}</p>}
+    {!project.archivedAt&&<FloatingActions actions={[{label:'Adicionar arquivo',icon:<Upload size={18}/>,disabled:busy||files.length>=MAX_FILES_PER_PROJECT,onClick:()=>{setError('');setTaskId('');setUploadOpen(true);}}]}/>}
+    {uploadOpen&&<Modal title="Adicionar arquivo" onClose={()=>{if(!busy)setUploadOpen(false);}}>
+    <div className="project-files-upload modal-form">
       {tasks.length>0&&<label htmlFor="files-task">Vincular à tarefa (opcional)
         <select id="files-task" value={taskId} onChange={e=>setTaskId(e.target.value)} disabled={busy}>
           <option value="">Arquivo geral do projeto</option>
@@ -90,7 +96,8 @@ export default function ProjectFiles({home,project,userId,onChange}:Props){
         <input aria-label="Escolher arquivo do projeto" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
           onChange={e=>void upload(e)} disabled={busy||files.length>=MAX_FILES_PER_PROJECT}/>
       </label>
-    </div>}
+      {error&&<p className="tracking-error" role="alert">{error}</p>}
+    </div></Modal>}
     {!files.length?<div className="tracking-empty project-files-empty"><FileText size={26}/>
       <strong>Nenhum arquivo anexado</strong>
       <span>Adicione comprovantes, fotos ou documentos; a ativação depende do bucket privado configurado.</span>

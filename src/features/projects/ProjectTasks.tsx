@@ -1,3 +1,4 @@
+import FloatingActions from '../../shared/FloatingActions';
 import { useMemo, useState, type FormEvent } from 'react';
 import {
   AlertTriangle, CalendarDays, Check, CheckCheck, ClipboardList, Clock3, Edit3,
@@ -125,7 +126,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
     <div className="task-workspace-head">
       <div><span className="eyebrow dark-eyebrow">PLANEJAMENTO E EXECUÇÃO</span><h3>Tarefas e serviços</h3>
         <p>Organize trabalhos de qualquer tipo, como pintar, instalar móveis, contratar serviços ou montar um deck.</p></div>
-      <button type="button" className="btn btn-primary" disabled={archived} onClick={()=>openEditor()}><Plus size={17}/>Nova tarefa</button>
+      <FloatingActions actions={[{label:'Nova tarefa',disabled:archived,onClick:()=>openEditor()}]}/>
     </div>
     {notice&&<div className="task-notice" role="status">{notice}<button type="button" aria-label="Dispensar aviso" onClick={()=>setNotice('')}>×</button></div>}
     {archived&&<p className="task-archived-notice" role="status">Este projeto está arquivado. Reative-o para criar ou atualizar tarefas.</p>}
@@ -145,7 +146,6 @@ export default function ProjectTasks({home,project,onChange}:Props) {
     </div>
     {!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
         <p>{tasks.length?'Altere os filtros para encontrar os serviços deste projeto.':'Cadastre os trabalhos necessários para realizar este projeto. Não é preciso ter uma planta 3D.'}</p>
-        {!tasks.length&&!archived&&<button type="button" className="btn btn-outline" onClick={()=>openEditor()}><Plus size={16}/>Adicionar primeira tarefa</button>}
       </div> : <>
       <div className="task-view-switch" role="group" aria-label="Visualização das tarefas">
         <button type="button" aria-pressed={view==='lista'} className={view==='lista'?'active':''} onClick={()=>setView('lista')}>Lista</button>

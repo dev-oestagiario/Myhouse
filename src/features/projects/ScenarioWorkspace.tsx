@@ -1,7 +1,8 @@
+import FloatingActions from '../../shared/FloatingActions';
 import { useState, type FormEvent } from 'react';
 import {
   ArrowLeft, Check, Copy, DoorOpen, Edit3, GitCompareArrows, Grid2X2, History,
-  Layers3, Plus, RotateCcw, Trash2,
+  Layers3, RotateCcw, Trash2,
 } from 'lucide-react';
 import type { Direction, HomeData, Project, ProjectScenario, Room, ScenarioFurniture } from '../../types';
 import { newId, nextRoomPosition, number } from '../../data';
@@ -141,7 +142,10 @@ export default function ScenarioWorkspace({home,project,onChange,onOpenTasks,onO
   return <section className="scenario-workspace panel" aria-label="Cenários do projeto">
     <header className="scenario-heading"><div><span className="eyebrow dark-eyebrow">PLANEJAMENTO ESPACIAL</span><h3>Cenários 2D e 3D</h3>
       <p>Experimente mudanças, crie alternativas e compare com a planta atual. As propostas não alteram sua casa cadastrada.</p></div>
-      <button type="button" className="btn btn-primary" disabled={archived} onClick={startNew}><Plus size={17}/>Criar cenário</button>
+      {(!scenario||view!=='externos')&&<FloatingActions actions={[
+        {label:'Criar cenário',disabled:archived,onClick:startNew},
+        ...(scenario&&view==='tridimensional'?[{label:'Novo espaço',disabled:archived||scenario.rooms.length>=40,onClick:()=>editRoom()}]:[])
+      ]}/>}
     </header>
     {message&&<div className="scenario-message" role="status">{message}<button type="button" aria-label="Dispensar mensagem" onClick={()=>setMessage('')}>×</button></div>}
     {error&&modal===null&&<p role="alert" className="scenario-error">{error}</p>}
@@ -149,7 +153,6 @@ export default function ScenarioWorkspace({home,project,onChange,onOpenTasks,onO
     {!scenario ? <>
       {scenarios.length===0?<div className="scenario-empty"><Layers3 size={33}/><h4>Planeje como sua casa poderá ficar</h4>
         <p>Comece copiando os cômodos vinculados ao projeto ou abra uma proposta em branco. Você pode criar vários cenários sem alterar a planta real.</p>
-        {!archived&&<button type="button" className="btn btn-outline" onClick={startNew}><Plus size={16}/>Criar primeira proposta</button>}
       </div>:<div className="scenario-library"><h4>Escolha uma proposta</h4><div className="scenario-cards">{scenarios.map(item=><article key={item.id} className="scenario-card">
         <div><Layers3 size={19}/><strong>{item.name}</strong></div><p>{item.description||'Proposta sem descrição'}</p>
         <small>{item.rooms.length} cômodo(s) · {(item.outdoorAreas??[]).length} área(s) externa(s) · Atualizado {shortDate(item.updatedAt)}</small>
@@ -182,7 +185,7 @@ export default function ScenarioWorkspace({home,project,onChange,onOpenTasks,onO
         <button type="button" role="tab" aria-selected={view==='externos'} onClick={()=>setView('externos')}><Layers3 size={17}/>Áreas externas</button>
         <button type="button" role="tab" aria-selected={view==='comparar'} onClick={()=>setView('comparar')}><GitCompareArrows size={17}/>Antes e depois</button>
       </div>
-      {view==='externos' ? <OutdoorWorkspace home={home} scenario={scenario} archived={archived} onChange={onChange} onOpenTasks={onOpenTasks} onOpenBudget={onOpenBudget}/>
+      {view==='externos' ? <OutdoorWorkspace home={home} scenario={scenario} archived={archived} onCreateScenario={startNew} onChange={onChange} onOpenTasks={onOpenTasks} onOpenBudget={onOpenBudget}/>
       :view==='editor' ? <div className="scenario-embedded-editor">
         <p className="scenario-editor-notice">Editando a proposta <strong>{scenario.name}</strong>. Salvar aqui não altera a planta real.</p>
         <PlanEditor key={scenario.id+':'+scenario.updatedAt} rooms={scenario.rooms} selectedRoomId={activeRoomId}
@@ -210,7 +213,7 @@ export default function ScenarioWorkspace({home,project,onChange,onOpenTasks,onO
           selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/>
           :<div className="scenario-placeholder"><Layers3 size={30}/>Esta proposta está vazia. Adicione um espaço para começar.</div>}</div>
         <div className="scenario-rooms-panel">
-          <div><h4>Espaços da proposta</h4><button type="button" className="btn btn-outline" disabled={archived||scenario.rooms.length>=40} onClick={()=>editRoom()}><Plus size={15}/>Novo espaço</button></div>
+          <div><h4>Espaços da proposta</h4></div>
           {scenario.rooms.length?<div className="scenario-room-list">{scenario.rooms.map(room=><div className={activeRoomId===room.id?'is-active':''} key={room.id}>
             <button type="button" className="scenario-room-select" aria-pressed={activeRoomId===room.id} onClick={()=>setSelectedRoomId(room.id)}>
               <DoorOpen size={17}/><span><strong>{room.name}</strong><small>{number(room.width)} × {number(room.length)} × {number(room.height)} m</small></span></button>
