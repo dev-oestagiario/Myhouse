@@ -1,6 +1,7 @@
+import {Feedback,EmptyState} from '../shared/UiState';
 import { useBackLayer } from '../shared/useBackLayer';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, DoorOpen, Grid2X2, Plus, RotateCcw, Save, Trash2, AlignCenter } from 'lucide-react';
+import { ArrowLeft, DoorOpen, Grid2X2, Plus, RotateCcw, Save, Trash2, AlignCenter } from 'lucide-react';
 import type { Room, WallOpening } from '../types';
 import { newId, number } from '../data';
 import {
@@ -168,7 +169,7 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
 
   if (!room || !draft) return <section className="plan-editor">
     <header className="plan-editor-title"><div><span className="eyebrow dark-eyebrow">EDITOR 2D</span><h1>Editar planta</h1></div><button className="btn btn-outline" onClick={leaveEditor}>Voltar</button></header>
-    <div className="empty"><Grid2X2 size={32}/><strong>Nenhum cômodo cadastrado</strong><span>Cadastre ou escaneie um cômodo na seção Obras antes de editar a planta.</span></div>
+    <EmptyState icon={Grid2X2} title="Nenhum cômodo cadastrado" description="Adicione ou escaneie um cômodo em Obras antes de editar a planta."/>
   </section>;
 
   return <section className="plan-editor">
@@ -290,8 +291,8 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
           <p className="plan-note">O 3D é uma representação para planejamento. Não substitui medidas conferidas ou projeto arquitetônico.</p>
         </div>
         <div className="plan-panel plan-save">
-          {message && <p role="alert" className="plan-error">{message}</p>}
-          {success && <p role="status" className="plan-success"><Check size={17}/>Alterações salvas. O modelo 3D foi atualizado.</p>}
+          {message && <Feedback tone="error">{message}</Feedback>}
+          {success && <Feedback tone="success">Alterações salvas. O modelo 3D foi atualizado.</Feedback>}
           <p>As alterações são aplicadas à sua planta e sincronizadas com o Supabase da sua conta.</p>
           <button className="btn btn-primary full" type="button" onClick={save}><Save size={17}/>Salvar planta do cômodo</button>
           <button className="btn btn-outline full" type="button" onClick={leaveEditor}><ArrowLeft size={16}/>Ver Planta 3D</button>

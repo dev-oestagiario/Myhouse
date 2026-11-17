@@ -1,3 +1,4 @@
+import {Feedback} from '../../shared/UiState';
 import FloatingActions from '../../shared/FloatingActions';
 import Modal from '../../shared/Modal';
 import {useState,type FormEvent} from 'react';
@@ -75,8 +76,8 @@ export default function OutdoorWorkspace({home,scenario,archived,onCreateScenari
         {label:'Criar cenário',disabled:archived,onClick:onCreateScenario}
       ]}/></header>
     <p className="outdoor-notice">Prévia ilustrativa, não é projeto estrutural. A área calculada não determina materiais, resistência ou segurança da obra.</p>
-    {notice&&<p role="status" className="outdoor-feedback">{notice}</p>}
-    {error&&!draft&&<p role="alert" className="outdoor-error">{error}</p>}
+    {notice&&<Feedback tone="success" onDismiss={()=>setNotice('')}>{notice}</Feedback>}
+    {error&&!draft&&<Feedback tone="error">{error}</Feedback>}
     {areas.length>0&&<div className="outdoor-toolbar">
       <label htmlFor="outdoor-select">Área planejada
         <select id="outdoor-select" value={selected?.id??''}
@@ -143,7 +144,7 @@ export default function OutdoorWorkspace({home,scenario,archived,onCreateScenari
           {draft.outline.map((_,i)=><option key={i} value={i}>Borda {i+1}</option>)}
         </select></label>
       </fieldset>
-      {error&&<p role="alert" className="outdoor-error">{error}</p>}
+      {error&&<Feedback tone="error">{error}</Feedback>}
       <div className="outdoor-form-actions"><button type="button" className="btn btn-outline"
         onClick={()=>{setDraft(null);setError('');}}>Cancelar</button>
         <button type="submit" className="btn btn-primary" disabled={archived}><Check size={16}/>Salvar área externa</button></div>

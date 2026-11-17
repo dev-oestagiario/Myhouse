@@ -1,3 +1,5 @@
+import {useNotice} from '../../shared/useNotice';
+import {Feedback,EmptyState} from '../../shared/UiState';
 import ContextActions from '../../shared/ContextActions';
 import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
@@ -33,7 +35,7 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
   const [editingId,setEditingId]=useState<string|'new'|null>(null);
   const [draft,setDraft]=useState<TaskDraft>(()=>blankTask(project.id));
   const [formError,setFormError]=useState('');
-  const [notice,setNotice]=useState('');
+  const {notice,show:setNotice,clear:clearNotice}=useNotice();
   const [filter,setFilter]=useState<Filter>('todas');
   const [view,setView]=useState<'lista'|'quadro'>('lista');
   const [search,setSearch]=useState('');
@@ -48,7 +50,7 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
       || b.updatedAt.localeCompare(a.updatedAt)),[tasks,filter,search]);
 
   function openEditor(task?:ProjectTask){
-    if(archived){setNotice('Reative o projeto para alterar tarefas.');return;}
+    if(archived){setNotice('Reative o projeto para alterar tarefas.','warning');return;}
     setEditingId(task?.id??'new');
     setDraft(task?formValue(task):blankTask(project.id));
     setFormError('');
@@ -67,7 +69,7 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
   }
   function run(op:()=>HomeData,message:string){
     try{onChange(op());setNotice(message);}
-    catch(error){setNotice(error instanceof Error?error.message:'Não foi possível alterar a tarefa.');}
+    catch(error){setNotice(error instanceof Error?error.message:'Não foi possível alterar a tarefa.','error');}
   }
   function remove(task:ProjectTask){
     if(!window.confirm(`Excluir a tarefa "${task.title}" e seu checklist? Essa ação não poderá ser desfeita. Os registros legados de obras serão preservados.`))return;
@@ -133,8 +135,8 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
         <p>Organize trabalhos de qualquer tipo, como pintar, instalar móveis, contratar serviços ou montar um deck.</p></div>
       <FloatingActions actions={[{label:'Nova tarefa',disabled:archived,onClick:()=>openEditor()}]}/>
     </div>
-    {notice&&<div className="task-notice" role="status">{notice}<button type="button" aria-label="Dispensar aviso" onClick={()=>setNotice('')}>×</button></div>}
-    {archived&&<p className="task-archived-notice" role="status">Este projeto está arquivado. Reative-o para criar ou atualizar tarefas.</p>}
+    {notice&&<Feedback tone={notice.tone} onDismiss={clearNotice}>{notice.message}</Feedback>}
+    {archived&&<Feedback tone="warning">Este projeto está arquivado. Reative-o para criar ou atualizar tarefas.</Feedback>}
     <div className="task-stats">
       <div><ClipboardList size={18}/><span>Total</span><strong>{summary.total}</strong></div>
       <div><Clock3 size={18}/><span>Em andamento</span><strong>{summary.active}</strong></div>
@@ -149,9 +151,7 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
       <label>Pesquisar tarefas<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou descrição"/></label>
       <Disclosure title="Filtros" filter activeCount={Number(filter!=='todas')} onReset={()=>setFilter('todas')}><label>Exibição<select value={filter} onChange={e=>setFilter(e.target.value as Filter)}><option value="todas">Todas</option><option value="pendentes">Pendentes</option><option value="concluidas">Concluídas</option></select></label></Disclosure>
     </div>}
-    {detailId?tasks.filter(task=>task.id===detailId).map(renderTask):!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
-        <p>{tasks.length?'Altere os filtros para encontrar os serviços deste projeto.':'Cadastre os trabalhos necessários para realizar este projeto. Não é preciso ter uma planta 3D.'}</p>
-      </div> : <>
+    {detailId?tasks.filter(task=>task.id===detailId).map(renderTask):!filtered.length ? <EmptyState icon={ListChecks} title={tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'} description={tasks.length?'Altere a pesquisa ou os filtros.':'Use Novo para cadastrar uma tarefa.'} action={tasks.length?<button type="button" className="btn btn-outline" onClick={()=>{setSearch('');setFilter('todas');}}>Limpar pesquisa e filtros</button>:undefined}/> : <>
       <div className="task-view-switch" role="group" aria-label="Visualização das tarefas">
         <button type="button" aria-pressed={view==='lista'} className={view==='lista'?'active':''} onClick={()=>setView('lista')}>Lista</button>
         <button type="button" aria-pressed={view==='quadro'} className={view==='quadro'?'active':''} onClick={()=>setView('quadro')}>Quadro</button>
@@ -211,7 +211,7 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
             }))}/><span>{task.title}</span></label>)}</div>
           <small>Uma tarefa com dependências pendentes não poderá ser marcada como concluída.</small>
         </fieldset></Disclosure>}
-        {formError&&<p className="task-form-error" role="alert">{formError}</p>}
+        {formError&&<Feedback tone="error">{formError}</Feedback>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setEditingId(null)}>Cancelar</button>
           <button type="submit" className="btn btn-primary"><Check size={16}/>Salvar tarefa</button></div>
       </form>

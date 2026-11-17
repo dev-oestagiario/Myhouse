@@ -1,0 +1,3 @@
+# F7.4 — Estados de interface e consistência visual
+
+RF01: feedback de erro com alerta, sem descarte automático; sucesso local não afirma gravação remota. RF02: carregamento da sessão, casa, visualização 3D, editor espacial e operações de arquivo. RF03: estados vazios padronizados nas listas principais, distinção entre vazio e filtro sem resultado, recuperação sem duplicar botão Novo. RF04: erro de compra dentro do formulário antes de salvar. RF05: falha de sincronização mantém dados em tela e permite tentativa/backup, sem indicador permanente de conta. RNF01: movimento reduzido, foco e toque; preservar funcionalidades, sem mudança de banco. Hardware e revisão visual manual continuam gates separados.

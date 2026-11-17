@@ -1,3 +1,4 @@
+import {Feedback,EmptyState} from '../../shared/UiState';
 import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -148,13 +149,11 @@ export default function ScenarioWorkspace({home,project,selectedId,onSelectScena
         ...(scenario&&view==='tridimensional'?[{label:'Novo espaço',disabled:archived||scenario.rooms.length>=40,onClick:()=>editRoom()}]:[])
       ]}/>}
     </header>
-    {message&&<div className="scenario-message" role="status">{message}<button type="button" aria-label="Dispensar mensagem" onClick={()=>setMessage('')}>×</button></div>}
-    {error&&modal===null&&<p role="alert" className="scenario-error">{error}</p>}
-    {archived&&<p className="scenario-archived">Projeto arquivado: cenários disponíveis apenas para consulta. Reative-o para editar.</p>}
+    {message&&<Feedback tone="success" onDismiss={()=>setMessage('')}>{message}</Feedback>}
+    {error&&modal===null&&<Feedback tone="error">{error}</Feedback>}
+    {archived&&<Feedback tone="warning">Projeto arquivado: cenários disponíveis apenas para consulta. Reative-o para editar.</Feedback>}
     {!scenario ? <>
-      {scenarios.length===0?<div className="scenario-empty"><Layers3 size={33}/><h4>Planeje como sua casa poderá ficar</h4>
-        <p>Comece copiando os cômodos vinculados ao projeto ou abra uma proposta em branco. Você pode criar vários cenários sem alterar a planta real.</p>
-      </div>:<div className="scenario-library"><h4>Escolha uma proposta</h4><div className="scenario-cards">{scenarios.map(item=><article key={item.id} className="scenario-card">
+      {scenarios.length===0?<EmptyState icon={Layers3} title="Nenhuma proposta criada" description="Use Novo para criar um cenário independente da planta real."/>:<div className="scenario-library"><h4>Escolha uma proposta</h4><div className="scenario-cards">{scenarios.map(item=><article key={item.id} className="scenario-card">
         <div><Layers3 size={19}/><strong>{item.name}</strong></div><p>{item.description||'Proposta sem descrição'}</p>
         <small>{item.rooms.length} cômodo(s) · {(item.outdoorAreas??[]).length} área(s) externa(s) · Atualizado {shortDate(item.updatedAt)}</small>
         <div><button type="button" className="btn btn-outline" onClick={()=>selectScenario(item)}>Abrir proposta</button>
@@ -241,7 +240,7 @@ export default function ScenarioWorkspace({home,project,selectedId,onSelectScena
           <label><input type="radio" name="scenario-mode" value="vazio" checked={newMode==='vazio'} onChange={()=>setNewMode('vazio')}/><span>Começar uma proposta em branco</span></label>
         </fieldset>
         <p className="form-hint">O resultado é uma cópia independente. A planta atual nunca será modificada por este cenário.</p>
-        {error&&<p className="scenario-error" role="alert">{error}</p>}
+        {error&&<Feedback tone="error">{error}</Feedback>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={16}/>Criar proposta</button></div>
       </form>
     </Modal>}
@@ -249,7 +248,7 @@ export default function ScenarioWorkspace({home,project,selectedId,onSelectScena
       <form className="modal-form scenario-form" onSubmit={commitRename}>
         <div className="field"><label htmlFor="scenario-name">Nome da proposta *</label><input id="scenario-name" required minLength={2} maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></div>
         <div className="field"><label htmlFor="scenario-description">Descrição</label><textarea id="scenario-description" maxLength={4000} rows={3} value={description} onChange={e=>setDescription(e.target.value)}/></div>
-        {error&&<p className="scenario-error" role="alert">{error}</p>}
+        {error&&<Feedback tone="error">{error}</Feedback>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn btn-primary">Salvar proposta</button></div>
       </form>
     </Modal>}
@@ -261,7 +260,7 @@ export default function ScenarioWorkspace({home,project,selectedId,onSelectScena
           <label htmlFor={`scene-room-${key}`}>{label}</label><input id={`scene-room-${key}`} type="number" required min=".1" max="100" step=".01" value={roomFields[key]} onChange={e=>setRoomFields(p=>({...p,[key]:Number(e.target.value)}))}/></div>)}</div>
         <Disclosure title="Posição na planta" summary="Opcional"><div className="form-row">{(['x','z'] as const).map(key=><div className="field" key={key}><label htmlFor={`scene-room-${key}`}>Posição {key.toUpperCase()} (m)</label>
           <input id={`scene-room-${key}`} type="number" required min="-100" max="100" step=".01" value={roomFields[key]} onChange={e=>setRoomFields(p=>({...p,[key]:Number(e.target.value)}))}/></div>)}</div></Disclosure>
-        {error&&<p className="scenario-error" role="alert">{error}</p>}
+        {error&&<Feedback tone="error">{error}</Feedback>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={16}/>Salvar espaço</button></div>
       </form>
     </Modal>}

@@ -1,3 +1,4 @@
+import {Feedback} from '../../shared/UiState';
 import {useState} from 'react';
 import {AlertTriangle,CalendarDays,Check,Clock3,History,Receipt,Wallet} from 'lucide-react';
 import type {HomeData,Project} from '../../types';
@@ -38,8 +39,8 @@ export default function ProjectTracking({home,project,onChange,onOpenTasks,onOpe
       <h3>Acompanhamento do projeto</h3>
       <p>Agenda, etapas, gastos registrados e histórico. Consulte tudo sem abrir a planta 3D.</p>
     </div></header>
-    {notice&&<p role="status" className="tracking-notice">{notice}</p>}
-    {error&&<p role="alert" className="tracking-error">{error}</p>}
+    {notice&&<Feedback tone="success" onDismiss={()=>setNotice('')}>{notice}</Feedback>}
+    {error&&<Feedback tone="error">{error}</Feedback>}
     <div className="tracking-kpis" aria-label="Resumo da execução">
       <div><Check size={19}/><span>Progresso</span><strong>{progress.percent}%</strong><small>{progress.done} de {progress.total} concluídas</small></div>
       <div><AlertTriangle size={19}/><span>Atrasadas</span><strong>{overdue}</strong><small>{missing} sem prazo</small></div>
