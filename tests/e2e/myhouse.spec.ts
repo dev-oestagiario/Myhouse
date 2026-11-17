@@ -1019,13 +1019,15 @@ test('F7.3 — cadastros enxutos, vínculos opcionais e filtros reversíveis',as
 
 test('F7.4 — carregamento e recuperação de falha na leitura',async({page})=>{
   let release!:()=>void;
+  let failRead=true;
   const gate=new Promise<void>(resolve=>{release=resolve;});
-  await setupMockSession(page,undefined,{waitForHome:false,failReads:1,beforeRead:()=>gate});
+  await setupMockSession(page,undefined,{waitForHome:false,readError:()=>failRead,beforeRead:()=>gate});
   try{
     await expect(page.getByRole('status').getByText('Carregando sua casa…')).toBeVisible();
     await expect(page.locator('#myhouse-page-content')).toHaveCount(0);
   }finally{release();}
   await expect(page.getByRole('alert')).toContainText('Conexão de teste indisponível');
+  failRead=false;
   await page.getByRole('button',{name:'Tentar novamente'}).click();
   await expect(page.locator('#myhouse-page-content')).toBeVisible();
   await expect(page.getByText('Carregando sua casa…')).toHaveCount(0);

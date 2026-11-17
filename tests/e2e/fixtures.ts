@@ -16,7 +16,7 @@ export const initialFixture: HomeData = {
 type Snapshot = HomeData;
 export type MockHome = { data: Snapshot; revision: number };
 
-export async function setupMockSession(page: Page, seed: Snapshot = structuredClone(initialFixture), options:{failReads?:number;failWrites?:number;waitForHome?:boolean;beforeRead?:()=>Promise<void>}={}) {
+export async function setupMockSession(page: Page, seed: Snapshot = structuredClone(initialFixture), options:{failReads?:number;failWrites?:number;waitForHome?:boolean;beforeRead?:()=>Promise<void>;readError?:()=>boolean}={}) {
   let failReads=options.failReads??0,failWrites=options.failWrites??0;
   const state: MockHome = { data: structuredClone(seed), revision: 1 };
   const session = {
@@ -58,7 +58,7 @@ export async function setupMockSession(page: Page, seed: Snapshot = structuredCl
     if (url.pathname === '/rest/v1/user_homes') {
       if (method === 'GET') {
         if(options.beforeRead)await options.beforeRead();
-        if(failReads>0){failReads--;await respond(400,{message:'Conexão de teste indisponível',code:'TEST_READ'});return;}
+        if(options.readError?.()||failReads>0){if(failReads>0)failReads--;await respond(400,{message:'Conexão de teste indisponível',code:'TEST_READ'});return;}
         await respond(200, { data: state.data, revision: state.revision });
         return;
       }
