@@ -70,7 +70,7 @@ export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSele
   const height = Math.max(...rooms.map(r => r.height));
 
   return <Canvas frameloop="demand" camera={{ position: [cx + size * 1.15, height + size * 1.22, cz + size * 1.22], fov: 43 }}
-    dpr={[1, 1.7]} gl={{ antialias: true }}>
+    dpr={useViewerDpr()} gl={{ antialias: true }}>
     <color attach="background" args={['#f4f7fc']}/>
     <ambientLight intensity={1.25}/>
     <directionalLight position={[7, 12, 8]} intensity={1.8}/>
