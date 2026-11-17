@@ -1,3 +1,4 @@
+import NumericInput from './shared/NumericInput';
 import {DeferredView} from './shared/DeferredView';
 import {Feedback,EmptyState} from './shared/UiState';
 import {useNotice} from './shared/useNotice';
@@ -351,8 +352,12 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     { id: 'history', name: 'Histórico de atividades', Icon: FileClock },
   ];
   function focusPage() {
-    window.scrollTo({top:0});
-    window.requestAnimationFrame(()=>document.getElementById('myhouse-page-content')?.focus({preventScroll:true}));
+    window.scrollTo({top:0,behavior:'instant' as ScrollBehavior});
+    window.requestAnimationFrame(()=>{
+      const content=document.getElementById('myhouse-page-content');
+      content?.scrollTo({top:0,behavior:'instant' as ScrollBehavior});
+      content?.focus({preventScroll:true});
+    });
   }
   function navigateRoute(next:AppRoute,replace=false) {
     const hash=routeHash(next);
@@ -602,8 +607,8 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     </Modal>}
     {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
       <p className="form-hint">Informe as medidas em metros.</p>
-      <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="0.1" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
-      <Disclosure title="Posição na planta" summary="Opcional"><p className="form-hint">Mantenha a posição sugerida ou ajuste X/Z.</p><div className="form-row">{([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="-100" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div></Disclosure>
+      <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><NumericInput id={`r-${key}`} min="0.1" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
+      <Disclosure title="Posição na planta" summary="Opcional"><p className="form-hint">Mantenha a posição sugerida ou ajuste X/Z.</p><div className="form-row">{([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><NumericInput id={`r-${key}`} min="-100" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div></Disclosure>
       {roomError&&<Feedback tone="error">{roomError}</Feedback>}<div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setRoomOpen(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar cômodo</button></div>
     </form></Modal>}
   </div>;

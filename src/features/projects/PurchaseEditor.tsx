@@ -1,3 +1,4 @@
+import NumericInput from '../../shared/NumericInput';
 import {Feedback} from '../../shared/UiState';
 import Disclosure from '../../shared/Disclosure';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
@@ -31,9 +32,9 @@ export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lo
       <div className="field"><label htmlFor="p-priority">Prioridade</label><select id="p-priority" value={draft.priority} onChange={e=>setDraft(p=>({...p,priority:e.target.value as Priority}))}>{Object.entries(priorityNames).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></div>
     </div>
     <div className="form-row three">
-      <div className="field"><label htmlFor="p-qty">Quantidade</label><input id="p-qty" inputMode="decimal" type="number" min=".01" step="any" value={draft.quantity} onChange={e=>setDraft(p=>({...p,quantity:Number(e.target.value)}))} required/></div>
+      <div className="field"><label htmlFor="p-qty">Quantidade</label><NumericInput id="p-qty" inputMode="decimal" min=".01" step="any" value={draft.quantity} onChange={e=>setDraft(p=>({...p,quantity:Number(e.target.value)}))} required/></div>
       <div className="field"><label htmlFor="p-unit">Unidade</label><input id="p-unit" list="purchase-units" maxLength={32} value={draft.unit??'un.'} onChange={e=>setDraft(p=>({...p,unit:e.target.value}))}/><datalist id="purchase-units">{PURCHASE_UNITS.map(unit=><option value={unit} key={unit}/>)}</datalist></div>
-      <div className="field"><label htmlFor="p-price">Preço unitário (R$)</label><input id="p-price" inputMode="decimal" type="number" step=".01" min="0" value={draft.unitPrice} onChange={e=>setDraft(p=>({...p,unitPrice:Number(e.target.value)}))}/></div>
+      <div className="field"><label htmlFor="p-price">Preço unitário (R$)</label><NumericInput id="p-price" inputMode="decimal" step=".01" min="0" value={draft.unitPrice} onChange={e=>setDraft(p=>({...p,unitPrice:Number(e.target.value)}))}/></div>
     </div>
     <Disclosure title="Vínculos" summary={project?.name??(draft.roomId?'Cômodo vinculado':'Opcional')}>
     <div className="form-row">
@@ -55,7 +56,7 @@ export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lo
       <div className="field"><label htmlFor="p-status">Situação da compra</label><select id="p-status" value={draft.status??currentStatus({...draft,id:'',createdAt:''})} onChange={e=>setStatus(e.target.value as PurchaseStatus)}>
         {Object.entries(PURCHASE_STATUS_NAMES).map(([v,l])=><option value={v} key={v}>{l}</option>)}
       </select></div>
-      <div className="field"><label htmlFor="p-actual">Preço unitário pago (R$)</label><input id="p-actual" inputMode="decimal" type="number" min="0" step=".01" placeholder="Ainda não informado"
+      <div className="field"><label htmlFor="p-actual">Preço unitário pago (R$)</label><NumericInput id="p-actual" inputMode="decimal" min="0" step=".01" placeholder="Ainda não informado"
         value={draft.actualUnitPriceCents==null?'':draft.actualUnitPriceCents/100} onChange={e=>setDraft(p=>({...p,actualUnitPriceCents:e.target.value===''?null:Math.round(Number(e.target.value)*100)}))}/>
         <small>Opcional. Sem esse valor, a compra não será contabilizada como gasto confirmado.</small></div>
     </div>

@@ -1,3 +1,4 @@
+import NumericInput from '../../shared/NumericInput';
 import {Feedback,EmptyState} from '../../shared/UiState';
 import ContextActions from '../../shared/ContextActions';
 import Disclosure from '../../shared/Disclosure';
@@ -114,7 +115,7 @@ export default function ProjectBudget({home,project,onChange}:Props){
       {figures.targetCents!==null&&<div className="budget-target"><span>Meta do projeto: {brl(figures.targetCents)}</span>
         <strong className={figures.balanceCents!<0?'budget-over':''}>{figures.balanceCents!<0?'Projeção acima da meta: ':'Margem da meta: '}{brl(Math.abs(figures.balanceCents!))}</strong></div>}
     </div>
-    <Disclosure title="Configurar reserva" summary={(project.contingencyPercent??0)+'%'}><div className="budget-reserve"><label htmlFor="budget-contingency">Reserva para imprevistos (%)</label><div><input id="budget-contingency" type="number" min="0" max="50" step="1" value={reserve} disabled={archived}
+    <Disclosure title="Configurar reserva" summary={(project.contingencyPercent??0)+'%'}><div className="budget-reserve"><label htmlFor="budget-contingency">Reserva para imprevistos (%)</label><div><NumericInput id="budget-contingency" min="0" max="50" step="1" value={reserve} disabled={archived}
       onChange={e=>setReserve(e.target.value)}/><button type="button" className="btn btn-outline" disabled={archived} onClick={()=>apply(()=>setProjectContingency(home,project.id,Number(reserve),new Date().toISOString()),'Reserva atualizada.')}>Aplicar reserva</button></div>
       <small>Percentual sobre materiais e serviços previstos. Não representa um gasto realizado.</small></div></Disclosure>
     <div className="budget-section-title"><div><ShoppingBasket size={19}/><h4>Materiais e compras</h4><span>{figures.purchases.length} itens · {figures.pendingCount} pendentes</span></div>

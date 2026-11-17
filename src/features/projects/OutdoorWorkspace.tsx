@@ -1,3 +1,4 @@
+import NumericInput from '../../shared/NumericInput';
 import {DeferredView} from '../../shared/DeferredView';
 import {Feedback} from '../../shared/UiState';
 import FloatingActions from '../../shared/FloatingActions';
@@ -97,13 +98,13 @@ export default function OutdoorWorkspace({home,scenario,archived,onCreateScenari
       <div className="outdoor-fields">
         <label className="outdoor-wide">Nome<input required minLength={2} maxLength={120}
           value={draft.name} onChange={e=>change({name:e.target.value})}/></label>
-        <label>Posição X (m)<input required type="number" min="-100" max="100" step=".01"
+        <label>Posição X (m)<NumericInput required min="-100" max="100" step=".01"
           value={draft.x} onChange={e=>change({x:Number(e.target.value)})}/></label>
-        <label>Posição Z (m)<input required type="number" min="-100" max="100" step=".01"
+        <label>Posição Z (m)<NumericInput required min="-100" max="100" step=".01"
           value={draft.z} onChange={e=>change({z:Number(e.target.value)})}/></label>
-        <label>Nível do piso (m)<input required type="number" min="-2" max="5" step=".01"
+        <label>Nível do piso (m)<NumericInput required min="-2" max="5" step=".01"
           value={draft.level} onChange={e=>change({level:Number(e.target.value)})}/></label>
-        <label>Espessura ilustrativa (m)<input required type="number" min=".08" max=".6" step=".01"
+        <label>Espessura ilustrativa (m)<NumericInput required min=".08" max=".6" step=".01"
           value={draft.thickness} onChange={e=>change({thickness:Number(e.target.value)})}/></label>
         <label className="outdoor-wide">Acabamento visual<select value={draft.finish}
           onChange={e=>change({finish:e.target.value as ScenarioOutdoorArea['finish']})}>
@@ -118,10 +119,10 @@ export default function OutdoorWorkspace({home,scenario,archived,onCreateScenari
         <p>Edite os vértices na ordem do contorno. Valores são verificados ao salvar.</p>
         <div className="outdoor-vertices">{draft.outline.map((p,i)=><div className="outdoor-vertex" key={i}>
           <strong>Vértice {i+1}</strong>
-          <label>X (m)<input required type="number" step=".01" min="-100" max="100"
+          <label>X (m)<NumericInput required step=".01" min="-100" max="100"
             aria-label={'Vértice '+(i+1)+' X (m)'} value={p.x}
             onChange={e=>vertex(i,'x',Number(e.target.value))}/></label>
-          <label>Z (m)<input required type="number" step=".01" min="-100" max="100"
+          <label>Z (m)<NumericInput required step=".01" min="-100" max="100"
             aria-label={'Vértice '+(i+1)+' Z (m)'} value={p.z}
             onChange={e=>vertex(i,'z',Number(e.target.value))}/></label>
           <button type="button" className="btn btn-outline" disabled={draft.outline.length<=3}

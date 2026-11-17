@@ -1,3 +1,4 @@
+import NumericInput from '../../shared/NumericInput';
 import {DeferredView} from '../../shared/DeferredView';
 import {Feedback} from '../../shared/UiState';
 import { useEffect, useMemo, useState, type FormEvent, type PointerEvent } from 'react';
@@ -203,14 +204,14 @@ export default function InteriorWorkspace({home,scenario,archived,onChange}:Prop
             <div className="interior-field"><label htmlFor="furniture-name">Nome do móvel</label><input id="furniture-name" maxLength={120} required value={draft.name}
               disabled={archived} onChange={e=>setDraft({...draft,name:e.target.value})}/></div>
             <div className="interior-fields-two">
-              <div className="interior-field"><label htmlFor="furniture-x">Posição X (m)</label><input id="furniture-x" type="number" step=".01" value={draft.x} disabled={archived} onChange={e=>setDraft({...draft,x:Number(e.target.value)})}/></div>
-              <div className="interior-field"><label htmlFor="furniture-z">Posição Z (m)</label><input id="furniture-z" type="number" step=".01" value={draft.z} disabled={archived} onChange={e=>setDraft({...draft,z:Number(e.target.value)})}/></div>
+              <div className="interior-field"><label htmlFor="furniture-x">Posição X (m)</label><NumericInput id="furniture-x" step=".01" value={draft.x} disabled={archived} onChange={e=>setDraft({...draft,x:Number(e.target.value)})}/></div>
+              <div className="interior-field"><label htmlFor="furniture-z">Posição Z (m)</label><NumericInput id="furniture-z" step=".01" value={draft.z} disabled={archived} onChange={e=>setDraft({...draft,z:Number(e.target.value)})}/></div>
             </div>
             <div className="interior-fields-three">{([['width','Largura (m)'],['depth','Profundidade (m)'],['height','Altura (m)']] as const).map(([key,label])=><div className="interior-field" key={key}>
-              <label htmlFor={`furniture-${key}`}>{label}</label><input id={`furniture-${key}`} type="number" min={key==='height'?'.01':'.1'} max={key==='height'?'4':'6'} step=".01" required disabled={archived}
+              <label htmlFor={`furniture-${key}`}>{label}</label><NumericInput id={`furniture-${key}`} min={key==='height'?'.01':'.1'} max={key==='height'?'4':'6'} step=".01" required disabled={archived}
                 value={draft[key]} onChange={e=>setDraft({...draft,[key]:Number(e.target.value)})}/></div>)}</div>
             <div className="interior-fields-two">
-              <div className="interior-field"><label htmlFor="furniture-angle">Rotação (°)</label><input id="furniture-angle" type="number" min="0" max="359" step="1" value={draft.rotation} disabled={archived}
+              <div className="interior-field"><label htmlFor="furniture-angle">Rotação (°)</label><NumericInput id="furniture-angle" min="0" max="359" step="1" value={draft.rotation} disabled={archived}
                 onChange={e=>setDraft({...draft,rotation:Number(e.target.value)})}/></div>
               <div className="interior-field"><label htmlFor="furniture-color">Acabamento</label><select id="furniture-color" value={draft.color} disabled={archived}
                 onChange={e=>setDraft({...draft,color:e.target.value as FurnitureColor})}>

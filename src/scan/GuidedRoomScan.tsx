@@ -1,3 +1,4 @@
+import NumericInput from '../shared/NumericInput';
 import {DeferredView} from '../shared/DeferredView';
 import {Feedback} from '../shared/UiState';
 import { useBackLayer } from '../shared/useBackLayer';
@@ -190,10 +191,10 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
       <div className="scan-fields">
         <label className="scan-field scan-wide">Nome do cômodo<input required maxLength={80} value={draft.name} placeholder="Ex.: Quarto principal" onChange={e => setDraft(p => ({ ...p, name: e.target.value }))} /></label>
         {([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) =>
-          <label className="scan-field" key={key}>{label}<input required type="number" inputMode="decimal" min="0.1" max="100" step="0.01" value={draft[key]} onChange={e => updateDimension(key, Number(e.target.value))} /></label>)}
+          <label className="scan-field" key={key}>{label}<NumericInput required inputMode="decimal" min="0.1" max="100" step="0.01" value={draft[key]} onChange={e => updateDimension(key, Number(e.target.value))} /></label>)}
         <p className="scan-field-note scan-wide">A posição determina onde o cômodo ficará em relação aos outros. Se não souber, mantenha a posição sugerida e ajuste depois em Obras.</p>
         {([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) =>
-          <label className="scan-field" key={key}>{label}<input required type="number" inputMode="decimal" min="-100" max="100" step="0.01" value={draft[key]} onChange={e => { const v = Number(e.target.value); setDraft(p => ({ ...p, [key]: v })); setConfirmed(false); }} /></label>)}
+          <label className="scan-field" key={key}>{label}<NumericInput required inputMode="decimal" min="-100" max="100" step="0.01" value={draft[key]} onChange={e => { const v = Number(e.target.value); setDraft(p => ({ ...p, [key]: v })); setConfirmed(false); }} /></label>)}
       </div>
       {draft.footprint && <FloorOverview draft={draft}/>}
       {estimated && Math.max(widthDiff,lengthDiff)>=5 && <p className="scan-measurement-warning" role="status">Você corrigiu a estimativa inicial em até {Math.max(widthDiff,lengthDiff).toFixed(1)}%. O contorno foi atualizado proporcionalmente. Confira se o formato ainda corresponde ao ambiente.</p>}
