@@ -1,6 +1,7 @@
+import FloatingActions from '../../shared/FloatingActions';
 import { useState, type FormEvent } from 'react';
 import {
-  Check, Edit3, FilePlus2, Link2, Plus, Receipt, ShoppingBasket,
+  Check, Edit3, FilePlus2, Link2, Receipt, ShoppingBasket,
   Trash2, Wrench,
 } from 'lucide-react';
 import type { HomeData, Project, ProjectTask, Purchase, PurchaseStatus } from '../../types';
@@ -91,7 +92,7 @@ export default function ProjectBudget({home,project,onChange}:Props){
   return <section className="budget-workspace panel" aria-label="Compras e orçamento do projeto">
     <header className="budget-head"><div><span className="eyebrow dark-eyebrow">CUSTOS E MATERIAIS</span><h3>Compras e orçamento</h3>
       <p>Itens vinculados à lista geral. Materiais, serviços e gastos confirmados aparecem separadamente.</p></div>
-      <button type="button" className="btn btn-primary" disabled={archived} onClick={()=>openPurchase()}><Plus size={17}/>Adicionar compra</button>
+      <FloatingActions actions={[{label:'Adicionar compra',disabled:archived,onClick:()=>openPurchase()}]}/>
     </header>
     {notice&&<div role="status" className="budget-feedback">{notice}<button type="button" aria-label="Fechar mensagem" onClick={()=>setNotice('')}>×</button></div>}
     {error&&!editId&&!costId&&!quoteId&&<p className="budget-error" role="alert">{error}</p>}

@@ -1,3 +1,5 @@
+import FloatingActions from '../../shared/FloatingActions';
+import Modal from '../../shared/Modal';
 import {useState,type FormEvent} from 'react';
 import {Check,Edit3,Plus,Trash2} from 'lucide-react';
 import type {HomeData,ProjectScenario,ScenarioOutdoorArea,PlanPoint} from '../../types';
@@ -7,7 +9,7 @@ import {addScenarioOutdoorArea,removeScenarioOutdoorArea,updateScenarioOutdoorAr
 import {newOutdoorArea,outlinePreset,outdoorAreaSquareMeters,outdoorPerimeter,
   outdoorEdges,OUTDOOR_FINISHES} from './outdoorGeometry';
 import './outdoors.css';
-type Props={home:HomeData;scenario:ProjectScenario;archived:boolean;onChange:(next:HomeData)=>void;
+type Props={home:HomeData;scenario:ProjectScenario;archived:boolean;onCreateScenario:()=>void;onChange:(next:HomeData)=>void;
   onOpenTasks:()=>void;onOpenBudget:()=>void};
 const format=(n:number)=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}).format(n);
 function OutlineMap({area}:{area:ScenarioOutdoorArea}){
@@ -31,7 +33,7 @@ function OutlineMap({area}:{area:ScenarioOutdoorArea}){
       <text x={p.x+.13} y={p.z-.13} fontSize=".30" fill="#184b80">{i+1}</text></g>)}
   </svg>;
 }
-export default function OutdoorWorkspace({home,scenario,archived,onChange,onOpenTasks,onOpenBudget}:Props){
+export default function OutdoorWorkspace({home,scenario,archived,onCreateScenario,onChange,onOpenTasks,onOpenBudget}:Props){
   const areas=scenario.outdoorAreas??[];
   const [selectedId,setSelectedId]=useState('');
   const selected=areas.find(a=>a.id===selectedId)??areas[0]??null;
@@ -68,8 +70,10 @@ export default function OutdoorWorkspace({home,scenario,archived,onChange,onOpen
   return <section className="outdoor-workspace" aria-label="Planejamento de espaços externos">
     <header className="outdoor-heading"><div><h4>Espaços externos e deck</h4>
       <p>Defina o contorno e a altura da área planejada. Este espaço não exige um cômodo interno.</p></div>
-      <button type="button" className="btn btn-primary" disabled={archived||areas.length>=12}
-        onClick={()=>edit()}><Plus size={16}/>Nova área externa</button></header>
+      <FloatingActions actions={[
+        {label:'Nova área externa',disabled:archived||areas.length>=12,onClick:()=>edit()},
+        {label:'Criar cenário',disabled:archived,onClick:onCreateScenario}
+      ]}/></header>
     <p className="outdoor-notice">Prévia ilustrativa, não é projeto estrutural. A área calculada não determina materiais, resistência ou segurança da obra.</p>
     {notice&&<p role="status" className="outdoor-feedback">{notice}</p>}
     {error&&!draft&&<p role="alert" className="outdoor-error">{error}</p>}
@@ -84,11 +88,9 @@ export default function OutdoorWorkspace({home,scenario,archived,onChange,onOpen
     </div>}
     {!selected&&!draft&&<div className="outdoor-empty"><h5>Nenhuma área externa planejada</h5>
       <p>Crie um deck, varanda ou pátio sem adicionar cômodos reais.</p>
-      {!archived&&<button type="button" className="btn btn-outline" onClick={()=>edit()}><Plus size={15}/>Criar área externa</button>}
     </div>}
-    {draft&&<form className="outdoor-form" onSubmit={save}>
-      <div className="outdoor-form-head"><h5>{areas.some(a=>a.id===draft.id)?'Editar área externa':'Nova área externa'}</h5>
-        <button type="button" className="btn btn-outline" onClick={()=>{setDraft(null);setError('');}}>Cancelar</button></div>
+    {draft&&<Modal title={areas.some(a=>a.id===draft.id)?'Editar área externa':'Nova área externa'} onClose={()=>{setDraft(null);setError('');}}>
+    <form className="outdoor-form modal-form" onSubmit={save}>
       <div className="outdoor-fields">
         <label className="outdoor-wide">Nome<input required minLength={2} maxLength={120}
           value={draft.name} onChange={e=>change({name:e.target.value})}/></label>
@@ -145,7 +147,7 @@ export default function OutdoorWorkspace({home,scenario,archived,onChange,onOpen
       <div className="outdoor-form-actions"><button type="button" className="btn btn-outline"
         onClick={()=>{setDraft(null);setError('');}}>Cancelar</button>
         <button type="submit" className="btn btn-primary" disabled={archived}><Check size={16}/>Salvar área externa</button></div>
-    </form>}
+    </form></Modal>}
     {selected&&<div className="outdoor-previews">
       <div className="outdoor-preview"><h5>Planta 2D · {selected.name}</h5>
         <OutlineMap area={selected}/>
