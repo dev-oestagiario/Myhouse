@@ -3,6 +3,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import AuthGate from './AuthGate';
 import './styles.css';
+import {applyLayoutMode} from './shared/layoutMode';
+
+// Define o modo antes da primeira pintura, inclusive em WebViews largas.
+applyLayoutMode();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><AuthGate /></React.StrictMode>,

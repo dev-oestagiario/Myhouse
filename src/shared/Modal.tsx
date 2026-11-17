@@ -55,7 +55,7 @@ export default function Modal({ title, onClose, children }: { title: string, onC
         }
       }}>
       <div className="modal-heading"><button type="button" className="icon-button modal-back-button" onClick={requestClose} aria-label="Fechar janela"><ArrowLeft size={22}/></button><h2>{title}</h2></div>
-      {children}
+      <div className="modal-body">{children}</div>
     </section>
   </div>,document.body);
 }

@@ -115,7 +115,7 @@ jobs:
           PGDATABASE=myhouse_storage_ci psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-storage-rls.sql
 
   mobile-acceptance-apk:
-    # Only the F7 acceptance PR produces a debug download after all four quality jobs.
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/f76-mobile-acceptance'
+    # Debug download only after all four quality jobs on mobile acceptance/hotfix PRs.
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/f76-mobile-acceptance' || github.head_ref == 'fix/android-native-mobile-layout')
     needs: [react, android, e2e, postgres]
     uses: ./.github/workflows/android-apk.yml

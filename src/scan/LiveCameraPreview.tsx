@@ -1,3 +1,4 @@
+import NumericInput from '../shared/NumericInput';
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Camera } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
@@ -198,15 +199,15 @@ export default function LiveCameraPreview({ onContinue, onManual }: Props) {
       {state!=='active'&&<div className="scan-live-overlay" role="status"><CameraOff size={34}/><strong>{overlayMessage}</strong>{state==='error'&&<span>{cameraError}</span>}</div>}
     </div>
     <div className="scan-live-fields">
-      <label>Referência — lado 1 (m)<input type="number" inputMode="decimal" min=".1" max="10" step=".01" value={knownWidth} onChange={e=>{setKnownWidth(e.target.value);setNotice('');}}/></label>
-      <label>Referência — lado 2 (m)<input type="number" inputMode="decimal" min=".1" max="10" step=".01" value={knownLength} onChange={e=>{setKnownLength(e.target.value);setNotice('');}}/></label>
+      <label>Referência — lado 1 (m)<NumericInput inputMode="decimal" min=".1" max="10" step=".01" value={knownWidth} onChange={e=>{setKnownWidth(e.target.value);setNotice('');}}/></label>
+      <label>Referência — lado 2 (m)<NumericInput inputMode="decimal" min=".1" max="10" step=".01" value={knownLength} onChange={e=>{setKnownLength(e.target.value);setNotice('');}}/></label>
     </div>
     <details className="scan-live-accessible">
       <summary>Marcar pontos pelo teclado (alternativa ao toque)</summary>
       <p>Informe a posição do próximo ponto no enquadramento, em porcentagem da largura e altura.</p>
       <div className="scan-live-fields">
-        <label>Posição horizontal (%)<input type="number" min="0" max="100" value={aimX} onChange={e=>setAimX(Math.min(100,Math.max(0,Number(e.target.value))))}/></label>
-        <label>Posição vertical (%)<input type="number" min="0" max="100" value={aimY} onChange={e=>setAimY(Math.min(100,Math.max(0,Number(e.target.value))))}/></label>
+        <label>Posição horizontal (%)<NumericInput min="0" max="100" value={aimX} onChange={e=>setAimX(Math.min(100,Math.max(0,Number(e.target.value))))}/></label>
+        <label>Posição vertical (%)<NumericInput min="0" max="100" value={aimY} onChange={e=>setAimY(Math.min(100,Math.max(0,Number(e.target.value))))}/></label>
         <button className="btn btn-outline" type="button" disabled={state!=='active'||moved} onClick={()=>mark({x:aimX/100,y:aimY/100})}>Adicionar ponto</button>
       </div>
     </details>

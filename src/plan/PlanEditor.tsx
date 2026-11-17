@@ -1,3 +1,4 @@
+import NumericInput from '../shared/NumericInput';
 import {Feedback,EmptyState} from '../shared/UiState';
 import { useBackLayer } from '../shared/useBackLayer';
 import { useEffect, useMemo, useState } from 'react';
@@ -195,8 +196,8 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
           <div className="plan-vertices">
             {points.map((p,i)=><div className="plan-vertex-row" key={i}>
               <strong>P{i+1}</strong>
-              <label>X (m)<input aria-label={`Vértice ${i+1}: X em metros`} type="number" step="0.01" min="0" max={draft.width} value={p.x} onChange={e=>editVertex(i,'x',Number(e.target.value))}/></label>
-              <label>Z (m)<input aria-label={`Vértice ${i+1}: Z em metros`} type="number" step="0.01" min="0" max={draft.length} value={p.z} onChange={e=>editVertex(i,'z',Number(e.target.value))}/></label>
+              <label>X (m)<NumericInput aria-label={`Vértice ${i+1}: X em metros`} step="0.01" min="0" max={draft.width} value={p.x} onChange={e=>editVertex(i,'x',Number(e.target.value))}/></label>
+              <label>Z (m)<NumericInput aria-label={`Vértice ${i+1}: Z em metros`} step="0.01" min="0" max={draft.length} value={p.z} onChange={e=>editVertex(i,'z',Number(e.target.value))}/></label>
               <button type="button" className="plan-mini-button" title={`Inserir vértice após P${i+1}`} aria-label={`Inserir vértice após P${i+1}`} onClick={()=>insertVertex(i)}><Plus size={16}/></button>
               <button type="button" className="plan-mini-button" title={`Remover P${i+1}`} aria-label={`Remover P${i+1}`} disabled={points.length<=3} onClick={()=>removeVertex(i)}><Trash2 size={15}/></button>
             </div>)}
@@ -218,7 +219,7 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
             {([
               ['offset','Início (m)'],['width','Largura (m)'],['height','Altura (m)'],['sill','Altura da base (m)'],
             ] as const).map(([key,label])=><label className="plan-field" key={key}>{label}
-              <input type="number" step="0.01" min="0" value={openingDraft[key]} disabled={openingDraft.type==='door'&&key==='sill'}
+              <NumericInput step="0.01" min="0" value={openingDraft[key]} disabled={openingDraft.type==='door'&&key==='sill'}
                 onChange={e=>setOpeningDraft(p=>({...p,[key]:Number(e.target.value)}))}/>
             </label>)}
           </div>
@@ -234,7 +235,7 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
           <p>Informe a posição ou alinhe com a borda de outro cômodo; confira o resultado na vista superior.</p>
           <div className="plan-fields-grid">
             {(['x','z'] as const).map(key=><label className="plan-field" key={key}>Posição {key.toUpperCase()} (m)
-              <input type="number" step="0.01" min="-100" max="100" value={draft[key]} onChange={e=>edit({...draft,[key]:Number(e.target.value)})}/>
+              <NumericInput step="0.01" min="-100" max="100" value={draft[key]} onChange={e=>edit({...draft,[key]:Number(e.target.value)})}/>
             </label>)}
           </div>
           {otherRooms.length>0 && <div className="plan-align-controls">
@@ -245,7 +246,7 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
               <select value={alignment} onChange={e=>setAlignment(e.target.value as AlignmentSide)}>{sides.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}</select>
             </label>
             <label className="plan-field">Distância (m)
-              <input type="number" min="0" max="20" step="0.01" value={gap} onChange={e=>setGap(Number(e.target.value))}/>
+              <NumericInput min="0" max="20" step="0.01" value={gap} onChange={e=>setGap(Number(e.target.value))}/>
             </label>
             <button className="btn btn-outline" type="button" onClick={snapRoom}><AlignCenter size={16}/>Alinhar cômodo</button>
           </div>}

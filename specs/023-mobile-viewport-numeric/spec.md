@@ -1,0 +1,5 @@
+# F7.8 — Área segura, teclado e números
+
+Relato físico: conteúdo sobe atrás da barra nativa, teclado reduz a altura e esconder navegação demora, números ficam com zeros iniciais. Diagnóstico de código: rolagem no documento, header sticky e padding de safe area distribuídos; didShow é tardio e ambas alturas do viewport podem encolher juntas; campos Number('') convertem vazio em 0 a cada tecla.
+
+RF01: área segura nativa fixa e cabeçalho fora do scroller; somente conteúdo rola. Modais com cabeçalho fora da rolagem. RF02: esconder barra/FAB no foco de campo de texto, antes de eventos nativos; will/did show/hide; restauração após fechamento, resize agrupado por frame e sem estado React. RF03: campos numéricos com rascunho editável independente do número de domínio, teclado numérico/decimal, normalização de zeros iniciais e preservação das constraints HTML. Campos monetários já baseados em texto continuam com parser existente. RNF: testar viewport reduzido, safe areas simuladas, navegação e números, CI e APK; teclado real, vírgula do Gboard e insets reais exigem aparelho. Não desativar proteções ou mudar dados.
