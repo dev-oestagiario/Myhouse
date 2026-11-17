@@ -14,7 +14,7 @@ import {
 } from './taskDomain';
 import './tasks.css';
 
-type Props={home: HomeData;project: Project;onChange:(next:HomeData)=>void};
+type Props={home: HomeData;project: Project;detailId:string|null;onOpenDetail:(id:string|null)=>void;onChange:(next:HomeData)=>void};
 type Filter='todas'|'pendentes'|'concluidas';
 const formValue=(task:ProjectTask):TaskDraft=>({
   projectId:task.projectId,spaceId:task.spaceId,kind:task.kind,title:task.title,
@@ -25,7 +25,7 @@ const formValue=(task:ProjectTask):TaskDraft=>({
 const formatDate=(date:string)=>date.split('-').reverse().join('/');
 const shortTime=(iso:string)=>new Date(iso).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
 
-export default function ProjectTasks({home,project,onChange}:Props) {
+export default function ProjectTasks({home,project,detailId,onOpenDetail,onChange}:Props) {
   const tasks=(home.workTasks??[]).filter(task=>task.projectId===project.id);
   const summary=projectTaskProgress(tasks);
   const [editingId,setEditingId]=useState<string|'new'|null>(null);
@@ -86,7 +86,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
         <div className="task-card-top">
           <div className="task-card-main">
             <span className="task-kind">{TASK_KIND_LABELS[task.kind]}</span>
-            <h4>{task.title}</h4>
+            <h4>{detailId===task.id?task.title:<button type="button" className="task-open-title" onClick={()=>onOpenDetail(task.id)}>{task.title}</button>}</h4>
             {task.description&&<p>{task.description}</p>}
           </div>
           <div className="task-card-actions">
@@ -123,6 +123,7 @@ export default function ProjectTasks({home,project,onChange}:Props) {
 
 
   return <section className="task-workspace panel" aria-label="Tarefas do projeto">
+    {detailId&&<button type="button" className="entity-back" onClick={()=>onOpenDetail(null)}>Todas as tarefas</button>}
     <div className="task-workspace-head">
       <div><span className="eyebrow dark-eyebrow">PLANEJAMENTO E EXECUÇÃO</span><h3>Tarefas e serviços</h3>
         <p>Organize trabalhos de qualquer tipo, como pintar, instalar móveis, contratar serviços ou montar um deck.</p></div>
@@ -140,11 +141,11 @@ export default function ProjectTasks({home,project,onChange}:Props) {
       <div><strong>{summary.percent}% concluído</strong><span>{summary.done} de {summary.total} tarefas</span></div>
       <div className="task-progress-track" role="progressbar" aria-label="Tarefas concluídas" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.percent}><span style={{width:`${summary.percent}%`}}/></div>
     </div>
-    <div className="task-filters" role="group" aria-label="Filtrar tarefas">
+    {!detailId&&<div className="task-filters" role="group" aria-label="Filtrar tarefas">
       <label>Pesquisar tarefas<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou descrição"/></label>
       <label>Exibição<select value={filter} onChange={e=>setFilter(e.target.value as Filter)}><option value="todas">Todas</option><option value="pendentes">Pendentes</option><option value="concluidas">Concluídas</option></select></label>
-    </div>
-    {!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
+    </div>}
+    {detailId?tasks.filter(task=>task.id===detailId).map(renderTask):!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
         <p>{tasks.length?'Altere os filtros para encontrar os serviços deste projeto.':'Cadastre os trabalhos necessários para realizar este projeto. Não é preciso ter uma planta 3D.'}</p>
       </div> : <>
       <div className="task-view-switch" role="group" aria-label="Visualização das tarefas">

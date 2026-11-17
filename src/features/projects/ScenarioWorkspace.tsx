@@ -1,5 +1,5 @@
 import FloatingActions from '../../shared/FloatingActions';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import {
   ArrowLeft, Check, Copy, DoorOpen, Edit3, GitCompareArrows, Grid2X2, History,
   Layers3, RotateCcw, Trash2,
@@ -21,7 +21,7 @@ import {
 } from './scenarioDomain';
 import './scenarios.css';
 
-type Props={home:HomeData;project:Project;onChange:(next:HomeData)=>void;onOpenTasks:()=>void;onOpenBudget:()=>void};
+type Props={home:HomeData;project:Project;selectedId:string|null;onSelectScenario:(id:string|null)=>void;onChange:(next:HomeData)=>void;onOpenTasks:()=>void;onOpenBudget:()=>void};
 type ScenarioView='tridimensional'|'editor'|'comparar'|'interiores'|'externos';
 type RoomDraft={name:string;width:number;length:number;height:number;x:number;z:number};
 function PlanMap({rooms,label,furniture=[]}:{rooms:Room[];label:string;furniture?:ScenarioFurniture[]}){
@@ -51,12 +51,12 @@ const roomDraft=(room?:Room,rooms:Room[]=[]):RoomDraft=>{
 };
 const shortDate=(value:string)=>new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
 
-export default function ScenarioWorkspace({home,project,onChange,onOpenTasks,onOpenBudget}:Props){
+export default function ScenarioWorkspace({home,project,selectedId,onSelectScenario:setSelectedId,onChange,onOpenTasks,onOpenBudget}:Props){
   const scenarios=home.scenarios.filter(item=>item.projectId===project.id)
     .sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
-  const [selectedId,setSelectedId]=useState<string|null>(null);
   const scenario=scenarios.find(item=>item.id===selectedId)??null;
   const [view,setView]=useState<ScenarioView>('tridimensional');
+  useEffect(()=>{setView('tridimensional');setModal(null);},[selectedId]);
   const [selectedRoomId,setSelectedRoomId]=useState('');
   const [selectedWall,setSelectedWall]=useState<Direction>('leste');
   const [modal,setModal]=useState<'new'|'rename'|'room'|null>(null);

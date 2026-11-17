@@ -1,19 +1,49 @@
 export const PAGES = ['overview','projects','shopping','floorplan','plan-editor','works','scan','history'] as const;
 export type Page = typeof PAGES[number];
-export type AppRoute = { page: Page; projectId: string | null };
+export const PROJECT_SECTIONS = ['tarefas','orcamento','cenarios','acompanhamento','arquivos'] as const;
+export type ProjectSection = typeof PROJECT_SECTIONS[number];
+export const projectSectionLabels: Record<ProjectSection,string> = {
+  tarefas:'Tarefas',orcamento:'Orçamento',cenarios:'Cenários',acompanhamento:'Acompanhamento',arquivos:'Arquivos'
+};
+export type AppRoute = { page: Page; projectId: string | null; itemId?: string; section?: ProjectSection; detailId?: string; create?: boolean };
 
-export function parseRoute(hash: string): AppRoute {
-  const parts = hash.replace(/^#\/?/, '').split('/');
-  const page = PAGES.find(item => item === parts[0]) ?? 'overview';
-  if (page === 'projects' && parts[1] && parts.length === 2) {
-    try {
-      const projectId = decodeURIComponent(parts[1]);
-      if (projectId && projectId.length <= 200 && !/[\u0000-\u001f]/.test(projectId)) return { page, projectId };
-    } catch { /* invalid encoded link returns to the project list */ }
-  }
-  return { page, projectId: null };
+function decodeId(value?: string): string | null {
+  try{
+    const id=decodeURIComponent(value??'');
+    return id && id.length<=200 && !/[\u0000-\u001f]/.test(id)?id:null;
+  }catch{return null;}
 }
-
+export function parseRoute(hash: string): AppRoute {
+  const parts=hash.replace(/^#\/?/,'').split('/');
+  const page=PAGES.find(item=>item===parts[0])??'overview';
+  const base:AppRoute={page,projectId:null};
+  if(page==='projects'){
+    if(parts[1]==='new'&&parts.length===2)return {...base,create:true};
+    const projectId=decodeId(parts[1]);
+    if(!projectId||parts.length>4)return base;
+    if(parts.length===2)return {...base,projectId};
+    const section=PROJECT_SECTIONS.find(item=>item===parts[2]);
+    if(!section)return base;
+    if(parts.length===3)return {...base,projectId,section};
+    const detailId=decodeId(parts[3]);
+    if(!detailId||!(section==='tarefas'||section==='cenarios'))return base;
+    return {...base,projectId,section,detailId};
+  }
+  if((page==='shopping'||page==='works')&&parts.length===2){
+    const itemId=decodeId(parts[1]);
+    if(itemId)return {...base,itemId};
+  }
+  return base;
+}
 export function routeHash(route: AppRoute): string {
-  return '#/' + route.page + (route.page === 'projects' && route.projectId ? '/' + encodeURIComponent(route.projectId) : '');
+  const base='#/'+route.page;
+  if(route.page==='projects'){
+    if(route.create&&!route.projectId)return base+'/new';
+    if(route.projectId){
+      const project=base+'/'+encodeURIComponent(route.projectId);
+      if(route.detailId&&(route.section==='tarefas'||route.section==='cenarios'))return project+'/'+route.section+'/'+encodeURIComponent(route.detailId);
+      return route.section&&route.section!=='tarefas'?project+'/'+route.section:project;
+    }
+  }
+  return (route.page==='shopping'||route.page==='works')&&route.itemId?base+'/'+encodeURIComponent(route.itemId):base;
 }
