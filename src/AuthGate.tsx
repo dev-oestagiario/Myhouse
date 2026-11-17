@@ -1,3 +1,4 @@
+import {Feedback,LoadingState} from './shared/UiState';
 import { useEffect, useState, type FormEvent } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { Home, LockKeyhole, LogIn, Mail, ShieldCheck } from 'lucide-react';
@@ -21,7 +22,7 @@ function LoginScreen({ recoveryMode, onRecoveryComplete }: { recoveryMode: boole
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!supabase) return;
+    if (!supabase || busy) return;
     setBusy(true); setError(''); setMessage('');
     try {
       if (mode === 'reset') {
@@ -59,13 +60,13 @@ function LoginScreen({ recoveryMode, onRecoveryComplete }: { recoveryMode: boole
       <span className="auth-kicker">MY HOUSE</span>
       <h1>{mode === 'signin' ? 'Sua casa em ordem.' : mode === 'signup' ? 'Comece a organizar sua casa.' : mode === 'reset' ? 'Recupere seu acesso.' : 'Defina uma nova senha.'}</h1>
       <p className="auth-intro">{mode === 'signin' ? 'Entre para acessar suas compras, seus cômodos e seus projetos de melhoria em qualquer dispositivo.' : mode === 'signup' ? 'Cada conta tem seus próprios dados. Eles não aparecem para outras pessoas.' : mode === 'reset' ? 'Enviaremos um link de recuperação para o seu e-mail.' : 'Digite sua nova senha para continuar.'}</p>
-      <form className="auth-form" onSubmit={e => void submit(e)}>
+      <form className="auth-form" onSubmit={e => void submit(e)} aria-busy={busy}>
         {mode !== 'new-password' && <label>E-mail<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" /></label>}
         {mode !== 'reset' && <label>{mode === 'new-password' ? 'Nova senha' : 'Senha'}<input type="password" required minLength={6} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="No mínimo 6 caracteres" /></label>}
-        {error && <p className="auth-alert" role="alert">{error}</p>}
-        {message && <p className="auth-success" role="status">{message}</p>}
+        {error && <Feedback tone="error">{error}</Feedback>}
+        {message && <Feedback tone="info">{message}</Feedback>}
         <button type="submit" className="btn btn-primary full" disabled={busy}>
-          {mode === 'reset' ? <Mail size={17} /> : mode === 'signin' ? <LogIn size={17} /> : <LockKeyhole size={17} />}
+          {busy?<span aria-hidden="true" className="ui-inline-spinner"/>:mode === 'reset' ? <Mail size={17} /> : mode === 'signin' ? <LogIn size={17} /> : <LockKeyhole size={17} />}
           {busy ? 'Aguarde…' : mode === 'signin' ? 'Entrar' : mode === 'signup' ? 'Criar conta' : mode === 'reset' ? 'Enviar link' : 'Salvar nova senha'}
         </button>
       </form>
@@ -97,12 +98,12 @@ function UserHome({ user }: { user: User }) {
       } catch {
         setError('Os dados da sua conta estão em um formato inesperado. Não foi feita nenhuma alteração.');
       }
-    })();
+    })().catch((problem:unknown)=>{if(active)setError(problem instanceof Error?problem.message:'Não foi possível carregar seus dados.');});
     return () => { active = false; };
   }, [user.id, attempt]);
 
-  if (error) return <main className="auth-layout"><section className="auth-card"><h1>Não foi possível abrir sua casa</h1><p className="auth-alert" role="alert">{error}</p><p>Confira se a migração SQL foi aplicada no projeto Supabase correto.</p><button className="btn btn-primary" onClick={() => setAttempt(n => n + 1)}>Tentar novamente</button><button className="btn btn-outline" onClick={() => void supabase?.auth.signOut()}>Sair</button></section></main>;
-  if (!snapshot) return <main className="auth-layout"><div className="auth-card" role="status"><h1>Carregando sua casa…</h1><p>Consultando suas informações protegidas.</p></div></main>;
+  if (error) return <main className="auth-layout"><section className="auth-card"><h1>Não foi possível abrir sua casa</h1><Feedback tone="error">{error}</Feedback><p>Confira a conexão e tente novamente. Nenhum dado foi alterado.</p><button className="btn btn-primary" onClick={() => setAttempt(n => n + 1)}>Tentar novamente</button><button className="btn btn-outline" onClick={() => void supabase?.auth.signOut()}>Sair</button></section></main>;
+  if (!snapshot) return <main className="auth-layout"><div className="auth-card"><LoadingState title="Carregando sua casa…" description="Consultando suas informações protegidas."/></div></main>;
   return <App key={user.id} userId={user.id} userEmail={user.email ?? ''} initialData={snapshot.data} initialRevision={snapshot.revision} />;
 }
 
@@ -132,8 +133,8 @@ export default function AuthGate() {
   }, []);
 
   if (!supabase) return <main className="auth-layout"><section className="auth-card"><span className="auth-logo"><Home size={28}/></span><h1>Configure o Supabase</h1><p>Crie um projeto Supabase exclusivo para o My House, aplique a migração de banco e defina <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> no arquivo <code>.env.local</code>. Consulte <code>docs/SUPABASE_SETUP.md</code>.</p></section></main>;
-  if (loading) return <main className="auth-layout"><div className="auth-card" role="status">Verificando sua sessão…</div></main>;
-  if (error && !user) return <main className="auth-layout"><div className="auth-card"><p role="alert">{error}</p><button className="btn btn-outline" onClick={() => { setError(''); setLoading(true); window.location.reload(); }}>Recarregar</button></div></main>;
+  if (loading) return <main className="auth-layout"><div className="auth-card"><LoadingState title="Verificando sua sessão…"/></div></main>;
+  if (error && !user) return <main className="auth-layout"><div className="auth-card"><Feedback tone="error">{error}</Feedback><button className="btn btn-outline" onClick={() => { setError(''); setLoading(true); window.location.reload(); }}>Recarregar</button></div></main>;
   if (!user || recovery) return <LoginScreen recoveryMode={recovery} onRecoveryComplete={() => {
     setRecovery(false);
     void supabase?.auth.getUser().then(({ data }) => setUser(data.user ?? null));

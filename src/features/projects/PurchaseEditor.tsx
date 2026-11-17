@@ -1,3 +1,4 @@
+import {Feedback} from '../../shared/UiState';
 import Disclosure from '../../shared/Disclosure';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { Check } from 'lucide-react';
@@ -12,8 +13,9 @@ type Props={
   onSubmit:(e:FormEvent)=>void;
   onCancel:()=>void;
   lockedProjectId?:string;
+  error?:string;
 };
-export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lockedProjectId}:Props){
+export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lockedProjectId,error}:Props){
   const activeProjectId=lockedProjectId??draft.projectId??'';
   const project=home.projects.find(item=>item.id===activeProjectId);
   const rooms=project
@@ -63,6 +65,7 @@ export default function PurchaseEditor({home,draft,setDraft,onSubmit,onCancel,lo
     <div className="field"><label htmlFor="p-url">Link de referência (opcional)</label><input id="p-url" type="url" placeholder="https://..." value={draft.url} onChange={e=>setDraft(p=>({...p,url:e.target.value}))}/></div>
     <div className="field"><label htmlFor="p-notes">Observações</label><textarea id="p-notes" rows={3} value={draft.notes} onChange={e=>setDraft(p=>({...p,notes:e.target.value}))}/></div>
     </Disclosure>
+    {error&&<Feedback tone="error">{error}</Feedback>}
     <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onCancel}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar item</button></div>
   </form>;
 }
