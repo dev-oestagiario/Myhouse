@@ -613,3 +613,21 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .mobile-bottom-nav>button{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none}}
+
+
+/* F7.2: use the actually visible viewport when the software keyboard opens. */
+.modal-backdrop{inset:auto 0 auto 0;top:var(--myhouse-visible-top,0px);height:var(--myhouse-visible-height,100dvh);box-sizing:border-box}
+.modal{max-height:100%;overscroll-behavior:contain}
+.modal input,.modal textarea,.modal select{scroll-margin-block:76px 92px}
+.myhouse-keyboard-open .mobile-bottom-nav,.myhouse-keyboard-open .floating-actions{display:none}
+.myhouse-keyboard-open .page-content{padding-bottom:32px}
+.myhouse-keyboard-open .modal-actions{position:static}
+@media(max-width:820px),(pointer:coarse) and (max-height:600px){
+  .topbar{top:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px))}
+  .modal-backdrop{background:white;align-items:stretch;padding:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)) max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px)) max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)) max(env(safe-area-inset-left,0px),var(--safe-area-inset-left,0px))}
+  .modal{height:100%;width:100%;max-height:100%;border-radius:0}
+  .myhouse-keyboard-open .modal-backdrop{padding-bottom:0}
+  .myhouse-keyboard-open .modal-heading{position:static}
+  .scan-footer,.plan-editor .plan-save-actions{padding-bottom:8px}
+  .scan-fields input,.plan-field input,.plan-field select{font-size:16px;min-height:44px}
+}

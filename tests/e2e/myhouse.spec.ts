@@ -856,3 +856,65 @@ test('F7.1 — navegação inferior, ações e rotas internas nas telas pequenas
     expect(overflow).toBeLessThanOrEqual(1);
   }
 });
+
+
+test('F7.2 — Voltar fecha camadas antes de navegar; rascunho exige confirmação',async({page,isMobile})=>{
+  await setupMockSession(page);
+  await navigate(page,'Projetos');
+  await openActions(page);
+  await expect(page.getByRole('group',{name:'Opções de cadastro'})).toBeVisible();
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page.getByRole('group',{name:'Opções de cadastro'})).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/projects$/);
+  await createAction(page,'Novo projeto');
+  await page.getByLabel('Nome do projeto *').fill('Rascunho de teste');
+  page.once('dialog',dialog=>void dialog.dismiss());
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page.getByRole('dialog',{name:'Novo projeto'})).toBeVisible();
+  await expect(page.getByLabel('Nome do projeto *')).toHaveValue('Rascunho de teste');
+  page.once('dialog',dialog=>void dialog.accept());
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/projects$/);
+  if(isMobile){
+    await page.getByRole('navigation',{name:'Navegação rápida'}).getByRole('button',{name:'Mais'}).click();
+    await page.keyboard.press('Alt+ArrowLeft');
+    await expect(page.getByRole('navigation',{name:'Navegação principal'})).not.toBeVisible();
+    await expect(page).toHaveURL(/#\/projects$/);
+  }
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page).toHaveURL(/#\/overview$/);
+});
+
+test('F7.2 — Voltar percorre as etapas de medição sem abandonar o cadastro',async({page})=>{
+  await setupMockSession(page);
+  await navigate(page,'Escanear cômodo');
+  await page.getByRole('button',{name:'Usar modo manual'}).click();
+  await page.getByPlaceholder('Ex.: Quarto principal').fill('Ambiente de QA');
+  await page.getByRole('button',{name:'Visualizar em 3D'}).click();
+  await expect(page.getByRole('heading',{name:'Revise sua planta 3D'})).toBeVisible();
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page.getByRole('heading',{name:'Confira as medidas'})).toBeVisible();
+  await expect(page.getByPlaceholder('Ex.: Quarto principal')).toHaveValue('Ambiente de QA');
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page.getByRole('heading',{name:'Mapeie seu cômodo com a câmera'})).toBeVisible();
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page).toHaveURL(/#\/works$/);
+});
+
+test('F7.2 — formulário em viewport reduzido continua rolável',async({page,isMobile})=>{
+  if(!isMobile)test.skip();
+  await setupMockSession(page);
+  await navigate(page,'Lista de compras');
+  await createAction(page,'Adicionar item');
+  await page.setViewportSize({width:360,height:380});
+  const dialog=page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Nome do item *').fill('Item em tela pequena');
+  await dialog.getByRole('button',{name:'Salvar item'}).scrollIntoViewIfNeeded();
+  await expect(dialog.getByRole('button',{name:'Salvar item'})).toBeInViewport();
+  const rect=await dialog.boundingBox();
+  expect(rect!.height).toBeLessThanOrEqual(380);
+  await dialog.getByRole('button',{name:'Salvar item'}).click();
+  await expect(dialog).toHaveCount(0);
+});

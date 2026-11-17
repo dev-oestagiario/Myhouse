@@ -23,7 +23,9 @@
     "three": "^0.170.0",
     "@supabase/supabase-js": "2.119.0",
     "@capacitor/core": "8.0.0",
-    "@capacitor/camera": "8.0.0"
+    "@capacitor/camera": "8.0.0",
+    "@capacitor/app": "8.0.0",
+    "@capacitor/keyboard": "8.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

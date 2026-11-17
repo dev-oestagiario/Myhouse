@@ -1,3 +1,4 @@
+import { useBackLayer } from '../shared/useBackLayer';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { DoubleSide, Shape } from 'three';
@@ -161,6 +162,16 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     }
   }
 
+  function backStep(){
+    if(busy)return;
+    setMessage('');
+    setConfirmed(false);
+    if(screen==='review')setScreen('measures');
+    else if(screen==='measures')setScreen(lastInput==='live'?'live':'welcome');
+    else if(screen==='live')setScreen('welcome');
+    else onCancel();
+  }
+  useBackLayer(true,35,backStep);
   const steps = [
     { key: 'welcome', label: 'Início' },
     { key: 'live', label: 'Ao vivo' },
@@ -179,7 +190,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
         }</h1>
         <p>A câmera funciona em tempo real. Sem ARCore, uma referência de escala e pontos sobre o piso permitem estimar seu contorno.</p>
       </div>
-      <button type="button" className="btn btn-ghost scan-back" onClick={onCancel} aria-label="Voltar para Obras"><ArrowLeft size={17}/>Voltar</button>
+      <button type="button" className="btn btn-ghost scan-back" onClick={backStep} aria-label={screen==='welcome'?'Voltar para Obras':'Voltar uma etapa'} disabled={busy}><ArrowLeft size={17}/>Voltar</button>
     </div>
     <ol className="scan-steps" aria-label="Etapas do escaneamento">
       {steps.map((item, index) => <li key={item.key} aria-current={screen === item.key ? 'step' : undefined} className={screen === item.key ? 'active' : ''}><span>{index + 1}</span>{item.label}</li>)}

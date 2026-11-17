@@ -1,3 +1,4 @@
+import { useBackLayer } from '../shared/useBackLayer';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Check, DoorOpen, Grid2X2, Plus, RotateCcw, Save, Trash2, AlignCenter } from 'lucide-react';
 import type { Room, WallOpening } from '../types';
@@ -159,19 +160,25 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
     }
   }
 
+  function confirmLeave(){
+    return !draft||!room||success||JSON.stringify(draft)===JSON.stringify(room)||window.confirm('A planta tem alterações não salvas. Descartar?');
+  }
+  function leaveEditor(){if(confirmLeave())onBack();}
+  useBackLayer(true,30,leaveEditor);
+
   if (!room || !draft) return <section className="plan-editor">
-    <header className="plan-editor-title"><div><span className="eyebrow dark-eyebrow">EDITOR 2D</span><h1>Editar planta</h1></div><button className="btn btn-outline" onClick={onBack}>Voltar</button></header>
+    <header className="plan-editor-title"><div><span className="eyebrow dark-eyebrow">EDITOR 2D</span><h1>Editar planta</h1></div><button className="btn btn-outline" onClick={leaveEditor}>Voltar</button></header>
     <div className="empty"><Grid2X2 size={32}/><strong>Nenhum cômodo cadastrado</strong><span>Cadastre ou escaneie um cômodo na seção Obras antes de editar a planta.</span></div>
   </section>;
 
   return <section className="plan-editor">
-    <header className="plan-editor-title"><div><span className="eyebrow dark-eyebrow">EDITOR 2D</span><h1>Editar planta</h1><p>Desenhe os limites, ajuste a posição e abra espaços para portas e janelas. O 3D mostra o resultado.</p></div><button className="btn btn-outline" type="button" onClick={onBack}><ArrowLeft size={16}/>Voltar para o 3D</button></header>
+    <header className="plan-editor-title"><div><span className="eyebrow dark-eyebrow">EDITOR 2D</span><h1>Editar planta</h1><p>Desenhe os limites, ajuste a posição e abra espaços para portas e janelas. O 3D mostra o resultado.</p></div><button className="btn btn-outline" type="button" onClick={leaveEditor}><ArrowLeft size={16}/>Voltar para o 3D</button></header>
     <div className="plan-editor-layout">
       <div className="plan-editor-controls">
         <div className="plan-panel">
           <h2>1. Escolha o cômodo</h2>
           <label className="plan-field">Cômodo
-            <select value={room.id} onChange={event=>onSelect(event.target.value)}>{rooms.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select>
+            <select value={room.id} onChange={event=>{if(confirmLeave())onSelect(event.target.value);else event.target.value=room.id;}}>{rooms.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select>
           </label>
           <div className="plan-stats"><div><span>Área do piso</span><strong>{number(Math.abs(polygonArea(points)))} m²</strong></div><div><span>Segmentos</span><strong>{segments.length}</strong></div></div>
         </div>
@@ -287,7 +294,7 @@ export default function PlanEditor({ rooms, selectedRoomId, onSelect, onSave, on
           {success && <p role="status" className="plan-success"><Check size={17}/>Alterações salvas. O modelo 3D foi atualizado.</p>}
           <p>As alterações são aplicadas à sua planta e sincronizadas com o Supabase da sua conta.</p>
           <button className="btn btn-primary full" type="button" onClick={save}><Save size={17}/>Salvar planta do cômodo</button>
-          <button className="btn btn-outline full" type="button" onClick={onBack}><ArrowLeft size={16}/>Ver Planta 3D</button>
+          <button className="btn btn-outline full" type="button" onClick={leaveEditor}><ArrowLeft size={16}/>Ver Planta 3D</button>
         </div>
       </div>
     </div>
