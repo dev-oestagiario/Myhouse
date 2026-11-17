@@ -2,6 +2,8 @@ name: Gerar APK Android - My House
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop]
 
 permissions:
   contents: read
@@ -12,6 +14,8 @@ concurrency:
 
 jobs:
   build-apk:
+    # Build solicitado, somente nesta branch de distribuição de teste; sem release pública.
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'build/f68-apk-debug-20261117'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -47,20 +51,25 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
-      - name: Disponibilizar APK no GitHub Actions
-        uses: actions/upload-artifact@v4
-        with:
-          name: myhouse-android-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Verificar integridade do APK (artefato de teste, sem release)
+      - name: Verificar integridade e assinatura debug
         run: |
           set -euo pipefail
-          test -s android/app/build/outputs/apk/debug/app-debug.apk
-          unzip -tqq android/app/build/outputs/apk/debug/app-debug.apk
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          unzip -tqq "$apk"
+          signer=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -x "$signer"
+          "$signer" verify --verbose "$apk"
           mkdir -p release
-          cp android/app/build/outputs/apk/debug/app-debug.apk release/MyHouse.apk
-          (cd release && sha256sum MyHouse.apk > MyHouse.apk.sha256)
-
+          cp "$apk" release/MyHouse-F6.8-debug.apk
+          (cd release && sha256sum MyHouse-F6.8-debug.apk > SHA256SUMS.txt)
+          printf '%s\n' 'MyHouse F6.8 - APK debug para QA' 'Base develop: 0f5120e0915bda0399cd354502a05d43b91efaf5' 'Nao e release estavel. Banco V1 e anexos ainda pendentes; nao utilizar com dados de producao. Assinatura debug pode diferir da versao anterior.' > release/LEIA-ME.txt
+          du -h release/MyHouse-F6.8-debug.apk
+          cat release/SHA256SUMS.txt
+      - name: Disponibilizar APK de teste no GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyHouse-F6.8-debug
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
