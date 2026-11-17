@@ -772,8 +772,9 @@ test('modal: Escape fecha e foco volta para o botão de origem', async ({ page }
 
 test('navegação e principais formulários sem violações axe graves', async ({ page }) => {
   await setupMockSession(page);
-  for (const area of ['Lista de compras','Obras','Editar planta 2D','Projetos']) {
-    await navigate(page, area);
+  for (const [area,title] of [['Lista de compras','Lista de compras'],['Obras','Obras'],['Editar planta 2D','Editar planta'],['Projetos','Projetos da casa']]) {
+    await navigate(page,area);
+    await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
     const violations = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
     expect(violations.violations.filter(v => ['critical', 'serious'].includes(v.impact ?? ''))).toEqual([]);
   }

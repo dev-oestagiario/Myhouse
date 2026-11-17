@@ -2,6 +2,7 @@ name: Gerar APK Android - My House
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -47,20 +48,24 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
-      - name: Disponibilizar APK no GitHub Actions
-        uses: actions/upload-artifact@v4
-        with:
-          name: myhouse-android-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Verificar integridade do APK (artefato de teste, sem release)
+      - name: Verificar e empacotar APK de teste
         run: |
           set -euo pipefail
-          test -s android/app/build/outputs/apk/debug/app-debug.apk
-          unzip -tqq android/app/build/outputs/apk/debug/app-debug.apk
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          unzip -tqq "$apk"
+          signer="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          test -x "$signer"
+          "$signer" verify --verbose "$apk"
           mkdir -p release
-          cp android/app/build/outputs/apk/debug/app-debug.apk release/MyHouse.apk
-          (cd release && sha256sum MyHouse.apk > MyHouse.apk.sha256)
-
+          cp "$apk" release/MyHouse-F7-debug.apk
+          (cd release && sha256sum MyHouse-F7-debug.apk > SHA256SUMS.txt)
+          cp dist/build-performance.json release/build-performance.json
+          printf '%s\n' 'APK DEBUG: uso de teste, não release estável.' 'Configuração do Supabase existente. Use dados de teste autorizados.' 'Não desinstale a versão anterior sem backup verificado; a assinatura debug pode ser diferente.' 'Commit: ${{ github.sha }}' > release/LEIA-ME.txt
+      - name: Disponibilizar APK verificado
+        uses: actions/upload-artifact@v4
+        with:
+          name: myhouse-f7-android-debug
+          path: release/
+          if-no-files-found: error
+          retention-days: 30

@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useBackLayer } from './useBackLayer';
+import {isolateBackground,trapTab,visibleFocusables} from './focusScope';
 
 function fieldSnapshot(node:HTMLElement|null) {
   return JSON.stringify(Array.from(node?.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('input:not([type=file]),select,textarea')??[]).map(field=>[field.value,field instanceof HTMLInputElement?field.checked:null]));
@@ -22,35 +23,23 @@ export default function Modal({ title, onClose, children }: { title: string, onC
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     initial.current=fieldSnapshot(dialog.current);
-    const focusables = () => Array.from(dialog.current?.querySelectorAll<HTMLElement>(
-      'summary, button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-    ) ?? []).filter(node => node.getClientRects().length > 0);
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        requestClose();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const items = focusables();
-      if (!items.length) { event.preventDefault(); dialog.current?.focus(); return; }
-      const first = items[0], last = items[items.length - 1];
-      if (event.shiftKey && (document.activeElement === first || !dialog.current?.contains(document.activeElement))) {
-        event.preventDefault(); last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || !dialog.current?.contains(document.activeElement))) {
-        event.preventDefault(); first.focus();
-      }
+    const surface=dialog.current;
+    const backdrop=surface?.parentElement;
+    if(!surface||!backdrop)return;
+    (visibleFocusables(surface)[0]??surface).focus({preventScroll:true});
+    const release=isolateBackground(Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==backdrop&&!['SCRIPT','STYLE','LINK'].includes(node.tagName)));
+    const onKeyDown=(event:KeyboardEvent)=>{
+      // An outer modal must never process keyboard input belonging to an inner one.
+      if(backdrop.inert)return;
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();requestClose();return;}
+      trapTab(event,surface);
     };
-    document.addEventListener('keydown', onKeyDown);
-    const id = window.requestAnimationFrame(() => {
-      if (!dialog.current?.contains(document.activeElement)) (focusables()[0] ?? dialog.current)?.focus();
-    });
-    return () => {
-      window.cancelAnimationFrame(id);
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previous?.focus({ preventScroll: true });
+    document.addEventListener('keydown',onKeyDown);
+    return ()=>{
+      document.removeEventListener('keydown',onKeyDown);
+      document.body.style.overflow=previousOverflow;
+      release();
+      if(previous?.isConnected)previous.focus({preventScroll:true});
     };
   }, []);
   return createPortal(<div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) requestClose(); }}>
