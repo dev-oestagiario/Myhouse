@@ -1,3 +1,5 @@
+import ContextActions from '../../shared/ContextActions';
+import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
 import { useMemo, useState, type FormEvent } from 'react';
 import {
@@ -90,8 +92,10 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
             {task.description&&<p>{task.description}</p>}
           </div>
           <div className="task-card-actions">
-            <button type="button" className="icon-button" disabled={archived} title="Editar tarefa" aria-label={`Editar tarefa ${task.title}`} onClick={()=>openEditor(task)}><Edit3 size={17}/></button>
-            <button type="button" className="icon-button danger-hover" disabled={archived} title="Excluir tarefa" aria-label={`Excluir tarefa ${task.title}`} onClick={()=>remove(task)}><Trash2 size={17}/></button>
+            <ContextActions label={`Ações da tarefa ${task.title}`} actions={[
+              {label:`Editar tarefa ${task.title}`,icon:<Edit3 size={17}/>,disabled:archived,onClick:()=>openEditor(task)},
+              {label:`Excluir tarefa ${task.title}`,icon:<Trash2 size={17}/>,danger:true,disabled:archived,onClick:()=>remove(task)}
+            ]}/>
           </div>
         </div>
         <div className="task-meta">
@@ -143,7 +147,7 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
     </div>
     {!detailId&&<div className="task-filters" role="group" aria-label="Filtrar tarefas">
       <label>Pesquisar tarefas<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou descrição"/></label>
-      <label>Exibição<select value={filter} onChange={e=>setFilter(e.target.value as Filter)}><option value="todas">Todas</option><option value="pendentes">Pendentes</option><option value="concluidas">Concluídas</option></select></label>
+      <Disclosure title="Filtros" filter activeCount={Number(filter!=='todas')} onReset={()=>setFilter('todas')}><label>Exibição<select value={filter} onChange={e=>setFilter(e.target.value as Filter)}><option value="todas">Todas</option><option value="pendentes">Pendentes</option><option value="concluidas">Concluídas</option></select></label></Disclosure>
     </div>}
     {detailId?tasks.filter(task=>task.id===detailId).map(renderTask):!filtered.length ? <div className="task-empty"><ListChecks size={29}/><strong>{tasks.length?'Nenhuma tarefa encontrada':'Nenhuma tarefa cadastrada'}</strong>
         <p>{tasks.length?'Altere os filtros para encontrar os serviços deste projeto.':'Cadastre os trabalhos necessários para realizar este projeto. Não é preciso ter uma planta 3D.'}</p>
@@ -167,9 +171,6 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
         <div className="field"><label htmlFor="task-name">Nome da tarefa *</label><input id="task-name" required minLength={2} maxLength={160}
           placeholder="Ex.: Pintar parede, instalar iluminação" value={draft.title}
           onChange={e=>setDraft(p=>({...p,title:e.target.value}))}/></div>
-        <div className="field"><label htmlFor="task-description">Descrição</label><textarea id="task-description" maxLength={4000} rows={3}
-          placeholder="Descreva o que será feito e detalhes importantes." value={draft.description}
-          onChange={e=>setDraft(p=>({...p,description:e.target.value}))}/></div>
         <div className="form-row">
           <div className="field"><label htmlFor="task-kind">Tipo</label><select id="task-kind" value={draft.kind} onChange={e=>setDraft(p=>({...p,kind:e.target.value as ProjectTaskKind}))}>
             {Object.entries(TASK_KIND_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
@@ -182,11 +183,17 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
           <div className="field"><label htmlFor="task-date">Prazo previsto (opcional)</label><input id="task-date" type="date" value={draft.dueDate??''}
             onChange={e=>setDraft(p=>({...p,dueDate:e.target.value||null}))}/></div>
         </div>
+        <Disclosure title="Detalhes e ambiente" summary={draft.phase||draft.spaceId||draft.description?'Preenchido':'Opcional'}>
+        <div className="field"><label htmlFor="task-description">Descrição</label><textarea id="task-description" maxLength={4000} rows={3}
+          placeholder="Descreva o que será feito e detalhes importantes." value={draft.description}
+          onChange={e=>setDraft(p=>({...p,description:e.target.value}))}/></div>
         <div className="field"><label htmlFor="task-phase">Etapa do projeto (opcional)</label><input id="task-phase" maxLength={80} list="task-phases" placeholder="Ex.: Preparação, acabamento" value={draft.phase??''} onChange={e=>setDraft(p=>({...p,phase:e.target.value}))}/>
           <datalist id="task-phases">{Array.from(new Set(tasks.map(t=>t.phase).filter(Boolean))).map(phase=><option key={phase} value={phase}/>)}</datalist></div>
         {!!projectSpaces.length&&<div className="field"><label htmlFor="task-space">Ambiente (opcional)</label><select id="task-space" value={draft.spaceId??''}
           onChange={e=>setDraft(p=>({...p,spaceId:e.target.value||null}))}>
           <option value="">Sem ambiente definido</option>{projectSpaces.map(space=><option value={space.id} key={space.id}>{space.name}</option>)}</select></div>}
+        </Disclosure>
+        <Disclosure title="Checklist" summary={draft.checklist.length?draft.checklist.length+' etapa(s)':'Opcional'}>
         <fieldset className="task-editor-checklist"><legend>Checklist de execução</legend>
           <div className="task-editor-checkitems">{draft.checklist.map((item,index)=><div key={item.id} className="task-editor-checkitem">
             <label className="visually-hidden" htmlFor={`item-${item.id}`}>Etapa {index+1}</label>
@@ -196,13 +203,14 @@ export default function ProjectTasks({home,project,detailId,onOpenDetail,onChang
           </div>)}</div>
           <button type="button" className="btn btn-outline" onClick={addChecklist} disabled={draft.checklist.length>=100}><Plus size={15}/>Adicionar etapa</button>
         </fieldset>
-        {!!selectableDeps.length&&<fieldset className="task-editor-deps"><legend>Depende de outras tarefas (opcional)</legend>
+        </Disclosure>
+        {!!selectableDeps.length&&<Disclosure title="Dependências" summary={draft.dependsOn.length?draft.dependsOn.length+' vinculada(s)':'Opcional'}><fieldset className="task-editor-deps"><legend>Depende de outras tarefas (opcional)</legend>
           <div>{selectableDeps.map(task=><label key={task.id}><input type="checkbox"
             checked={draft.dependsOn.includes(task.id)} onChange={e=>setDraft(prev=>({
               ...prev,dependsOn:e.target.checked?[...prev.dependsOn,task.id]:prev.dependsOn.filter(id=>id!==task.id),
             }))}/><span>{task.title}</span></label>)}</div>
           <small>Uma tarefa com dependências pendentes não poderá ser marcada como concluída.</small>
-        </fieldset>}
+        </fieldset></Disclosure>}
         {formError&&<p className="task-form-error" role="alert">{formError}</p>}
         <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={()=>setEditingId(null)}>Cancelar</button>
           <button type="submit" className="btn btn-primary"><Check size={16}/>Salvar tarefa</button></div>

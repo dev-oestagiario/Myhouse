@@ -23,7 +23,7 @@ export default function Modal({ title, onClose, children }: { title: string, onC
     document.body.style.overflow = 'hidden';
     initial.current=fieldSnapshot(dialog.current);
     const focusables = () => Array.from(dialog.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      'summary, button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
     ) ?? []).filter(node => node.getClientRects().length > 0);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -54,7 +54,17 @@ export default function Modal({ title, onClose, children }: { title: string, onC
     };
   }, []);
   return createPortal(<div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) requestClose(); }}>
-    <section ref={dialog} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-label={title}>
+    <section ref={dialog} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-label={title}
+      onInvalidCapture={event=>{
+        let parent=(event.target as HTMLElement).parentElement;
+        while(parent){if(parent instanceof HTMLDetailsElement)parent.open=true; if(parent===dialog.current)break; parent=parent.parentElement;}
+      }}
+      onClickCapture={event=>{
+        const button=(event.target as HTMLElement).closest('button');
+        if(button?.type==='button'&&button.textContent?.trim()==='Cancelar'&&button.closest('form')){
+          event.preventDefault();event.stopPropagation();requestClose();
+        }
+      }}>
       <div className="modal-heading"><button type="button" className="icon-button modal-back-button" onClick={requestClose} aria-label="Fechar janela"><ArrowLeft size={22}/></button><h2>{title}</h2></div>
       {children}
     </section>

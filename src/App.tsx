@@ -1,3 +1,5 @@
+import ContextActions from './shared/ContextActions';
+import Disclosure from './shared/Disclosure';
 import FloatingActions from './shared/FloatingActions';
 import { parseRoute, routeHash, parentRoute, projectSectionLabels, type Page, type AppRoute } from './navigation';
 import { useAndroidNavigation } from './shared/useAndroidNavigation';
@@ -470,7 +472,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">ORGANIZAÇÃO</span><h1>Lista de compras</h1><p>De eletrodomésticos e panelas a tintas e ferramentas. Todas as categorias são permitidas.</p></div></div>
           <FloatingActions actions={[{label:'Adicionar item',onClick:()=>openPurchase()}]}/>
           <div className="shopping-summary"><div><span>Para comprar</span><strong>{pendingCount} itens</strong></div><div><span>Estimativa pendente</span><strong>{money(totalPending)}</strong></div><div><span>Total já comprado</span><strong>{money(totalBought)}</strong></div></div>
-          <section className="panel shopping-panel"><div className="filters"><div className="search-box"><Search size={18}/><input aria-label="Pesquisar itens" placeholder="Buscar utensílio, material, ferramenta..." value={search} onChange={e => setSearch(e.target.value)}/></div><div className="filter-input"><Filter size={17}/><select value={categoryFilter} aria-label="Filtrar categoria" onChange={e => setCategoryFilter(e.target.value)}><option value="todas">Todas as categorias</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div><select className="status-select" aria-label="Filtrar situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="todos">Todos os status</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></div>
+          <section className="panel shopping-panel"><div className="filters"><div className="search-box"><Search size={18}/><input aria-label="Pesquisar itens" placeholder="Buscar utensílio, material, ferramenta..." value={search} onChange={e => setSearch(e.target.value)}/></div><Disclosure title="Filtros" filter activeCount={Number(categoryFilter!=='todas')+Number(statusFilter!=='todos')} onReset={()=>{setCategoryFilter('todas');setStatusFilter('todos');}}><div className="filter-input"><Filter size={17}/><select value={categoryFilter} aria-label="Filtrar categoria" onChange={e => setCategoryFilter(e.target.value)}><option value="todas">Todas as categorias</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div><select className="status-select" aria-label="Filtrar situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="todos">Todos os status</option><option value="pendentes">Pendentes</option><option value="comprados">Comprados</option></select></Disclosure></div>
             {purchases.length === 0 ? <div className="empty"><ShoppingBasket size={38}/><strong>Nenhum item encontrado</strong><span>Adicione sua primeira compra ou altere os filtros.</span></div>
               : <div className="purchase-list">{purchases.map(p => <div key={p.id} className={`purchase-item ${p.purchased ? 'done' : ''}`}><button className={`purchase-check ${p.purchased ? 'checked' : ''}`} onClick={() => togglePurchase(p.id)} title={p.purchased ? 'Marcar como pendente' : 'Marcar como comprado'} aria-label={`Alterar status de ${p.name}`}>{p.purchased && <Check size={16}/>}</button><div className="purchase-info"><button type="button" className="purchase-open-title" onClick={()=>openPurchaseDetail(p.id)}><strong>{p.name}</strong></button><div className="purchase-meta"><span>{p.category}</span><span className="dot-separator"/><span>{home.rooms.find(r => r.id === p.roomId)?.name ?? 'Sem cômodo'}</span><span className="dot-separator"/><span>{p.quantity} {p.unit??'un.'}</span>{p.projectId&&<><span className="dot-separator"/><span>Projeto: {home.projects.find(pr=>pr.id===p.projectId)?.name??'—'}</span></>}</div></div><span className={`priority-pill ${p.priority}`}>{priorityNames[p.priority]}</span><div className="purchase-cost"><strong>{money(p.quantity * p.unitPrice)}</strong><small>{PURCHASE_STATUS_NAMES[currentStatus(p)]}</small>{p.purchased&&p.actualUnitPriceCents!=null&&<small>Pago: {money(p.actualUnitPriceCents*p.quantity/100)}</small>}</div><button type="button" className="icon-button purchase-open-arrow" aria-label={`Ver compra ${p.name}`} onClick={()=>openPurchaseDetail(p.id)}><ChevronRight size={20}/></button></div>)}</div>}
           </section>
@@ -489,7 +491,10 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             {selectedPurchase.supplier&&<div><span>Fornecedor</span><strong>{selectedPurchase.supplier}</strong></div>}
           </div>
           <section className="entity-notes panel"><h2>Observações</h2><p>{selectedPurchase.notes||'Nenhuma observação.'}</p>{selectedPurchase.url&&<a href={selectedPurchase.url} target="_blank" rel="noopener noreferrer">Abrir link de referência</a>}</section>
-          <div className="entity-actions"><button type="button" className="btn btn-outline" onClick={()=>openPurchase(selectedPurchase)}><Edit3 size={17}/>Editar item</button><button type="button" className="btn btn-outline entity-danger" onClick={()=>deletePurchase(selectedPurchase)}><Trash2 size={17}/>Excluir item</button></div>
+          <div className="entity-actions"><ContextActions label="Ações do item" actions={[
+            {label:'Editar item',icon:<Edit3 size={17}/>,onClick:()=>openPurchase(selectedPurchase)},
+            {label:'Excluir item',icon:<Trash2 size={17}/>,danger:true,onClick:()=>deletePurchase(selectedPurchase)}
+          ]}/></div>
         </section>}
         {page === 'projects' && <ProjectWorkspace home={home} userId={userId} selectedId={selectedProject?.id??null}
           projectTab={activeSection} detailId={projectChild?route.detailId??null:null} createRequested={Boolean(route.create)}
@@ -551,7 +556,10 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             <div className="rooms-manager-footer"><button className="link-button" onClick={() => changePage('plan-editor')}><Edit3 size={16}/>Editar formato, portas e janelas <ArrowRight size={15}/></button><button className="link-button" onClick={() => changePage('floorplan')}><Box size={16}/>Visualizar Planta 3D <ArrowRight size={15}/></button></div>
           </section>}
           </div>
-          {roomDetail&&<div className="entity-actions"><button type="button" className="btn btn-outline entity-danger" aria-label={`Excluir ${roomDetail.name}`} onClick={()=>deleteRoom(roomDetail)}><Trash2 size={17}/>Excluir cômodo</button></div>}
+          {roomDetail&&<div className="entity-actions"><ContextActions label="Ações do cômodo" actions={[
+            {label:'Editar cômodo',icon:<Edit3 size={17}/>,onClick:()=>openRoom(roomDetail)},
+            {label:`Excluir ${roomDetail.name}`,icon:<Trash2 size={17}/>,danger:true,onClick:()=>deleteRoom(roomDetail)}
+          ]}/></div>}
         </>}
         {page === 'history' && <><div className="page-title-row"><div><span className="eyebrow dark-eyebrow">RASTREABILIDADE</span><h1>Histórico de atividades</h1><p>O que foi feito, onde foi feito e quando aconteceu.</p></div></div>
           <div className="history-search search-box"><Search size={18}/><input aria-label="Pesquisar atividades" placeholder="Buscar cômodo, etapa, observação" value={historySearch} onChange={e=>setHistorySearch(e.target.value)}/></div>
@@ -572,9 +580,9 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
       {purchaseError&&<p className="budget-error" role="alert">{purchaseError}</p>}
     </Modal>}
     {roomOpen && <Modal title={editingRoomId ? 'Editar cômodo' : 'Adicionar cômodo'} onClose={() => setRoomOpen(false)}><form className="modal-form" onSubmit={saveRoom}><div className="field"><label htmlFor="r-name">Nome do cômodo *</label><input id="r-name" required placeholder="Ex.: Quarto principal, cozinha, banheiro" value={roomDraft.name} onChange={e => setRoomDraft(p => ({...p, name: e.target.value}))}/></div>
-      <p className="form-hint">Informe as medidas em metros. A posição X/Z determina onde o cômodo aparece no modelo da casa.</p>
+      <p className="form-hint">Informe as medidas em metros.</p>
       <div className="form-row three">{([['width','Largura (m)'],['length','Comprimento (m)'],['height','Altura (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="0.1" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
-      <div className="form-row">{([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="-100" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div>
+      <Disclosure title="Posição na planta" summary="Opcional"><p className="form-hint">Mantenha a posição sugerida ou ajuste X/Z.</p><div className="form-row">{([['x','Posição X (m)'],['z','Posição Z (m)']] as const).map(([key,label]) => <div className="field" key={key}><label htmlFor={`r-${key}`}>{label}</label><input id={`r-${key}`} type="number" min="-100" max="100" step="0.01" required value={roomDraft[key]} onChange={e => setRoomDraft(p => ({...p, [key]: Number(e.target.value)}))}/></div>)}</div></Disclosure>
       {roomError&&<p className="auth-alert" role="alert">{roomError}</p>}<div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setRoomOpen(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><Check size={17}/>Salvar cômodo</button></div>
     </form></Modal>}
   </div>;
