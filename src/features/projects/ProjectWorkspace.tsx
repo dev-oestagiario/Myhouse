@@ -3,7 +3,7 @@ import type { ProjectSection } from '../../navigation';
 import './projects.css';
 import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
-  Archive, ArrowLeft, ArrowRight, CalendarDays, Check, ClipboardList, Edit3,
+  Archive, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, ClipboardList, Edit3,
   FolderKanban, Home, Layers3, RotateCcw, Search, Trash2, Wallet,
 } from 'lucide-react';
 import type { HomeData, Priority, Project, ProjectStatus, ProjectType, Space } from '../../types';
