@@ -7,6 +7,7 @@ import FloatingActions from './shared/FloatingActions';
 import { parseRoute, routeHash, parentRoute, projectSectionLabels, type Page, type AppRoute } from './navigation';
 import { useAndroidNavigation } from './shared/useAndroidNavigation';
 import { useBackLayer } from './shared/useBackLayer';
+import {isolateBackground,trapTab,visibleFocusables} from './shared/focusScope';
 import { lazy, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 const HouseModel = lazy(() => import('./plan/HouseModel'));
 const PlanEditor=lazy(()=>import('./plan/PlanEditor'));
@@ -401,14 +402,28 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
     return true;
   });
   useBackLayer(mobileNav,80,()=>setMobileNav(false));
-  useEffect(() => {
-    if (!mobileNav) return;
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileNav(false);
+  useEffect(()=>{
+    if(!mobileNav)return;
+    const drawer=document.getElementById('myhouse-menu');
+    if(!drawer)return;
+    const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const media=window.matchMedia('(max-width:820px), (pointer:coarse) and (max-height:600px)');
+    const closeWide=()=>{if(!media.matches)setMobileNav(false);};
+    if(!media.matches){closeWide();return;}
+    (visibleFocusables(drawer)[0]??drawer).focus({preventScroll:true});
+    const siblings=Array.from(drawer.parentElement?.children??[]).filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==drawer&&!node.classList.contains('mobile-overlay'));
+    const release=isolateBackground(siblings);
+    const key=(event:KeyboardEvent)=>{
+      if(drawer.closest('[inert]'))return;
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setMobileNav(false);return;}
+      trapTab(event,drawer);
     };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [mobileNav]);
+    document.addEventListener('keydown',key);media.addEventListener('change',closeWide);
+    return ()=>{
+      document.removeEventListener('keydown',key);media.removeEventListener('change',closeWide);release();
+      if(previous?.isConnected)previous.focus({preventScroll:true});
+    };
+  },[mobileNav]);
 
   if (localDraft) return <main className="auth-layout"><section className="auth-card">
     <span className="auth-logo"><Home size={25}/></span>
@@ -419,7 +434,8 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
   </section></main>;
 
   return <div className="app-shell">
-    <aside className={`sidebar ${mobileNav ? 'mobile-open' : ''}`} id="myhouse-menu">
+    <button type="button" className="skip-content" onClick={()=>document.getElementById('myhouse-page-content')?.focus()}>Ir para o conteúdo</button>
+    <aside className={`sidebar ${mobileNav ? 'mobile-open' : ''}`} id="myhouse-menu" tabIndex={-1} role={mobileNav?'dialog':undefined} aria-modal={mobileNav?true:undefined} aria-label={mobileNav?'Menu principal':undefined}>
       <div className="brand"><span className="brand-mark"><Home size={22} strokeWidth={2.4} /></span><div><strong>My House</strong><small>Meu espaço, meus planos</small></div></div>
       <div className="sidebar-section-label">MENU PRINCIPAL <button type="button" className="icon-button mobile-menu-close" aria-label="Fechar navegação" onClick={()=>setMobileNav(false)}><X size={20}/></button></div>
       <nav aria-label="Navegação principal">{navItems.map(({ id, name, Icon }) => <button type="button" key={id} aria-current={page === id ? 'page' : undefined} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => changePage(id)}><Icon size={19} /><span>{name}</span>{page === id && <ChevronRight className="nav-chevron" size={17} />}</button>)}</nav>
@@ -428,9 +444,9 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
         <button type="button" className="sidebar-signout" aria-label="Exportar backup pelo menu" onClick={()=>{exportBackup();setMobileNav(false);}}><Download size={17}/>Exportar backup</button>
       </div><span className="version">My House · F7</span></div>
     </aside>
-    {mobileNav && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobileNav(false)} />}
+    {mobileNav&&<div className="mobile-overlay" aria-hidden="true" onClick={()=>setMobileNav(false)}/>}
     <main className="main">
-      <header className="topbar"><div className="topbar-start"><button type="button" className="icon-button mobile-menu" aria-label="Abrir menu" aria-expanded={mobileNav} onClick={() => setMobileNav(true)}><Menu size={22} /></button><nav className="breadcrumb" aria-label="Caminho de navegação">
+      <header className="topbar"><div className="topbar-start"><button type="button" className="icon-button mobile-menu" aria-label="Abrir menu" aria-controls="myhouse-menu" aria-expanded={mobileNav} onClick={() => setMobileNav(true)}><Menu size={22} /></button><nav className="breadcrumb" aria-label="Caminho de navegação">
           <button type="button" onClick={()=>changePage('overview')}>Myhouse</button><ChevronRight size={14} aria-hidden="true"/>
           {selectedProject?<><button type="button" onClick={()=>changePage('projects')}>Projetos</button><ChevronRight size={14} aria-hidden="true"/>
             {route.section&&route.section!=='tarefas'||route.detailId?<><button type="button" onClick={()=>navigateRoute({page:'projects',projectId:selectedProject.id})} title={selectedProject.name}>{selectedProject.name}</button><ChevronRight size={14} aria-hidden="true"/>

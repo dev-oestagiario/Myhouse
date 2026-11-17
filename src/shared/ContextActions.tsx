@@ -11,7 +11,21 @@ export default function ContextActions({label,actions}:{label:string;actions:Con
   useBackLayer(open,65,()=>close(true));
   useEffect(()=>{
     if(!open)return;
-    const frame=requestAnimationFrame(()=>group.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({preventScroll:true}));
+    const frame=requestAnimationFrame(()=>{
+      const panel=group.current;
+      if(panel){
+        const rect=panel.getBoundingClientRect();
+        const viewport=window.visualViewport;
+        const bottom=(viewport?.offsetTop??0)+(viewport?.height??window.innerHeight);
+        const nav=document.querySelector('.mobile-bottom-nav');
+        const reserve=nav instanceof HTMLElement&&nav.getClientRects().length?nav.getBoundingClientRect().height:8;
+        const available=bottom-reserve;
+        if(rect.bottom>available&&rect.height<root.current!.getBoundingClientRect().top-(viewport?.offsetTop??0)){
+          panel.classList.add('context-menu-up');
+        }else if(rect.bottom>available)panel.scrollIntoView({block:'nearest',inline:'nearest'});
+        panel.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({preventScroll:true});
+      }
+    });
     const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))close();};
     const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close(true);}};
     document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);
