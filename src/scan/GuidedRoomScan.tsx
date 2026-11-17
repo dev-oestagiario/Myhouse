@@ -1,7 +1,7 @@
 import {DeferredView} from '../shared/DeferredView';
 import {Feedback} from '../shared/UiState';
 import { useBackLayer } from '../shared/useBackLayer';
-import { lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, useEffect, useRef, useState } from 'react';
 import type { PlanarScan } from './planarGeometry';
 import { ArrowLeft, ArrowRight, Camera as CameraIcon, CheckCircle2, Layers3, Ruler, ShieldCheck, ScanLine } from 'lucide-react';
 import type { Room } from '../types';
