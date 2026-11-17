@@ -1,3 +1,4 @@
+import {useViewerDpr} from './viewerQuality';
 import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Edges, OrbitControls } from '@react-three/drei';
@@ -28,13 +29,14 @@ function RoomBoundary({ room, selectedRoomId, selectedWall, onSelect }: {
   selectedWall: Direction;
   onSelect: (id: string, direction: Direction) => void;
 }) {
+  const walls=useMemo(()=>getWallSegments(room).map(segment=>({segment,pieces:layoutWallPieces(room,segment.edge)})),[room]);
   return <group>
-    {getWallSegments(room).map(segment => {
+    {walls.map(({segment,pieces}) => {
       const ux = (segment.to.x - segment.from.x) / segment.length;
       const uz = (segment.to.z - segment.from.z) / segment.length;
       const angle = -Math.atan2(uz, ux);
       const active = selectedRoomId === room.id && selectedWall === segment.direction;
-      return <group key={segment.edge}>{layoutWallPieces(room, segment.edge).map((piece, i) => {
+      return <group key={segment.edge}>{pieces.map((piece, i) => {
         const mid = (piece.start + piece.end) / 2;
         return <mesh key={i} position={[room.x + segment.from.x + ux * mid, (piece.bottom + piece.top) / 2, room.z + segment.from.z + uz * mid]} rotation={[0, angle, 0]}
           onClick={event => { event.stopPropagation(); onSelect(room.id, segment.direction); }}>
@@ -57,6 +59,7 @@ export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSele
   selectedFurnitureId?: string;
   onSelectFurniture?: (id:string)=>void;
 }) {
+  const roomById=useMemo(()=>new Map(rooms.map(room=>[room.id,room])),[rooms]);
   const minX = Math.min(...rooms.map(r => r.x));
   const maxX = Math.max(...rooms.map(r => r.x + r.width));
   const minZ = Math.min(...rooms.map(r => r.z));
@@ -66,8 +69,8 @@ export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSele
   const size = Math.max(maxX - minX, maxZ - minZ, 4);
   const height = Math.max(...rooms.map(r => r.height));
 
-  return <Canvas camera={{ position: [cx + size * 1.15, height + size * 1.22, cz + size * 1.22], fov: 43 }}
-    dpr={[1, 1.7]} gl={{ antialias: true }}>
+  return <Canvas frameloop="demand" camera={{ position: [cx + size * 1.15, height + size * 1.22, cz + size * 1.22], fov: 43 }}
+    dpr={useViewerDpr()} gl={{ antialias: true }}>
     <color attach="background" args={['#f4f7fc']}/>
     <ambientLight intensity={1.25}/>
     <directionalLight position={[7, 12, 8]} intensity={1.8}/>
@@ -77,7 +80,7 @@ export default function HouseModel({ rooms, selectedRoomId, selectedWall, onSele
       <RoomBoundary room={room} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={onSelect}/>
     </group>)}
     {furniture.map(item=>{
-      const room=rooms.find(room=>room.id===item.roomId);
+      const room=roomById.get(item.roomId);
       return room?<group key={item.id} position={[room.x,0,room.z]}>
         <Furniture3D item={item} selected={selectedFurnitureId===item.id} onSelect={onSelectFurniture}/>
       </group>:null;

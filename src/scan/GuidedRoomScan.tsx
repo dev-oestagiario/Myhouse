@@ -1,17 +1,15 @@
+import {DeferredView} from '../shared/DeferredView';
 import {Feedback} from '../shared/UiState';
 import { useBackLayer } from '../shared/useBackLayer';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { DoubleSide, Shape } from 'three';
-import { getFootprint } from '../plan/geometry';
+import { lazy, useEffect, useRef, useState } from 'react';
 import type { PlanarScan } from './planarGeometry';
-import { Edges, OrbitControls } from '@react-three/drei';
 import { ArrowLeft, ArrowRight, Camera as CameraIcon, CheckCircle2, Layers3, Ruler, ShieldCheck, ScanLine } from 'lucide-react';
 import type { Room } from '../types';
 import { makeDefaultScanDraft, verifyScanDraft, type RoomScanDraft } from './roomScan';
 import { applyArMeasurement, getArSupport, requestArMeasurement, type ArMeasurements, type ArSupport } from './arcore';
 import { chooseLiveScanMode, describeLiveScanMode } from './liveScan';
-import LiveCameraPreview from './LiveCameraPreview';
+const LiveCameraPreview=lazy(()=>import('./LiveCameraPreview'));
+const RoomScanPreview=lazy(()=>import('./RoomScanPreview'));
 import FloorOverview from './FloorOverview';
 import { dimensionDifference, getScanReviewMetrics, resizeScanDraft } from './scanReview';
 type Screen = 'welcome' | 'live' | 'measures' | 'review';
@@ -21,37 +19,6 @@ type Props = {
   onCancel: () => void;
 };
 
-function RoomScanPreview({ draft }: { draft: RoomScanDraft }) {
-  const w = draft.width, l = draft.length, h = draft.height;
-  const radius = Math.max(w,l,h);
-  const vertices = getFootprint(draft);
-  const shape = useMemo(() => {
-    const floor = new Shape();
-    vertices.forEach((p,i)=>{if(i===0)floor.moveTo(p.x,p.z);else floor.lineTo(p.x,p.z);});
-    floor.closePath();
-    return floor;
-  },[draft.footprint,w,l]);
-  return <div className="scan-3d" role="img" aria-label={'Prévia do cômodo 3D: '+w.toFixed(2)+' por '+l.toFixed(2)+' por '+h.toFixed(2)+' metros'}>
-    <Canvas camera={{ position: [w*1.4,h*2,l*1.65],fov:45 }} dpr={[1,1.5]}>
-      <color attach="background" args={['#f4f7fc']}/>
-      <ambientLight intensity={1.4}/>
-      <directionalLight position={[6,9,7]} intensity={1.6}/>
-      <mesh position={[-w/2,-0.03,-l/2]} rotation={[Math.PI/2,0,0]}>
-        <shapeGeometry args={[shape]}/>
-        <meshStandardMaterial color="#dbeafe" side={DoubleSide}/>
-      </mesh>
-      {vertices.map((p,i)=>{
-        const n=vertices[(i+1)%vertices.length], dx=n.x-p.x, dz=n.z-p.z;
-        return <mesh key={i} position={[(p.x+n.x)/2-w/2,h/2,(p.z+n.z)/2-l/2]} rotation={[0,-Math.atan2(dz,dx),0]}>
-          <boxGeometry args={[Math.hypot(dx,dz),h,0.04]}/>
-          <meshStandardMaterial color="#9db9de" transparent opacity={0.26} depthWrite={false} side={DoubleSide}/>
-          <Edges color="#567ba9"/>
-        </mesh>;
-      })}
-      <OrbitControls target={[0,h/2,0]} enablePan={false} minDistance={Math.max(1.5,radius)} maxDistance={Math.max(15,radius*5)} maxPolarAngle={Math.PI/2.05}/>
-    </Canvas>
-  </div>;
-}
 
 export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: Props) {
   const [screen, setScreen] = useState<Screen>('welcome');
@@ -211,7 +178,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     {screen === 'live' && <div className="scan-card">
       <h2>Reconstrução plana assistida</h2>
       <p>Mostre todo o contorno do piso, mantenha o celular parado e marque uma referência de escala. Os pontos são projetados em uma planta 2D aproximada, sem fotos ou vídeo gravado.</p>
-      <LiveCameraPreview onContinue={acceptPlan} onManual={useManual}/>
+      <DeferredView title="Carregando câmera…" onBack={useManual} backLabel="Usar modo manual"><LiveCameraPreview onContinue={acceptPlan} onManual={useManual}/></DeferredView>
       <div className="scan-footer"><button className="btn btn-ghost" type="button" onClick={() => setScreen('welcome')}><ArrowLeft size={16}/>Voltar</button></div>
     </div>}
     {screen === 'measures' && <div className="scan-card">
@@ -235,7 +202,7 @@ export default function GuidedRoomScan({ existingRooms, onComplete, onCancel }: 
     {screen === 'review' && <div className="scan-card">
       <h2>{draft.name.trim()}</h2>
       <p>Representação simplificada do contorno do piso e altura informada, sem portas ou janelas. Arraste para girar. {arMeasurement && 'Se você usou ARCore, os valores são aproximados e podem ser corrigidos antes do salvamento.'}</p>
-      <RoomScanPreview draft={draft}/>
+      <DeferredView title="Carregando prévia 3D…" onBack={()=>setScreen('measures')} backLabel="Corrigir medidas"><RoomScanPreview draft={draft}/></DeferredView>
       <FloorOverview draft={draft}/>
       <div className="scan-summary"><div><span>Largura</span><strong>{draft.width} m</strong></div><div><span>Comprimento</span><strong>{draft.length} m</strong></div><div><span>Altura</span><strong>{draft.height} m</strong></div><div><span>Área de piso</span><strong>{metrics.area.toFixed(2)} m²</strong></div><div><span>Perímetro</span><strong>{metrics.perimeter.toFixed(2)} m</strong></div><div><span>Cantos</span><strong>{metrics.vertices}</strong></div></div>
       <p className="scan-final-warning">Fonte: {lastInput === 'live' ? 'contorno de piso marcado na câmera, com escala calibrada' : lastInput === 'arcore' ? 'medidas estimadas com ARCore' : 'valores informados manualmente'}. Verifique as dimensões reais e o contorno. As imagens não serão salvas.</p>

@@ -1,4 +1,5 @@
-import {Feedback,EmptyState,LoadingState} from './shared/UiState';
+import {DeferredView} from './shared/DeferredView';
+import {Feedback,EmptyState} from './shared/UiState';
 import {useNotice} from './shared/useNotice';
 import ContextActions from './shared/ContextActions';
 import Disclosure from './shared/Disclosure';
@@ -6,17 +7,17 @@ import FloatingActions from './shared/FloatingActions';
 import { parseRoute, routeHash, parentRoute, projectSectionLabels, type Page, type AppRoute } from './navigation';
 import { useAndroidNavigation } from './shared/useAndroidNavigation';
 import { useBackLayer } from './shared/useBackLayer';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { lazy, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 const HouseModel = lazy(() => import('./plan/HouseModel'));
-import PlanEditor from './plan/PlanEditor';
-import ProjectWorkspace from './features/projects/ProjectWorkspace';
+const PlanEditor=lazy(()=>import('./plan/PlanEditor'));
+const ProjectWorkspace=lazy(()=>import('./features/projects/ProjectWorkspace'));
 import PurchaseEditor from './features/projects/PurchaseEditor';
 import {
   changePurchaseStatus, currentStatus, deletePurchase as removePurchase,
   savePurchase as upsertPurchase, PURCHASE_STATUS_NAMES,
 } from './features/projects/budgetDomain';
 import { getWallSegments, scaleRoomGeometry, validateRoomGeometry } from './plan/geometry';
-import GuidedRoomScan from './scan/GuidedRoomScan';
+const GuidedRoomScan=lazy(()=>import('./scan/GuidedRoomScan'));
 import Modal from './shared/Modal';
 import { reconcileSpaces } from './domain/homeMigration';
 import {
@@ -500,11 +501,11 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             {label:'Excluir item',icon:<Trash2 size={17}/>,danger:true,onClick:()=>deletePurchase(selectedPurchase)}
           ]}/></div>
         </section>}
-        {page === 'projects' && <ProjectWorkspace home={home} userId={userId} selectedId={selectedProject?.id??null}
+        {page === 'projects' && <DeferredView title="Carregando projetos…" onBack={()=>changePage('overview')}><ProjectWorkspace home={home} userId={userId} selectedId={selectedProject?.id??null}
           projectTab={activeSection} detailId={projectChild?route.detailId??null:null} createRequested={Boolean(route.create)}
           onSelectProject={(id,section,detailId)=>navigateRoute({page:'projects',projectId:id,section,detailId})}
           onCloseCreate={()=>navigateRoute({page:'projects',projectId:null},true)}
-          onChange={setHome} onOpenRoom={id=>openRoomDetail(id)}/>} 
+          onChange={setHome} onOpenRoom={id=>openRoomDetail(id)}/></DeferredView>} 
         {page === 'floorplan' && <>
           <div className="page-title-row"><div><span className="eyebrow dark-eyebrow">VISUALIZAÇÃO</span><h1>Planta 3D</h1><p>Visualize os cômodos, incluindo portas e janelas. O desenho é editado em outra tela.</p></div></div>
           <FloatingActions actions={[
@@ -514,7 +515,7 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
             {label:'Abrir Obras',icon:<Hammer size={18}/>,onClick:()=>changePage('works')}
           ]}/>
           <div className="floor-layout floor-layout-viewer-only"><section className="panel viewer-panel floorplan-only"><div className="panel-heading"><div><h3>Modelo tridimensional</h3><p>Toque numa parede para selecionar · Arraste para girar · Use o zoom para aproximar</p></div><span className="viewer-badge"><Box size={15}/>Interativo</span></div>
-            <div className="scene">{home.rooms.length ? <Suspense fallback={<LoadingState title="Carregando a visualização 3D…" description="Você também pode consultar a planta em 2D." action={<button type="button" className="btn btn-outline" onClick={()=>changePage('plan-editor')}>Abrir editor 2D</button>}/>}><HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/></Suspense> : <EmptyState icon={Layers3} title="Planta vazia" description="Use Novo para cadastrar ou escanear um cômodo."/>}</div>
+            <div className="scene">{home.rooms.length ? <DeferredView title="Carregando a visualização 3D…" onBack={()=>changePage('plan-editor')} backLabel="Abrir editor 2D"><HouseModel rooms={home.rooms} selectedRoomId={selectedRoomId} selectedWall={selectedWall} onSelect={selectWall}/></DeferredView> : <EmptyState icon={Layers3} title="Planta vazia" description="Use Novo para cadastrar ou escanear um cômodo."/>}</div>
             <div className="room-list-header"><strong>Cômodos</strong><span>{home.rooms.length} cômodo(s)</span></div>
             <div className="room-chips">{home.rooms.map(r => <div key={r.id} className={`room-chip ${selectedRoomId === r.id ? 'selected' : ''}`}><button type="button" className="chip-main" aria-pressed={selectedRoomId === r.id} onClick={() => selectWall(r.id, selectedWall)}><Home size={17}/><span><strong>{r.name}</strong><small>{number(r.width)} × {number(r.length)} × {number(r.height)} m</small></span></button></div>)}</div>
             {home.rooms.some(r => r.id.startsWith('ex-')) && <p className="viewer-warning">Medidas e posições de exemplo. Confira a distribuição real e ajuste portas e janelas no editor 2D.</p>}
@@ -523,14 +524,14 @@ function App({ userId, userEmail, initialData, initialRevision }: AppProps) {
           {selectedRoom && <section className="panel wall-preview" aria-label="Parede selecionada"><div className="wall-preview-heading"><div><span className="eyebrow dark-eyebrow">PAREDE SELECIONADA</span><h2>{selectedRoom.name} · {directionNames[selectedWall]}</h2><p>{number(selectedWallArea)} m² estimados · {percentDone(selectedStages)}% concluído</p></div><button className="btn btn-primary" onClick={() => openRoomDetail(selectedRoom.id)}><ArrowRight size={17}/>Ver em Obras</button></div><div className="wall-preview-selector" role="group" aria-label="Selecionar parede">{DIRECTIONS.map(d => <button type="button" key={d} aria-pressed={selectedWall === d} className={selectedWall === d ? 'active' : ''} onClick={() => selectWall(selectedRoomId, d)}>{directionNames[d]}</button>)}</div></section>}
         </>}
 
-        {page === 'scan' && <GuidedRoomScan existingRooms={home.rooms} onComplete={completeRoomScan} onCancel={() => changePage('works')} />}
-        {page === 'plan-editor' && <PlanEditor
+        {page === 'scan' && <DeferredView title="Carregando escaneamento…" onBack={()=>changePage('works')}><GuidedRoomScan existingRooms={home.rooms} onComplete={completeRoomScan} onCancel={() => changePage('works')}/></DeferredView>}
+        {page === 'plan-editor' && <DeferredView title="Carregando editor 2D…" onBack={()=>changePage('floorplan')}><PlanEditor
           rooms={home.rooms}
           selectedRoomId={selectedRoomId}
           onSelect={setSelectedRoomId}
           onSave={saveEditedPlan}
           onBack={() => changePage('floorplan')}
-        />}
+        /></DeferredView>}
         {page === 'works' && <>
           {roomDetail?<><button className="entity-back" type="button" onClick={()=>changePage('works')}><ArrowLeft size={17}/>Todos os cômodos</button>
             <div className="entity-heading"><div><span className="eyebrow dark-eyebrow">ACOMPANHAMENTO</span><h1>{roomDetail.name}</h1><p>{number(roomDetail.width)} × {number(roomDetail.length)} × {number(roomDetail.height)} m</p></div></div></>:<div className="page-title-row"><div><h1>Obras</h1><p>Escolha um cômodo para acompanhar suas paredes e serviços.</p></div></div>}

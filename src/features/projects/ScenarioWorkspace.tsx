@@ -1,3 +1,4 @@
+import {DeferredView} from '../../shared/DeferredView';
 import {Feedback,EmptyState} from '../../shared/UiState';
 import Disclosure from '../../shared/Disclosure';
 import FloatingActions from '../../shared/FloatingActions';
@@ -9,7 +10,8 @@ import {
 import type { Direction, HomeData, Project, ProjectScenario, Room, ScenarioFurniture } from '../../types';
 import { newId, nextRoomPosition, number } from '../../data';
 import { getFootprint } from '../../plan/geometry';
-import HouseModel from '../../plan/HouseModel';
+import {lazy} from 'react';
+const HouseModel=lazy(()=>import('../../plan/HouseModel'));
 import InteriorWorkspace from './InteriorWorkspace';
 import OutdoorWorkspace from './OutdoorWorkspace';
 import { furnitureCorners, FURNITURE_COLORS } from './furnitureGeometry';
@@ -202,15 +204,15 @@ export default function ScenarioWorkspace({home,project,selectedId,onSelectScena
         : view==='comparar'?<div className="scenario-compare" aria-label="Comparação antes e depois">
         <div className="scenario-compare-column"><h4>Antes · planta real</h4><p>Dados atuais da residência (somente leitura)</p>
           <div className="scenario-compare-map"><PlanMap rooms={actualRooms} label="planta atual"/></div>
-          <div className="scenario-viewport">{actualRooms.length?<HouseModel rooms={actualRooms} selectedRoomId="" selectedWall="leste" onSelect={()=>{}}/>:<div className="scenario-placeholder">Não há cômodos reais associados a este projeto.</div>}</div>
+          <div className="scenario-viewport">{actualRooms.length?<DeferredView title="Carregando modelo 3D…"><HouseModel rooms={actualRooms} selectedRoomId="" selectedWall="leste" onSelect={()=>{}}/></DeferredView>:<div className="scenario-placeholder">Não há cômodos reais associados a este projeto.</div>}</div>
         </div>
         <div className="scenario-compare-column"><h4>Depois · {scenario.name}</h4><p>Versão independente em planejamento</p>
           <div className="scenario-compare-map"><PlanMap rooms={scenario.rooms} label={scenario.name} furniture={scenario.furniture}/></div>
-          <div className="scenario-viewport">{scenario.rooms.length?<HouseModel rooms={scenario.rooms} furniture={scenario.furniture} selectedRoomId={activeRoomId} selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/>:<div className="scenario-placeholder">Proposta vazia. Adicione espaços antes de visualizar.</div>}</div>
+          <div className="scenario-viewport">{scenario.rooms.length?<DeferredView title="Carregando modelo 3D…"><HouseModel rooms={scenario.rooms} furniture={scenario.furniture} selectedRoomId={activeRoomId} selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/></DeferredView>:<div className="scenario-placeholder">Proposta vazia. Adicione espaços antes de visualizar.</div>}</div>
         </div>
       </div>:<div className="scenario-view-main">
-        <div className="scenario-viewport">{scenario.rooms.length?<HouseModel rooms={scenario.rooms} furniture={scenario.furniture} selectedRoomId={activeRoomId}
-          selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/>
+        <div className="scenario-viewport">{scenario.rooms.length?<DeferredView title="Carregando modelo 3D…"><HouseModel rooms={scenario.rooms} furniture={scenario.furniture} selectedRoomId={activeRoomId}
+          selectedWall={selectedWall} onSelect={(id,wall)=>{setSelectedRoomId(id);setSelectedWall(wall);}}/></DeferredView>
           :<div className="scenario-placeholder"><Layers3 size={30}/>Esta proposta está vazia. Adicione um espaço para começar.</div>}</div>
         <div className="scenario-rooms-panel">
           <div><h4>Espaços da proposta</h4></div>

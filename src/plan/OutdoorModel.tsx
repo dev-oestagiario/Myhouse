@@ -1,3 +1,4 @@
+import {useViewerDpr} from './viewerQuality';
 import {useMemo} from 'react';
 import {Canvas} from '@react-three/fiber';
 import {Edges,OrbitControls} from '@react-three/drei';
@@ -24,8 +25,8 @@ export default function OutdoorModel({area}:{area:ScenarioOutdoorArea}){
   const uz=step?(step.to.z-step.from.z)/step.length:0;
   const sx=step?area.x+(step.from.x+step.to.x)/2:0;
   const sz=step?area.z+(step.from.z+step.to.z)/2:0;
-  return <Canvas camera={{position:[cx+size*1.2,area.level+size+2,cz+size*1.2],fov:43}}
-    dpr={[1,1.6]} gl={{antialias:true}}>
+  return <Canvas frameloop="demand" camera={{position:[cx+size*1.2,area.level+size+2,cz+size*1.2],fov:43}}
+    dpr={useViewerDpr()} gl={{antialias:true}}>
     <color attach="background" args={['#f3f7fc']}/>
     <ambientLight intensity={1.3}/><directionalLight position={[5,12,8]} intensity={1.7}/>
     <gridHelper args={[Math.max(20,size*3),20,'#bdccdc','#dde7f1']}
