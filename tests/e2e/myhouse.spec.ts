@@ -553,6 +553,14 @@ test('F6.5 — móveis planejados no 3D com editor, cores, dimensões e versões
   const originalId=state.data.scenarios[0].furniture[0].id;
   const beforeDrag=state.data.scenarios[0].furniture[0].x;
   const shape=page.locator('.interior-floor-object').first();
+  // Após usar o catálogo, retorne à área visível do mapa antes de simular o arraste.
+  // O cabeçalho fixo e o FAB não podem interceptar o ponto inicial.
+  await shape.evaluate(node=>node.scrollIntoView({block:'center',inline:'center',behavior:'instant' as ScrollBehavior}));
+  await expect.poll(()=>shape.evaluate(node=>{
+    const rect=node.getBoundingClientRect();
+    const hit=document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2);
+    return hit===node||node.contains(hit);
+  })).toBe(true);
   const bounds=await shape.boundingBox();
   if(!bounds)throw new Error('O móvel precisa estar visível na planta 2D');
   await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
