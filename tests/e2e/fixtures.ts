@@ -69,7 +69,7 @@ export async function setupMockSession(page: Page, seed: Snapshot = structuredCl
     await respond(404, { message: 'Mock endpoint não configurado: ' + url.pathname });
   });
   await page.goto('/');
-  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
+  await expect(page.locator('#myhouse-page-content')).toBeVisible();
   return state;
 }
 
