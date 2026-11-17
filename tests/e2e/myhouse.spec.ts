@@ -169,10 +169,11 @@ test('câmera sem ARCore calibra o piso e conserva o polígono confirmado', asyn
 });
 
 
-test('ação Sair fica na área da conta e não polui o cabeçalho', async ({page}) => {
+test('ação Sair fica na área da conta e não polui o cabeçalho', async ({page,isMobile}) => {
   await setupMockSession(page);
   await expect(page.locator('.topbar-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(0);
-  await expect(page.locator('.sidebar-account-actions').getByRole('button',{name:'Sair da conta'})).toHaveCount(1);
+  if(isMobile)await page.getByRole('navigation',{name:'Navegação rápida'}).getByRole('button',{name:'Mais'}).click();
+  await expect(page.locator('.sidebar-account-actions').getByRole('button',{name:'Sair da conta'})).toBeVisible();
 });
 
 test('F6.1 — cria projeto de deck sem cômodo e edita com orçamento e ambiente', async ({ page }) => {
@@ -362,7 +363,7 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   await buy.getByRole('button',{name:'Salvar item'}).click();
   await expect(page.getByRole('heading',{name:'Compras e orçamento'})).toBeVisible();
   await expect(page.getByText('Tinta premium')).toBeVisible();
-  await expect(page.getByText('R$ 159,80').first()).toBeVisible();
+  await expect(page.getByRole('region',{name:'Compras e orçamento do projeto'}).getByText('R$ 159,80').first()).toBeVisible();
   await expect.poll(()=>state.data.purchases.length).toBe(1);
   expect(state.data.purchases[0].taskId).toBe(state.data.workTasks[0].id);
   expect(state.data.purchases[0].projectId).toBe(state.data.projects[0].id);
@@ -372,7 +373,7 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   const edit=page.getByRole('dialog',{name:'Editar compra do projeto'});
   await edit.getByLabel('Preço unitário pago (R$)').fill('75.50');
   await edit.getByRole('button',{name:'Salvar item'}).click();
-  await expect(page.getByText('R$ 151,00').first()).toBeVisible();
+  await expect(page.getByRole('region',{name:'Compras e orçamento do projeto'}).getByText('R$ 151,00').first()).toBeVisible();
   await page.getByLabel('Reserva para imprevistos (%)').fill('10');
   await page.getByRole('button',{name:'Aplicar reserva'}).click();
   await expect(page.getByText('R$ 15,98')).toBeVisible();
@@ -388,7 +389,7 @@ test('F6.3 — compra vinculada e orçamento consolidado sem duplicar lista glob
   await labor.getByLabel('Custo previsto (R$)').fill('200,00');
   await labor.getByLabel('Custo efetivamente pago (R$)').fill('180,00');
   await labor.getByRole('button',{name:'Salvar custos'}).click();
-  await expect(page.getByText('R$ 331,00').first()).toBeVisible();
+  await expect(page.getByRole('region',{name:'Compras e orçamento do projeto'}).getByText('R$ 331,00').first()).toBeVisible();
   await expect.poll(()=>state.data.purchases[0].quotes?.length).toBe(1);
   await navigate(page,'Lista de compras');
   await expect(page.getByText('Tinta premium')).toBeVisible();
