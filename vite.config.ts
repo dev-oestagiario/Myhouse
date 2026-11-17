@@ -16,7 +16,7 @@ function mobileEntryBudget():Plugin{
         bytes+=Buffer.byteLength(chunk.code);
         gzipBytes+=gzipSync(chunk.code).byteLength;
         for(const id of Object.keys(chunk.modules)){
-          if(/(?:node_modules\/(?:three\/|@react-three\/)|\/scan\/(?:RoomScanPreview|GuidedRoomScan|LiveCameraPreview)\.tsx$)/.test(id.replaceAll('\\','/')))heavy.push(id);
+          if(/(?:node_modules\/(?:three\/|@react-three\/)|\/scan\/(?:RoomScanPreview|GuidedRoomScan|LiveCameraPreview)\.tsx$)/.test(id.split('\\').join('/')))heavy.push(id);
         }
         for(const ref of chunk.imports)walk(ref);
       };
