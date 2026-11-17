@@ -109,3 +109,5 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
       - name: Simular a migração V1 para V2 e rejeição de documentos inválidos
         run: psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-v2-migration.sql
+      - name: Testar isolamento Storage com duas identidades sintéticas
+        run: psql -X -v ON_ERROR_STOP=1 -f database/tests/verify-storage-rls.sql
